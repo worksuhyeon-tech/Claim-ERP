@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Claim 조치대상 관리 | CLAIM ERP</title>
+<style>
+  :root {
+    --bg: #F6F8FB;
+    --card: #FFFFFF;
+    --line: #E6EAF2;
+    --line-strong: #D4DAE6;
+    --text: #1B2430;
+    --text-sub: #5B6678;
+    --text-dim: #8A94A6;
+    --blue: #2563EB;
+    --blue-dark: #1D4ED8;
+    --blue-soft: #EFF6FF;
+    --blue-line: #BFDBFE;
+    --red: #DC2626;
+    --red-soft: #FEE2E2;
+    --amber: #B45309;
+    --amber-soft: #FEF3C7;
+    --green: #15803D;
+    --green-soft: #DCFCE7;
+    --shadow: 0 1px 2px rgba(16, 30, 54, .04), 0 6px 20px rgba(16, 30, 54, .06);
+    --radius: 14px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Pretendard", "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+  b, strong { font-weight: 700; }
+
+  /* ---------- 상단 글로벌 바 ---------- */
+  .topbar {
+    background: var(--card);
+    border-bottom: 1px solid var(--line);
+    padding: 0 28px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand-mark {
+    width: 30px; height: 30px; border-radius: 9px;
+    background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+    display: flex; align-items: center; justify-content: center;
+    color: #fff; font-weight: 800; font-size: 14px;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, .35);
+  }
+  .brand-name { font-weight: 800; font-size: 16px; letter-spacing: .2px; }
+  .brand-name span { color: var(--blue); }
+  .brand-tag {
+    margin-left: 6px;
+    font-size: 11px; font-weight: 600; color: var(--blue);
+    background: var(--blue-soft); border: 1px solid var(--blue-line);
+    border-radius: 99px; padding: 2px 9px;
+  }
+  .topbar-right { display: flex; align-items: center; gap: 14px; color: var(--text-sub); font-size: 13px; }
+  .user-chip { display: flex; align-items: center; gap: 8px; padding: 5px 12px 5px 6px; border: 1px solid var(--line); border-radius: 99px; background: #fff; }
+  .avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--blue-soft); color: var(--blue);
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 12px;
+  }
+
+  /* ---------- 레이아웃 ---------- */
+  .container { max-width: 1640px; margin: 0 auto; padding: 24px 28px 40px; }
+
+  .page-head { margin-bottom: 18px; }
+  .page-head h1 { font-size: 24px; font-weight: 800; letter-spacing: -.3px; }
+  .page-head p { color: var(--text-sub); margin-top: 4px; font-size: 14px; }
+
+  /* ---------- 요약 카드 ---------- */
+  .summary-cards {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 14px;
+  }
+  .sum-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 18px 20px 16px;
+    position: relative;
+    overflow: hidden;
+  }
+  .sum-card::before {
+    content: "";
+    position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+    background: var(--accent, var(--blue));
+    border-radius: 4px 0 0 4px;
+  }
+  .sum-label { font-size: 13px; font-weight: 600; color: var(--text-sub); }
+  .sum-value { font-size: 30px; font-weight: 800; letter-spacing: -.5px; margin: 4px 0 2px; }
+  .sum-value small { font-size: 16px; font-weight: 700; color: var(--text-sub); margin-left: 2px; }
+  .sum-desc { font-size: 12px; color: var(--text-dim); }
+
+  /* ---------- 성과 지표 라인 ---------- */
+  .kpi-line {
+    margin: 12px 2px 20px;
+    font-size: 12.5px;
+    color: var(--text-dim);
+    display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  }
+  .kpi-line b { color: var(--text-sub); font-weight: 700; }
+  .kpi-dot { color: var(--line-strong); }
+  .tip-wrap { position: relative; cursor: help; border-bottom: 1px dashed var(--line-strong); }
+  .tip-wrap .tip {
+    display: none;
+    position: absolute; left: 0; bottom: calc(100% + 8px);
+    background: #1B2430; color: #fff;
+    font-size: 11.5px; white-space: nowrap;
+    padding: 6px 10px; border-radius: 8px;
+    box-shadow: 0 6px 18px rgba(16, 30, 54, .25);
+    z-index: 30;
+  }
+  .tip-wrap:hover .tip { display: block; }
+
+  /* ---------- 본문 3단 ---------- */
+  .workspace {
+    display: grid;
+    grid-template-columns: 230px minmax(0, 1fr) 378px;
+    gap: 16px;
+    align-items: start;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  /* ---------- 좌측 탭 ---------- */
+  .tabs { padding: 12px 10px; position: sticky; top: 76px; }
+  .tabs-title { font-size: 12px; font-weight: 700; color: var(--text-dim); padding: 4px 10px 10px; letter-spacing: .3px; }
+  .tab {
+    display: flex; align-items: center; gap: 10px;
+    width: 100%; text-align: left;
+    border: none; background: transparent;
+    font: inherit; color: var(--text-sub); font-weight: 600;
+    padding: 10px 10px; border-radius: 10px;
+    cursor: pointer;
+    transition: background .12s ease;
+  }
+  .tab + .tab { margin-top: 2px; }
+  .tab:hover { background: #F2F5FA; }
+  .tab.active { background: var(--blue-soft); color: var(--blue-dark); }
+  .tab .ic {
+    width: 28px; height: 28px; border-radius: 8px; flex: none;
+    background: #F2F5FA; color: var(--text-dim);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tab.active .ic { background: #DBEAFE; color: var(--blue); }
+  .tab .ic svg { width: 15px; height: 15px; }
+  .tab .t-label { flex: 1; font-size: 13.5px; }
+  .tab .t-count {
+    min-width: 24px; height: 21px; padding: 0 7px;
+    border-radius: 99px; background: #EEF1F6; color: var(--text-sub);
+    font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .tab.active .t-count { background: var(--blue); color: #fff; }
+
+  /* ---------- 중앙 리스트 ---------- */
+  .list-card { display: flex; flex-direction: column; min-height: 540px; }
+  .list-head {
+    padding: 16px 20px 12px;
+    display: flex; align-items: baseline; gap: 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  .list-head h2 { font-size: 16px; font-weight: 800; }
+  .list-head .count { font-size: 13px; color: var(--text-dim); }
+  .list-head .hint { margin-left: auto; font-size: 12px; color: var(--text-dim); }
+
+  .thead, .row {
+    display: grid;
+    grid-template-columns: 64px 122px 76px 92px minmax(78px, 1fr) 96px 64px 70px;
+    gap: 8px;
+    align-items: center;
+    padding: 0 16px;
+  }
+  .thead {
+    padding-top: 10px; padding-bottom: 8px;
+    font-size: 11.5px; font-weight: 700; color: var(--text-dim);
+    border-bottom: 1px solid var(--line);
+    letter-spacing: .2px;
+  }
+  .rows { overflow-y: auto; max-height: 600px; }
+  .row {
+    padding-top: 12px; padding-bottom: 12px;
+    border-bottom: 1px solid #F0F3F8;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background .1s ease;
+    border-left: 3px solid transparent;
+  }
+  .row:hover { background: #F8FAFD; }
+  .row.selected { background: var(--blue-soft); border-left-color: var(--blue); }
+  .row .cid { font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+  .row.selected .cid { color: var(--blue-dark); }
+  .row .cname { font-weight: 600; }
+  .row .cmuted { color: var(--text-sub); }
+  .row .cdim { color: var(--text-dim); font-size: 12.5px; }
+  .rows-empty { padding: 40px; text-align: center; color: var(--text-dim); }
+
+  /* ---------- 뱃지 ---------- */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11.5px; font-weight: 700;
+    padding: 3px 9px; border-radius: 99px;
+    white-space: nowrap;
+  }
+  .badge::before { content: ""; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .badge.u-urgent { background: var(--red-soft); color: var(--red); }
+  .badge.u-warn   { background: var(--amber-soft); color: var(--amber); }
+  .badge.u-normal { background: var(--green-soft); color: var(--green); }
+  .badge.s-todo   { background: #F1F5F9; color: #475569; }
+  .badge.s-doing  { background: var(--blue-soft); color: var(--blue); }
+  .badge.s-done   { background: var(--green-soft); color: var(--green); }
+  .badge.s-hold   { background: var(--amber-soft); color: var(--amber); }
+
+  /* ---------- 우측 패널 ---------- */
+  .panel { position: sticky; top: 76px; display: flex; flex-direction: column; }
+  .panel-head {
+    padding: 16px 20px 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .panel-head .ph-top { display: flex; align-items: center; gap: 8px; }
+  .panel-head .pid { font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .panel-head .ph-sub { margin-top: 4px; font-size: 13px; color: var(--text-sub); }
+  .panel-head.urgent { background: linear-gradient(180deg, #FFF5F5, #fff); }
+
+  .panel-body { padding: 16px 20px; }
+  .sec-title { font-size: 12px; font-weight: 800; color: var(--text-dim); letter-spacing: .4px; margin-bottom: 8px; }
+  .sec { margin-bottom: 18px; }
+
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 14px; }
+  .info-item .k { font-size: 11.5px; color: var(--text-dim); }
+  .info-item .v { font-size: 13px; font-weight: 600; margin-top: 1px; }
+  .info-item .v.red { color: var(--red); }
+
+  .need-box {
+    background: var(--blue-soft);
+    border: 1px solid var(--blue-line);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 13px; font-weight: 600; color: #1E3A8A;
+    line-height: 1.55;
+  }
+  .need-box.urgent { background: #FFF5F5; border-color: #FECACA; color: #991B1B; }
+
+  .extra-list { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .extra-row {
+    display: flex; justify-content: space-between; gap: 12px;
+    padding: 9px 14px; font-size: 13px;
+  }
+  .extra-row + .extra-row { border-top: 1px solid #F0F3F8; }
+  .extra-row .k { color: var(--text-dim); flex: none; }
+  .extra-row .v { font-weight: 600; text-align: right; }
+  .extra-row .v.red { color: var(--red); }
+  .extra-row .v.dim { color: var(--text-dim); font-weight: 500; }
+
+  .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .btn {
+    font: inherit; font-size: 13px; font-weight: 700;
+    padding: 10px 8px; border-radius: 10px;
+    cursor: pointer;
+    border: 1px solid var(--line-strong);
+    background: #fff; color: var(--text-sub);
+    transition: all .12s ease;
+  }
+  .btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary { background: var(--blue); border-color: var(--blue); color: #fff; box-shadow: 0 2px 8px rgba(37, 99, 235, .3); }
+  .btn.primary:hover { background: var(--blue-dark); border-color: var(--blue-dark); color: #fff; }
+  .btn.alert { border-color: #FCA5A5; color: var(--red); background: #FFF7F7; }
+  .btn.alert:hover { background: var(--red-soft); border-color: var(--red); }
+
+  .memo {
+    width: 100%; resize: vertical; min-height: 72px;
+    font: inherit; font-size: 13px;
+    border: 1px solid var(--line-strong); border-radius: 10px;
+    padding: 10px 12px; color: var(--text);
+    background: #FBFCFE;
+  }
+  .memo:focus { outline: 2px solid var(--blue-line); border-color: var(--blue); background: #fff; }
+
+  .panel-foot { padding: 0 20px 20px; }
+  .btn-complete {
+    width: 100%; font: inherit; font-size: 14.5px; font-weight: 800;
+    padding: 13px; border-radius: 12px; border: none; cursor: pointer;
+    background: var(--blue); color: #fff;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, .35);
+    transition: all .12s ease;
+  }
+  .btn-complete:hover { background: var(--blue-dark); }
+  .btn-complete:disabled { background: #C9D4E8; box-shadow: none; cursor: default; }
+  .panel-empty { padding: 60px 20px; text-align: center; color: var(--text-dim); }
+
+  /* ---------- 토스트 ---------- */
+  .toast-wrap {
+    position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+    display: flex; flex-direction: column; gap: 8px; align-items: center;
+    z-index: 100;
+  }
+  .toast {
+    background: #1B2430; color: #fff;
+    font-size: 13.5px; font-weight: 600;
+    padding: 12px 22px; border-radius: 99px;
+    box-shadow: 0 8px 24px rgba(16, 30, 54, .3);
+    display: flex; align-items: center; gap: 9px;
+    animation: toast-in .22s ease;
+  }
+  .toast.out { animation: toast-out .25s ease forwards; }
+  .toast .tk {
+    width: 18px; height: 18px; border-radius: 50%; flex: none;
+    background: var(--blue);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .toast .tk svg { width: 10px; height: 10px; }
+  @keyframes toast-in  { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  @keyframes toast-out { from { opacity: 1; } to { opacity: 0; transform: translateY(8px); } }
+
+  /* ---------- 푸터 ---------- */
+  .page-foot {
+    margin-top: 22px; text-align: center;
+    font-size: 12px; color: var(--text-dim);
+  }
+  .page-foot b { color: var(--text-sub); }
+
+  /* ---------- 반응형 ---------- */
+  @media (max-width: 1360px) {
+    .thead, .row { grid-template-columns: 60px 116px 70px 88px minmax(70px, 1fr) 90px 56px 66px; font-size: 12.5px; }
+  }
+  @media (max-width: 1180px) {
+    .workspace { grid-template-columns: 210px minmax(0, 1fr); }
+    .panel { grid-column: 1 / -1; position: static; }
+    .summary-cards { grid-template-columns: repeat(5, 1fr); }
+  }
+  @media (max-width: 920px) {
+    .workspace { grid-template-columns: 1fr; }
+    .tabs { position: static; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+    .tabs-title { grid-column: 1 / -1; }
+    .summary-cards { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark">C</div>
+    <div class="brand-name">CLAIM <span>ERP</span></div>
+    <div class="brand-tag">Claim 운영센터</div>
+  </div>
+  <div class="topbar-right">
+    <span id="todayLabel"></span>
+    <div class="user-chip">
+      <div class="avatar">박</div>
+      <span><b>박지현</b> 매니저 · Claim운영1팀</span>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+
+  <section class="page-head">
+    <h1>Claim 조치대상 관리</h1>
+    <p>오늘 처리해야 할 사고 Claim을 확인하고 바로 조치하세요.</p>
+  </section>
+
+  <section class="summary-cards" id="summaryCards"></section>
+
+  <div class="kpi-line" id="kpiLine">
+    <span>오늘 발생 <b>18건</b></span><span class="kpi-dot">·</span>
+    <span>면책 <b>3건</b></span><span class="kpi-dot">·</span>
+    <span>종결 <b>12건</b></span><span class="kpi-dot">·</span>
+    <span class="tip-wrap">평균 리드타임 <b>2.8일</b>
+      <span class="tip">접수일부터 종결일까지 평균 소요일</span>
+    </span>
+  </div>
+
+  <section class="workspace">
+
+    <aside class="tabs card" id="tabList" aria-label="조치유형">
+      <div class="tabs-title">조치유형</div>
+    </aside>
+
+    <section class="list-card card">
+      <div class="list-head">
+        <h2 id="listTitle">고객 미응답</h2>
+        <span class="count" id="listCount"></span>
+        <span class="hint">행을 클릭하면 우측에서 바로 조치할 수 있습니다</span>
+      </div>
+      <div class="thead">
+        <div>긴급도</div><div>사고번호</div><div>고객명</div><div>차량번호</div>
+        <div>현재상태</div><div>경과시간</div><div>담당자</div><div>처리상태</div>
+      </div>
+      <div class="rows" id="rows"></div>
+    </section>
+
+    <aside class="panel card" id="panel" aria-label="빠른 처리"></aside>
+
+  </section>
+
+  <footer class="page-foot">
+    CLAIM ERP <b>Standard</b> 데모 화면입니다 · <b>Pro / Max</b> 버전에서 자동 알림, 정산 자동화, 렌탈 ERP 연동 기능이 제공됩니다.
+  </footer>
+
+</main>
+
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+"use strict";
+
+/* ===================== 더미 데이터 ===================== */
+/* 공통 필드 + 조치유형별 추가정보(extra) */
+const CLAIMS = [
+  /* ---- 고객 미응답 (7) ---- */
+  { id:"CLM-2026-0001", name:"김민수", car:"12하3456", custType:"SK렌터카 장기렌탈 고객",
+    actionType:"고객 미응답", status:"계약 조사", urgency:"주의", elapsed:"6시간 20분", manager:"박지현", procStatus:"미처리",
+    actionDesc:"운전자 인적사항 및 면허번호 입력 요청 후 미응답",
+    extra:{ "요청항목":"운전자 정보/면허번호", "최초 발송시간":"2026-06-12 09:10", "재발송 횟수":"1회", "마지막 접속시간":"미접속" } },
+  { id:"CLM-2026-0007", name:"배수빈", car:"45하2233", custType:"SK렌터카 장기렌탈 고객",
+    actionType:"고객 미응답", status:"계약 조사", urgency:"긴급", elapsed:"9시간 30분", manager:"박지현", procStatus:"미처리",
+    actionDesc:"운전자 범위 확인 및 계약조건 확인 요청 후 미응답",
+    extra:{ "요청항목":"운전자 범위/계약조건 확인", "최초 발송시간":"2026-06-12 07:50", "재발송 횟수":"2회", "마지막 접속시간":"2026-06-12 08:20" } },
+  { id:"CLM-2026-0013", name:"조민혁", car:"47너8253", custType:"개인 렌탈 고객",
+    actionType:"고객 미응답", status:"계약 조사", urgency:"정상", elapsed:"2시간 45분", manager:"박지현", procStatus:"미처리",
+    actionDesc:"운전자 면허번호 재확인 요청 후 미응답",
+    extra:{ "요청항목":"면허번호 재확인", "최초 발송시간":"2026-06-12 11:05", "재발송 횟수":"0회", "마지막 접속시간":"2026-06-12 11:30" } },
+  { id:"CLM-2026-0014", name:"서지우", car:"31두5147", custType:"SK렌터카 장기렌탈 고객",
+    actionType:"고객 미응답", status:"계약 조사", urgency:"주의", elapsed:"5시간 10분", manager:"최도윤", procStatus:"처리중",
+    actionDesc:"사고 당시 실운전자 확인 요청 후 미응답",
+    extra:{ "요청항목":"실운전자 확인", "최초 발송시간":"2026-06-12 08:55", "재발송 횟수":"1회", "마지막 접속시간":"미접속" } },
+  { id:"CLM-2026-0015", name:"황민서", car:"62루1428", custType:"법인 플릿 고객",
+    actionType:"고객 미응답", status:"계약 조사", urgency:"정상", elapsed:"1시간 50분", manager:"박지현", procStatus:"미처리",
+    actionDesc:"계약자/운전자 관계 확인 요청 후 미응답",
+    extra:{ "요청항목":"계약자 관계 확인", "최초 발송시간":"2026-06-12 12:00", "재발송 횟수":"0회", "마지막 접속시간":"2026-06-12 12:05" } },
+  { id:"CLM-2026-0016", name:"노아인", car:"19모7765", custType:"카셰어링 고객",
+    actionType:"고객 미응답", status:"계약 조사", urgency:"주의", elapsed:"8시간 05분", manager:"김하늘", procStatus:"미처리",
+    actionDesc:"면책 약관 동의 확인 요청 후 미응답",
+    extra:{ "요청항목":"약관 동의 확인", "최초 발송시간":"2026-06-12 06:00", "재발송 횟수":"2회", "마지막 접속시간":"미접속" } },
+  { id:"CLM-2026-0017", name:"류현빈", car:"84버3391", custType:"SK렌터카 장기렌탈 고객",
+    actionType:"고객 미응답", status:"계약 조사", urgency:"정상", elapsed:"3시간 30분", manager:"최도윤", procStatus:"미처리",
+    actionDesc:"운전자 인적사항 입력 요청 후 미응답",
+    extra:{ "요청항목":"운전자 정보", "최초 발송시간":"2026-06-12 10:20", "재발송 횟수":"1회", "마지막 접속시간":"2026-06-12 10:40" } },
+
+  /* ---- 고객 연락요청 (4) ---- */
+  { id:"CLM-2026-0002", name:"이서연", car:"34허7821", custType:"법인 플릿 고객",
+    actionType:"고객 연락요청", status:"사고 접수", urgency:"긴급", elapsed:"1시간 05분", manager:"최도윤", procStatus:"미처리",
+    actionDesc:"고객이 수리방식 문의로 담당자 연락을 요청함",
+    extra:{ "요청내용":"자차수리 진행 여부 문의", "요청시간":"2026-06-12 10:15", "고객 감정상태":"문의", "민원위험 여부":"낮음" } },
+  { id:"CLM-2026-0012", name:"남기준", car:"33호1212", custType:"카셰어링 고객",
+    actionType:"고객 연락요청", status:"수리 상담", urgency:"긴급", elapsed:"35분", manager:"문태호", procStatus:"미처리",
+    actionDesc:"고객이 수리 지연 불만으로 담당자 연락을 요청함",
+    extra:{ "요청내용":"수리 지연 및 대차 연장 문의", "요청시간":"2026-06-12 13:20", "고객 감정상태":"불만", "민원위험 여부":"높음" } },
+  { id:"CLM-2026-0018", name:"김다온", car:"53소2284", custType:"개인 렌탈 고객",
+    actionType:"고객 연락요청", status:"사고 접수", urgency:"주의", elapsed:"2시간 15분", manager:"문태호", procStatus:"미처리",
+    actionDesc:"고객이 대차 가능 여부 문의로 담당자 연락을 요청함",
+    extra:{ "요청내용":"대차 차량 배정 문의", "요청시간":"2026-06-12 11:40", "고객 감정상태":"문의", "민원위험 여부":"낮음" } },
+  { id:"CLM-2026-0019", name:"박서윤", car:"26우6512", custType:"법인 플릿 고객",
+    actionType:"고객 연락요청", status:"견적 안내", urgency:"정상", elapsed:"50분", manager:"최도윤", procStatus:"처리중",
+    actionDesc:"고객이 수리 견적 내역 설명을 요청함",
+    extra:{ "요청내용":"견적 상세 설명 요청", "요청시간":"2026-06-12 13:05", "고객 감정상태":"보통", "민원위험 여부":"중간" } },
+
+  /* ---- 사진 미등록 (5) ---- */
+  { id:"CLM-2026-0003", name:"정우진", car:"56호9012", custType:"개인 렌탈 고객",
+    actionType:"사진 미등록", status:"사진 대기", urgency:"정상", elapsed:"4시간 40분", manager:"김하늘", procStatus:"처리중",
+    actionDesc:"파손부위 근접사진과 차량 전체사진이 미등록됨",
+    extra:{ "필요사진":"차량 전체사진, 파손부위 근접사진, 번호판 사진", "등록된 사진 수":"1장", "부족사진":"2장", "요청시간":"2026-06-12 08:40" } },
+  { id:"CLM-2026-0009", name:"송예린", car:"89바3344", custType:"개인 렌탈 고객",
+    actionType:"사진 미등록", status:"사고 조사", urgency:"주의", elapsed:"5시간 50분", manager:"김하늘", procStatus:"미처리",
+    actionDesc:"사고현장 사진과 계기판 사진이 미등록됨",
+    extra:{ "필요사진":"사고현장 사진, 계기판 사진", "등록된 사진 수":"0장", "부족사진":"2장", "요청시간":"2026-06-12 09:00" } },
+  { id:"CLM-2026-0020", name:"이준호", car:"71자9034", custType:"카셰어링 고객",
+    actionType:"사진 미등록", status:"사진 대기", urgency:"정상", elapsed:"3시간 05분", manager:"김하늘", procStatus:"미처리",
+    actionDesc:"차량 전체사진이 미등록됨",
+    extra:{ "필요사진":"차량 전체사진", "등록된 사진 수":"2장", "부족사진":"1장", "요청시간":"2026-06-12 10:50" } },
+  { id:"CLM-2026-0021", name:"정하람", car:"38조4470", custType:"SK렌터카 장기렌탈 고객",
+    actionType:"사진 미등록", status:"사진 대기", urgency:"주의", elapsed:"7시간 25분", manager:"김하늘", procStatus:"처리중",
+    actionDesc:"파손부위 근접사진과 번호판 사진이 미등록됨",
+    extra:{ "필요사진":"파손부위 근접사진, 번호판 사진", "등록된 사진 수":"1장", "부족사진":"2장", "요청시간":"2026-06-12 06:40" } },
+  { id:"CLM-2026-0022", name:"최서아", car:"95고1182", custType:"개인 렌탈 고객",
+    actionType:"사진 미등록", status:"사진 대기", urgency:"긴급", elapsed:"11시간 40분", manager:"박지현", procStatus:"미처리",
+    actionDesc:"사고현장 사진 전체가 미등록되어 사고 조사가 지연됨",
+    extra:{ "필요사진":"사고현장 사진, 차량 전체사진, 계기판 사진", "등록된 사진 수":"0장", "부족사진":"3장", "요청시간":"2026-06-12 02:30" } },
+
+  /* ---- 업체 미회신 (6) ---- */
+  { id:"CLM-2026-0004", name:"박지훈", car:"78바1123", custType:"SK렌터카 장기렌탈 고객",
+    actionType:"업체 미회신", status:"견적 대기", urgency:"주의", elapsed:"7시간 10분", manager:"오세린", procStatus:"미처리",
+    actionDesc:"정비업체에 견적 등록 요청 후 6시간 이상 미회신",
+    extra:{ "업체명":"강남오토서비스", "요청유형":"견적등록", "요청시간":"2026-06-12 08:30", "회신기한":"2026-06-12 14:30" } },
+  { id:"CLM-2026-0008", name:"윤태준", car:"67호8844", custType:"법인 플릿 고객",
+    actionType:"업체 미회신", status:"입고 확인", urgency:"정상", elapsed:"3시간 15분", manager:"최도윤", procStatus:"미처리",
+    actionDesc:"정비업체 입고확인 요청 후 회신 대기",
+    extra:{ "업체명":"판교프리미엄모터스", "요청유형":"입고확인", "요청시간":"2026-06-12 11:00", "회신기한":"2026-06-12 16:00" } },
+  { id:"CLM-2026-0023", name:"강시우", car:"14노5521", custType:"법인 플릿 고객",
+    actionType:"업체 미회신", status:"견적 대기", urgency:"긴급", elapsed:"9시간 15분", manager:"오세린", procStatus:"미처리",
+    actionDesc:"정비업체 견적 등록 요청 후 9시간 이상 미회신",
+    extra:{ "업체명":"성수카센터프로", "요청유형":"견적등록", "요청시간":"2026-06-12 05:00", "회신기한":"2026-06-12 12:00" } },
+  { id:"CLM-2026-0024", name:"윤지호", car:"58도8810", custType:"SK렌터카 장기렌탈 고객",
+    actionType:"업체 미회신", status:"입고 확인", urgency:"정상", elapsed:"1시간 35분", manager:"최도윤", procStatus:"미처리",
+    actionDesc:"정비업체 입고확인 요청 후 회신 대기",
+    extra:{ "업체명":"일산오토케어", "요청유형":"입고확인", "요청시간":"2026-06-12 12:40", "회신기한":"2026-06-12 17:00" } },
+  { id:"CLM-2026-0025", name:"임채원", car:"42로3356", custType:"카셰어링 고객",
+    actionType:"업체 미회신", status:"견적 대기", urgency:"주의", elapsed:"5시간 55분", manager:"오세린", procStatus:"처리중",
+    actionDesc:"추가 견적 항목 확인 요청 후 미회신",
+    extra:{ "업체명":"대전모터스월드", "요청유형":"견적수정", "요청시간":"2026-06-12 08:20", "회신기한":"2026-06-12 15:00" } },
+  { id:"CLM-2026-0026", name:"한지안", car:"77보6643", custType:"법인 플릿 고객",
+    actionType:"업체 미회신", status:"입고 확인", urgency:"정상", elapsed:"4시간 10분", manager:"오세린", procStatus:"완료",
+    actionDesc:"정비업체 입고확인 회신 수신 완료 — 종결 처리됨",
+    extra:{ "업체명":"판교프리미엄모터스", "요청유형":"입고확인", "요청시간":"2026-06-12 10:00", "회신기한":"2026-06-12 16:00" } },
+
+  /* ---- 입고/수리 지연 (5) ---- */
+  { id:"CLM-2026-0005", name:"한유나", car:"90하4455", custType:"법인 플릿 고객",
+    actionType:"입고/수리 지연", status:"출고 대기", urgency:"긴급", elapsed:"2일 3시간", manager:"문태호", procStatus:"미처리",
+    actionDesc:"출고예정일 초과 후 정비업체 출고확인 미회신",
+    extra:{ "정비업체":"수원모빌리티정비", "예정일":"2026-06-10", "실제상태":"출고 대기", "지연일수":"2일" } },
+  { id:"CLM-2026-0010", name:"임재민", car:"11허5566", custType:"SK렌터카 장기렌탈 고객",
+    actionType:"입고/수리 지연", status:"부품 대기", urgency:"주의", elapsed:"3일 1시간", manager:"오세린", procStatus:"보류",
+    actionDesc:"부품 대기로 수리기간이 예상보다 지연됨",
+    extra:{ "정비업체":"인천스마트정비센터", "예정일":"2026-06-09", "실제상태":"부품 대기", "지연일수":"3일" } },
+  { id:"CLM-2026-0027", name:"오도현", car:"29수9917", custType:"SK렌터카 장기렌탈 고객",
+    actionType:"입고/수리 지연", status:"수리 중", urgency:"주의", elapsed:"1일 6시간", manager:"문태호", procStatus:"미처리",
+    actionDesc:"수리 완료 예정일 초과 후 진행상황 미회신",
+    extra:{ "정비업체":"구리종합정비", "예정일":"2026-06-11", "실제상태":"수리 중", "지연일수":"1일" } },
+  { id:"CLM-2026-0028", name:"신유진", car:"66어2208", custType:"법인 플릿 고객",
+    actionType:"입고/수리 지연", status:"출고 대기", urgency:"긴급", elapsed:"3일 4시간", manager:"문태호", procStatus:"미처리",
+    actionDesc:"출고예정일 3일 초과 — 고객 불만 접수 위험",
+    extra:{ "정비업체":"수원모빌리티정비", "예정일":"2026-06-09", "실제상태":"출고 대기", "지연일수":"3일" } },
+  { id:"CLM-2026-0029", name:"백승호", car:"81저7745", custType:"개인 렌탈 고객",
+    actionType:"입고/수리 지연", status:"부품 대기", urgency:"정상", elapsed:"1일 1시간", manager:"오세린", procStatus:"처리중",
+    actionDesc:"수입 부품 수급 지연으로 수리 일정 조정 필요",
+    extra:{ "정비업체":"인천스마트정비센터", "예정일":"2026-06-11", "실제상태":"부품 대기", "지연일수":"1일" } },
+
+  /* ---- 정산 대기 (6) ---- */
+  { id:"CLM-2026-0006", name:"강도현", car:"23허6789", custType:"카셰어링 고객",
+    actionType:"정산 대기", status:"정산 대기", urgency:"정상", elapsed:"1일 4시간", manager:"유나래", procStatus:"처리중",
+    actionDesc:"수리비 승인 완료 후 고객사 청구 처리가 필요함",
+    extra:{ "비용항목":"수리비", "예상금액":"1,280,000원", "정산대상":"SK렌탈 법인계정", "승인상태":"승인완료" } },
+  { id:"CLM-2026-0011", name:"차은별", car:"22하9900", custType:"법인 플릿 고객",
+    actionType:"정산 대기", status:"청구 대기", urgency:"주의", elapsed:"2일 6시간", manager:"유나래", procStatus:"미처리",
+    actionDesc:"휴차손해 비용 산정 후 고객사 청구 필요",
+    extra:{ "비용항목":"휴차손해", "예상금액":"430,000원", "정산대상":"법인 고객사", "승인상태":"승인대기" } },
+  { id:"CLM-2026-0030", name:"장하늘", car:"36처4419", custType:"SK렌터카 장기렌탈 고객",
+    actionType:"정산 대기", status:"정산 대기", urgency:"주의", elapsed:"1일 8시간", manager:"유나래", procStatus:"미처리",
+    actionDesc:"면책금 수납 확인 후 정산 마감 필요",
+    extra:{ "비용항목":"면책금", "예상금액":"300,000원", "정산대상":"SK렌탈 법인계정", "승인상태":"승인완료" } },
+  { id:"CLM-2026-0031", name:"송민재", car:"92카8873", custType:"법인 플릿 고객",
+    actionType:"정산 대기", status:"비용 등록", urgency:"정상", elapsed:"6시간 30분", manager:"유나래", procStatus:"처리중",
+    actionDesc:"정비업체 청구서 수령 후 비용 등록 필요",
+    extra:{ "비용항목":"수리비", "예상금액":"2,150,000원", "정산대상":"법인 고객사", "승인상태":"등록대기" } },
+  { id:"CLM-2026-0032", name:"안소율", car:"15타3160", custType:"카셰어링 고객",
+    actionType:"정산 대기", status:"승인 대기", urgency:"정상", elapsed:"4시간 45분", manager:"유나래", procStatus:"미처리",
+    actionDesc:"감가손해 비용 산정 후 내부 승인 필요",
+    extra:{ "비용항목":"감가손해", "예상금액":"560,000원", "정산대상":"SK렌탈 법인계정", "승인상태":"승인대기" } },
+  { id:"CLM-2026-0033", name:"권나윤", car:"64파5528", custType:"개인 렌탈 고객",
+    actionType:"정산 대기", status:"청구 대기", urgency:"주의", elapsed:"2일 2시간", manager:"유나래", procStatus:"미처리",
+    actionDesc:"자기부담금 청구 처리 필요",
+    extra:{ "비용항목":"자기부담금", "예상금액":"250,000원", "정산대상":"개인 고객", "승인상태":"승인완료" } }
+];
+
+/* ===================== 조치유형별 설정 (버튼/토스트) ===================== */
+const ICONS = {
+  noReply:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.6 8.6 0 0 1-3.8-.9L3 21l2-5.2a8.4 8.4 0 1 1 16-4.3z"/></svg>',
+  callback: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 2.8a2 2 0 0 1-.4 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.9.6 2.8.7a2 2 0 0 1 1.7 2z"/></svg>',
+  photo:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>',
+  shop:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg>',
+  delay:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>',
+  settle:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/></svg>'
+};
+
+const TYPE_CONFIG = {
+  "고객 미응답": { icon: ICONS.noReply,
+    buttons: [
+      { label:"알림 재발송",   kind:"primary", toast:"알림 재발송이 완료되었습니다." },
+      { label:"고객 전화",     kind:"normal",  toast:"고객 전화 연결을 시작합니다." },
+      { label:"요청항목 수정", kind:"normal",  toast:"요청항목이 수정되었습니다." },
+      { label:"보류 처리",     kind:"normal",  toast:"해당 건이 보류 처리되었습니다.", action:"hold" }
+    ] },
+  "고객 연락요청": { icon: ICONS.callback,
+    buttons: [
+      { label:"고객 전화",       kind:"primary", toast:"고객 전화 연결을 시작합니다." },
+      { label:"상담메모 등록",   kind:"normal",  toast:"상담메모가 등록되었습니다." },
+      { label:"처리완료",        kind:"normal",  toast:"처리완료로 변경되었습니다.", action:"complete" },
+      { label:"관리자 확인요청", kind:"alert",   toast:"관리자에게 확인요청을 전송했습니다." }
+    ] },
+  "사진 미등록": { icon: ICONS.photo,
+    buttons: [
+      { label:"사진요청 재발송", kind:"primary", toast:"사진요청 알림을 재발송했습니다." },
+      { label:"고객 전화",       kind:"normal",  toast:"고객 전화 연결을 시작합니다." },
+      { label:"사진 직접등록",   kind:"normal",  toast:"사진 직접등록이 완료되었습니다." },
+      { label:"보류 처리",       kind:"normal",  toast:"해당 건이 보류 처리되었습니다.", action:"hold" }
+    ] },
+  "업체 미회신": { icon: ICONS.shop,
+    buttons: [
+      { label:"업체 재요청",     kind:"primary", toast:"정비업체에 재요청을 발송했습니다." },
+      { label:"업체 전화",       kind:"normal",  toast:"정비업체 전화 연결을 시작합니다." },
+      { label:"업체 변경",       kind:"normal",  toast:"업체 변경 요청이 접수되었습니다." },
+      { label:"관리자 확인요청", kind:"alert",   toast:"관리자에게 확인요청을 전송했습니다." }
+    ] },
+  "입고/수리 지연": { icon: ICONS.delay,
+    buttons: [
+      { label:"업체 확인요청",   kind:"primary", toast:"정비업체에 확인요청을 발송했습니다." },
+      { label:"고객 안내발송",   kind:"normal",  toast:"고객에게 지연 안내를 발송했습니다." },
+      { label:"지연사유 등록",   kind:"normal",  toast:"지연사유가 등록되었습니다." },
+      { label:"관리자 확인요청", kind:"alert",   toast:"관리자에게 확인요청을 전송했습니다." }
+    ] },
+  "정산 대기": { icon: ICONS.settle,
+    buttons: [
+      { label:"비용등록", kind:"primary", toast:"비용등록이 완료되었습니다." },
+      { label:"승인요청", kind:"normal",  toast:"승인요청을 전송했습니다." },
+      { label:"청구처리", kind:"normal",  toast:"청구처리가 완료되었습니다." },
+      { label:"처리완료", kind:"normal",  toast:"처리완료로 변경되었습니다.", action:"complete" }
+    ] }
+};
+const TAB_ORDER = ["고객 미응답", "고객 연락요청", "사진 미등록", "업체 미회신", "입고/수리 지연", "정산 대기"];
+
+const URGENCY_CLASS = { "긴급":"u-urgent", "주의":"u-warn", "정상":"u-normal" };
+const PROC_CLASS    = { "미처리":"s-todo", "처리중":"s-doing", "완료":"s-done", "보류":"s-hold" };
+const RED_VALUES = ["높음", "불만", "긴급"];
+
+/* ===================== 상태 ===================== */
+let activeTab = TAB_ORDER[0];
+let selectedId = null;
+const memos = {}; // 사고번호별 처리 메모 임시 저장
+
+/* ===================== 렌더링 ===================== */
+const $ = (sel) => document.querySelector(sel);
+
+function claimsOf(type) { return CLAIMS.filter(c => c.actionType === type); }
+
+function renderSummary() {
+  const open = CLAIMS.filter(c => c.procStatus !== "완료");
+  const cards = [
+    { label:"전체 미결",  value: open.length,                                                  desc:"처리 대기 중인 전체 Claim",    accent:"#2563EB" },
+    { label:"계약 조사",  value: open.filter(c => c.status.includes("조사")).length,            desc:"운전자/계약조건 확인 필요",     accent:"#7C3AED" },
+    { label:"출고 지연",  value: open.filter(c => c.actionType === "입고/수리 지연").length,    desc:"예정일 초과 또는 지연 위험",    accent:"#DC2626" },
+    { label:"정산 대기",  value: open.filter(c => c.actionType === "정산 대기").length,         desc:"비용 등록/승인/청구 필요",      accent:"#0E9F6E" },
+    { label:"연락 요청",  value: open.filter(c => c.actionType === "고객 연락요청").length,     desc:"고객 콜백 또는 상담 필요",      accent:"#D97706" }
+  ];
+  $("#summaryCards").innerHTML = cards.map(c => `
+    <div class="sum-card" style="--accent:${c.accent}">
+      <div class="sum-label">${c.label}</div>
+      <div class="sum-value">${c.value}<small>건</small></div>
+      <div class="sum-desc">${c.desc}</div>
+    </div>`).join("");
+}
+
+function renderTabs() {
+  const tabsHtml = TAB_ORDER.map(type => `
+    <button class="tab ${type === activeTab ? "active" : ""}" data-type="${type}">
+      <span class="ic">${TYPE_CONFIG[type].icon}</span>
+      <span class="t-label">${type}</span>
+      <span class="t-count">${claimsOf(type).length}</span>
+    </button>`).join("");
+  $("#tabList").innerHTML = `<div class="tabs-title">조치유형</div>` + tabsHtml;
+}
+
+function renderList() {
+  const items = claimsOf(activeTab);
+  $("#listTitle").textContent = activeTab;
+  $("#listCount").textContent = `총 ${items.length}건`;
+  if (!items.length) {
+    $("#rows").innerHTML = `<div class="rows-empty">해당 조치유형의 대상 건이 없습니다.</div>`;
+    return;
+  }
+  $("#rows").innerHTML = items.map(c => `
+    <div class="row ${c.id === selectedId ? "selected" : ""}" data-id="${c.id}">
+      <div><span class="badge ${URGENCY_CLASS[c.urgency]}">${c.urgency}</span></div>
+      <div class="cid">${c.id}</div>
+      <div class="cname">${c.name}</div>
+      <div class="cmuted">${c.car}</div>
+      <div class="cmuted">${c.status}</div>
+      <div class="cdim">${c.elapsed}</div>
+      <div class="cmuted">${c.manager}</div>
+      <div><span class="badge ${PROC_CLASS[c.procStatus]}">${c.procStatus}</span></div>
+    </div>`).join("");
+}
+
+function extraValueClass(v) {
+  if (RED_VALUES.includes(v)) return "red";
+  if (v === "미접속") return "dim";
+  return "";
+}
+
+function renderPanel() {
+  const c = CLAIMS.find(x => x.id === selectedId);
+  if (!c) {
+    $("#panel").innerHTML = `<div class="panel-empty">리스트에서 사고건을 선택하면<br/>여기에서 바로 조치할 수 있습니다.</div>`;
+    return;
+  }
+  const cfg = TYPE_CONFIG[c.actionType];
+  const isUrgent = c.urgency === "긴급";
+  const extraRows = Object.entries(c.extra).map(([k, v]) => `
+    <div class="extra-row"><span class="k">${k}</span><span class="v ${extraValueClass(v)}">${v}</span></div>`).join("");
+  const btns = cfg.buttons.map((b, i) => `
+    <button class="btn ${b.kind === "primary" ? "primary" : b.kind === "alert" ? "alert" : ""}" data-btn="${i}">${b.label}</button>`).join("");
+
+  $("#panel").innerHTML = `
+    <div class="panel-head ${isUrgent ? "urgent" : ""}">
+      <div class="ph-top">
+        <span class="pid">${c.id}</span>
+        <span class="badge ${URGENCY_CLASS[c.urgency]}">${c.urgency}</span>
+        <span class="badge ${PROC_CLASS[c.procStatus]}" id="panelProc">${c.procStatus}</span>
+      </div>
+      <div class="ph-sub">${c.name} · ${c.car} · ${c.custType}</div>
+    </div>
+    <div class="panel-body">
+      <div class="sec">
+        <div class="sec-title">선택 건 요약</div>
+        <div class="info-grid">
+          <div class="info-item"><div class="k">현재상태</div><div class="v">${c.status}</div></div>
+          <div class="info-item"><div class="k">조치유형</div><div class="v">${c.actionType}</div></div>
+          <div class="info-item"><div class="k">경과시간</div><div class="v ${isUrgent ? "red" : ""}">${c.elapsed}</div></div>
+          <div class="info-item"><div class="k">담당자</div><div class="v">${c.manager}</div></div>
+        </div>
+      </div>
+      <div class="sec">
+        <div class="sec-title">조치 필요 내용</div>
+        <div class="need-box ${isUrgent ? "urgent" : ""}">${c.actionDesc}</div>
+      </div>
+      <div class="sec">
+        <div class="sec-title">상세 정보</div>
+        <div class="extra-list">${extraRows}</div>
+      </div>
+      <div class="sec">
+        <div class="sec-title">빠른 액션</div>
+        <div class="btn-grid">${btns}</div>
+      </div>
+      <div class="sec" style="margin-bottom:0">
+        <div class="sec-title">처리 메모</div>
+        <textarea class="memo" id="memoInput" placeholder="조치 내용을 입력하세요. (예: 고객 통화 완료, 14시 재연락 예정)">${memos[c.id] || ""}</textarea>
+      </div>
+    </div>
+    <div class="panel-foot">
+      <button class="btn-complete" id="completeBtn" ${c.procStatus === "완료" ? "disabled" : ""}>
+        ${c.procStatus === "완료" ? "처리완료된 건입니다" : "처리완료"}
+      </button>
+    </div>`;
+
+  // 액션 버튼
+  $("#panel").querySelectorAll("[data-btn]").forEach(el => {
+    el.addEventListener("click", () => {
+      const b = cfg.buttons[Number(el.dataset.btn)];
+      if (b.action === "complete") setProcStatus(c.id, "완료");
+      if (b.action === "hold")     setProcStatus(c.id, "보류");
+      showToast(b.toast);
+    });
+  });
+  // 처리 메모 저장(건별 유지)
+  $("#memoInput").addEventListener("input", e => { memos[c.id] = e.target.value; });
+  // 하단 처리완료
+  $("#completeBtn").addEventListener("click", () => {
+    if (CLAIMS.find(x => x.id === c.id).procStatus === "완료") return;
+    setProcStatus(c.id, "완료");
+    showToast(`${c.id} 건이 처리완료되었습니다.`);
+  });
+}
+
+function setProcStatus(id, status) {
+  const c = CLAIMS.find(x => x.id === id);
+  if (!c) return;
+  c.procStatus = status;
+  renderSummary();
+  renderList();
+  renderPanel();
+}
+
+function renderAll() {
+  renderSummary();
+  renderTabs();
+  renderList();
+  renderPanel();
+}
+
+/* ===================== 이벤트 ===================== */
+$("#tabList").addEventListener("click", e => {
+  const tab = e.target.closest(".tab");
+  if (!tab) return;
+  activeTab = tab.dataset.type;
+  const items = claimsOf(activeTab);
+  selectedId = items.length ? items[0].id : null; // 탭 변경 시 첫 건 자동 선택
+  renderTabs();
+  renderList();
+  renderPanel();
+});
+
+$("#rows").addEventListener("click", e => {
+  const row = e.target.closest(".row");
+  if (!row) return;
+  selectedId = row.dataset.id;
+  renderList();
+  renderPanel();
+});
+
+/* ===================== 토스트 ===================== */
+function showToast(msg) {
+  const wrap = $("#toastWrap");
+  const el = document.createElement("div");
+  el.className = "toast";
+  el.innerHTML = `<span class="tk"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>${msg}`;
+  wrap.appendChild(el);
+  setTimeout(() => {
+    el.classList.add("out");
+    setTimeout(() => el.remove(), 260);
+  }, 2600);
+}
+
+/* ===================== 초기화 ===================== */
+(function init() {
+  const d = new Date(2026, 5, 12); // 데모 기준일
+  const days = ["일", "월", "화", "수", "목", "금", "토"];
+  $("#todayLabel").textContent = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")} (${days[d.getDay()]})`;
+  const first = claimsOf(activeTab);
+  selectedId = first.length ? first[0].id : null;
+  renderAll();
+})();
+</script>
+</body>
+</html>
