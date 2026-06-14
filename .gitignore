@@ -1,0 +1,6 @@
+# bkit-codex
+.bkit-codex/
+.agents/
+.bkit/
+.claude/
+.codex/
