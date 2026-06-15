@@ -107,7 +107,7 @@
   }
   .nav-item svg { width: 18px; height: 18px; flex: none; }
   .nav-item .ni-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .nav-item:hover:not(.disabled) { background: #F2F5FA; color: var(--text); }
+  .nav-item:hover:not(.disabled):not(.locked) { background: #F2F5FA; color: var(--text); }
   .nav-item.active { background: var(--blue-soft); color: var(--blue-dark); }
   .nav-item.disabled { color: var(--text-dim); cursor: default; opacity: .85; }
   .ni-pro {
@@ -115,7 +115,6 @@
     background: #EEF1F6; border-radius: 99px; padding: 1px 7px;
   }
   .nav-item.locked { color: var(--text-dim); cursor: not-allowed; }
-  .nav-item.locked:hover { background: #F7F8FB; color: var(--text-dim); }
   .ni-lock { flex: none; color: var(--text-dim); display: inline-flex; }
   .ni-lock svg { width: 13px; height: 13px; }
   .app-main { flex: 1; min-width: 0; }
@@ -1320,7 +1319,7 @@
   .aps-foot { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
   .aps-chip {
     font-size: 10.5px; font-weight: 700; color: var(--text-sub);
-    background: #F1F5F9; border-radius: 6px; padding: 2px 7px; white-space: nowrap;
+    background: #F1F5F9; border-radius: 8px; padding: 2px 7px; white-space: nowrap;
   }
 
   .ap-detail { min-height: 560px; display: flex; flex-direction: column; }
@@ -1373,7 +1372,7 @@
   .ap-auth-tag { font-size: 11px; font-weight: 800; border-radius: 99px; padding: 1px 8px; margin-left: 6px; vertical-align: middle; }
   .ap-auth-tag.ok { background: var(--green-soft); color: var(--green); }
   .ap-auth-tag.mid { background: var(--blue-soft); color: var(--blue); }
-  .ap-auth-tag.no { background: #F1F5F9; color: #64748B; }
+  .ap-auth-tag.no { background: #F1F5F9; color: #475569; }
 
   .ap-switch {
     display: flex; align-items: center; gap: 10px;
@@ -3656,7 +3655,7 @@ STAFF.forEach(s => { apBaseline[s.id] = JSON.parse(JSON.stringify(s)); });
 let apSelectedId = null;
 let apSearch = "";
 
-const ICON_DEPUTY = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 7.4 8 9 4.6-1.6 8-4 8-9V5z"/><path d="m9 12 2 2 4-4"/></svg>`;
+const ICON_DEPUTY = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 4 5v6c0 5 3.4 7.4 8 9 4.6-1.6 8-4 8-9V5z"/><path d="m9 12 2 2 4-4"/></svg>`;
 
 function apFmt(n) { return Number(n || 0).toLocaleString("ko-KR"); }
 function apShort(n) {
