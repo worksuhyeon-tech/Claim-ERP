@@ -322,7 +322,7 @@
 
   .thead, .row {
     display: grid;
-    grid-template-columns: 52px 110px 56px 78px 92px 92px minmax(86px, 1fr) 76px 50px 62px;
+    grid-template-columns: 110px 56px 78px 92px 92px minmax(86px, 1fr) 76px 50px 62px;
     gap: 7px;
     align-items: center;
     padding: 0 14px;
@@ -1417,7 +1417,7 @@
   @media (max-width: 1440px) {
     .fc-tasks li { font-size: 11px; }
     .fc-name { font-size: 13px; }
-    .thead, .row { grid-template-columns: 50px 106px 52px 74px 86px 86px minmax(78px, 1fr) 70px 46px 60px; font-size: 12px; }
+    .thead, .row { grid-template-columns: 106px 52px 74px 86px 86px minmax(78px, 1fr) 70px 46px 60px; font-size: 12px; }
   }
   @media (max-width: 1220px) {
     .workspace { grid-template-columns: 200px minmax(0, 1fr); }
@@ -1558,7 +1558,7 @@
         </div>
       </div>
       <div class="thead">
-        <div>긴급도</div><div>사고번호</div><div>고객명</div><div>차량번호</div>
+        <div>사고번호</div><div>고객명</div><div>차량번호</div>
         <div>Flow 단계</div><div>조치유형</div><div>현재상태</div><div>경과시간</div><div>담당자</div><div>처리상태</div>
       </div>
       <div class="rows" id="rows"></div>
@@ -2483,10 +2483,7 @@ function renderFlow() {
   $("#flowRow").innerHTML = STAGES.map((stage, i) => {
     const items = stageClaims(stage).filter(c => c.procStatus !== "완료");
     const urgent = items.filter(c => c.urgency === "긴급").length;
-    const warn = items.filter(c => c.urgency === "주의").length;
-    const risk =
-      (urgent ? `<span class="badge u-urgent">긴급 ${urgent}</span>` : "") +
-      (warn ? `<span class="badge u-warn">주의 ${warn}</span>` : "");
+    const risk = urgent ? `<span class="badge u-urgent">긴급 ${urgent}</span>` : "";
     const tasks = STAGE_CONFIG[stage].tasks.map(t => `<li>${t}</li>`).join("");
     const cls = [
       "flow-card",
@@ -2535,7 +2532,6 @@ function renderList() {
   }
   $("#rows").innerHTML = items.map(c => `
     <div class="row ${c.id === selectedId ? "selected" : ""}" data-id="${c.id}">
-      <div><span class="badge ${URGENCY_CLASS[c.urgency]}">${c.urgency}</span></div>
       <div class="cid">${c.id}</div>
       <div class="cname">${c.name}</div>
       <div class="cmuted">${c.car}</div>
