@@ -319,8 +319,8 @@
 
   .thead, .row {
     display: grid;
-    grid-template-columns: 52px 110px 56px 78px 92px 92px minmax(86px, 1fr) 76px 50px 62px;
-    gap: 7px;
+    grid-template-columns: 50px 104px 94px minmax(210px, 1.5fr) 88px 74px 46px 62px;
+    gap: 8px;
     align-items: center;
     padding: 0 14px;
   }
@@ -332,7 +332,7 @@
   }
   .rows { overflow-y: auto; max-height: 620px; }
   .row {
-    padding-top: 11px; padding-bottom: 11px;
+    padding-top: 13px; padding-bottom: 13px;
     border-bottom: 1px solid #F0F3F8;
     cursor: pointer;
     font-size: 12.5px;
@@ -343,6 +343,9 @@
   .row.selected { background: var(--blue-soft); border-left-color: var(--blue); }
   .row .cid { font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
   .row.selected .cid { color: var(--blue-dark); }
+  .row .cidcar { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+  .row .cidcar .cname { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .cidcar .ccar { color: var(--text-dim); font-size: 11.5px; font-variant-numeric: tabular-nums; }
   .row .cname { font-weight: 600; }
   .row .cmuted { color: var(--text-sub); }
   .row .cdim { color: var(--text-dim); font-size: 12px; }
@@ -364,6 +367,62 @@
   .badge.s-doing  { background: var(--blue-soft); color: var(--blue); }
   .badge.s-done   { background: var(--green-soft); color: var(--green); }
   .badge.s-hold   { background: var(--amber-soft); color: var(--amber); }
+
+  /* ---------- 리스트 진행 단계 바 (가로 막대 / 그라데이션) ---------- */
+  .prog-cell { color: var(--blue); }
+  .prog-cell.u-warn   { color: #D97706; }
+  .prog-cell.u-urgent { color: #DC2626; }
+  .prog-cell.is-done  { color: #15803D; }
+
+  .prog-bar { display: flex; align-items: center; gap: 7px; }
+  .prog {
+    position: relative; flex: 1; min-width: 0;
+    height: 13px;
+    border-radius: 99px;
+    background: #E9EDF4;
+    overflow: hidden;
+    box-shadow: inset 0 0 0 1px rgba(16, 30, 54, .04);
+  }
+  .prog-fill {
+    position: absolute; top: 0; bottom: 0; left: 0;
+    border-radius: 99px;
+    background: linear-gradient(90deg, #BBD7FE 0%, #60A5FA 55%, #2563EB 100%);
+    transition: width .55s cubic-bezier(.4, 0, .2, 1);
+  }
+  .prog-cell.u-warn   .prog-fill { background: linear-gradient(90deg, #FDE2B5 0%, #FBBF50 55%, #D97706 100%); }
+  .prog-cell.u-urgent .prog-fill { background: linear-gradient(90deg, #FECACA 0%, #F87171 50%, #DC2626 100%); }
+  .prog-cell.is-done  .prog-fill { background: linear-gradient(90deg, #A7F3CF 0%, #34D399 55%, #15803D 100%); }
+  /* 단계 구분선 (5칸) */
+  .seg-div {
+    position: absolute; top: 0; bottom: 0; width: 2px;
+    background: #fff; transform: translateX(-1px);
+    z-index: 2;
+  }
+  /* 현재 진행 위치 마커 */
+  .prog-dot {
+    position: absolute; top: 50%; width: 11px; height: 11px;
+    margin-left: -5.5px; transform: translateY(-50%);
+    border-radius: 50%; background: #fff;
+    box-shadow: 0 0 0 2.5px currentColor, 0 1px 4px rgba(16, 30, 54, .3);
+    z-index: 3;
+    transition: left .55s cubic-bezier(.4, 0, .2, 1);
+  }
+  .prog-cell.is-done .prog-dot { display: none; }
+  /* 진척률 숫자 */
+  .prog-pct {
+    flex: none; width: 30px; text-align: right;
+    font-size: 10.5px; font-weight: 800; color: currentColor;
+    font-variant-numeric: tabular-nums;
+  }
+  /* 단계 라벨 */
+  .prog-labs { display: flex; margin-top: 5px; padding-right: 37px; }
+  .prog-labs .lab {
+    flex: 1; text-align: center;
+    font-size: 9.5px; font-weight: 600; color: var(--text-dim);
+    white-space: nowrap; letter-spacing: -.2px;
+  }
+  .prog-labs .lab.done { color: #7C8597; }
+  .prog-labs .lab.cur  { color: currentColor; font-weight: 800; }
 
   /* ---------- 우측 패널 ---------- */
   .panel { position: sticky; top: 76px; display: flex; flex-direction: column; }
@@ -1280,7 +1339,7 @@
   @media (max-width: 1440px) {
     .fc-tasks li { font-size: 11px; }
     .fc-name { font-size: 13px; }
-    .thead, .row { grid-template-columns: 50px 106px 52px 74px 86px 86px minmax(78px, 1fr) 70px 46px 60px; font-size: 12px; }
+    .thead, .row { grid-template-columns: 46px 96px 86px minmax(180px, 1.5fr) 80px 68px 44px 58px; font-size: 12px; }
   }
   @media (max-width: 1220px) {
     .workspace { grid-template-columns: 200px minmax(0, 1fr); }
@@ -1403,8 +1462,8 @@
         </div>
       </div>
       <div class="thead">
-        <div>긴급도</div><div>사고번호</div><div>고객명</div><div>차량번호</div>
-        <div>Flow 단계</div><div>조치유형</div><div>현재상태</div><div>경과시간</div><div>담당자</div><div>처리상태</div>
+        <div>긴급도</div><div>사고번호</div><div>고객·차량</div>
+        <div>진행 단계 (접수 → 정산)</div><div>조치유형</div><div>경과시간</div><div>담당자</div><div>처리상태</div>
       </div>
       <div class="rows" id="rows"></div>
     </section>
@@ -2255,6 +2314,40 @@ function findImage(claimId, imgId) {
 const $ = (sel) => document.querySelector(sel);
 
 function stageClaims(stage) { return CLAIMS.filter(c => c.flowStage === stage); }
+
+/* 처리상태별 단계 내 진척도 (0~1) */
+const PROC_PROGRESS = { "미처리": 0.18, "처리중": 0.55, "보류": 0.35, "완료": 1 };
+function stageFraction(c) {
+  const idx = STAGES.indexOf(c.flowStage);
+  if (c.procStatus === "완료") return (idx + 1) / STAGES.length;
+  const within = PROC_PROGRESS[c.procStatus] ?? 0.18;
+  return (idx + within) / STAGES.length;
+}
+/* 리스트 행의 진행 단계 바 HTML */
+function progressBar(c) {
+  const idx = STAGES.indexOf(c.flowStage);
+  const done = c.procStatus === "완료";
+  const pct = Math.round(stageFraction(c) * 100);
+  const cls = "prog-cell " + (done ? "is-done" : URGENCY_CLASS[c.urgency]);
+  const dividers = [20, 40, 60, 80].map(l => `<span class="seg-div" style="left:${l}%"></span>`).join("");
+  const labels = STAGES.map((s, i) => {
+    const l = i < idx || done ? "lab done" : i === idx ? "lab cur" : "lab";
+    return `<span class="${l}">${STAGE_SHORT[s]}</span>`;
+  }).join("");
+  const tip = STAGES.map((s, i) => (i < idx ? "✓ " : i === idx ? "▶ " : "· ") + s).join("  /  ");
+  return `
+    <div class="${cls}" title="${tip}  (${pct}%)">
+      <div class="prog-bar">
+        <div class="prog">
+          <div class="prog-fill" style="width:${pct}%"></div>
+          ${dividers}
+          <div class="prog-dot" style="left:${pct}%"></div>
+        </div>
+        <span class="prog-pct">${pct}%</span>
+      </div>
+      <div class="prog-labs">${labels}</div>
+    </div>`;
+}
 function scopeClaims() {
   let list = activeStage ? stageClaims(activeStage) : CLAIMS;
   if (activeType) list = list.filter(c => c.actionType === activeType);
@@ -2356,11 +2449,9 @@ function renderList() {
     <div class="row ${c.id === selectedId ? "selected" : ""}" data-id="${c.id}">
       <div><span class="badge ${URGENCY_CLASS[c.urgency]}">${c.urgency}</span></div>
       <div class="cid">${c.id}</div>
-      <div class="cname">${c.name}</div>
-      <div class="cmuted">${c.car}</div>
-      <div class="cstage">${c.flowStage}</div>
+      <div class="cidcar"><span class="cname">${c.name}</span><span class="ccar">${c.car}</span></div>
+      ${progressBar(c)}
       <div class="cmuted">${c.actionType}</div>
-      <div class="cmuted">${c.status}</div>
       <div class="cdim">${c.elapsed}</div>
       <div class="cmuted">${c.manager}</div>
       <div><span class="badge ${PROC_CLASS[c.procStatus]}">${c.procStatus}</span></div>
