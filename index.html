@@ -2390,11 +2390,6 @@ function renderFlow() {
 
   $("#flowRow").innerHTML = STAGES.map((stage, i) => {
     const items = stageClaims(stage).filter(c => c.procStatus !== "완료");
-    const urgent = items.filter(c => c.urgency === "긴급").length;
-    const warn = items.filter(c => c.urgency === "주의").length;
-    const risk =
-      (urgent ? `<span class="badge u-urgent">긴급 ${urgent}</span>` : "") +
-      (warn ? `<span class="badge u-warn">주의 ${warn}</span>` : "");
     const tasks = STAGE_CONFIG[stage].tasks.map(t => `<li>${t}</li>`).join("");
     const cls = [
       "flow-card",
@@ -2406,7 +2401,6 @@ function renderFlow() {
         <div class="fc-stage"><span class="fc-no">${i + 1}</span><span class="fc-name">${stage}</span></div>
         <div class="fc-nums">
           <span class="fc-open">미결 ${items.length}<small>건</small></span>
-          <span class="fc-risk">${risk}</span>
         </div>
         <ul class="fc-tasks">${tasks}</ul>
       </div>` + (i < STAGES.length - 1 ? arrow : "");
