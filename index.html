@@ -319,7 +319,7 @@
 
   .thead, .row {
     display: grid;
-    grid-template-columns: 50px 104px 94px minmax(210px, 1.5fr) 88px 74px 46px 62px;
+    grid-template-columns: 104px 94px minmax(220px, 1.6fr) 88px 74px 46px 62px;
     gap: 8px;
     align-items: center;
     padding: 0 14px;
@@ -370,8 +370,6 @@
 
   /* ---------- 리스트 진행 단계 바 (가로 막대 / 그라데이션) ---------- */
   .prog-cell { color: var(--blue); }
-  .prog-cell.u-warn   { color: #D97706; }
-  .prog-cell.u-urgent { color: #DC2626; }
   .prog-cell.is-done  { color: #15803D; }
 
   .prog-bar { display: flex; align-items: center; gap: 7px; }
@@ -389,8 +387,6 @@
     background: linear-gradient(90deg, #BBD7FE 0%, #60A5FA 55%, #2563EB 100%);
     transition: width .55s cubic-bezier(.4, 0, .2, 1);
   }
-  .prog-cell.u-warn   .prog-fill { background: linear-gradient(90deg, #FDE2B5 0%, #FBBF50 55%, #D97706 100%); }
-  .prog-cell.u-urgent .prog-fill { background: linear-gradient(90deg, #FECACA 0%, #F87171 50%, #DC2626 100%); }
   .prog-cell.is-done  .prog-fill { background: linear-gradient(90deg, #A7F3CF 0%, #34D399 55%, #15803D 100%); }
   /* 단계 구분선 (5칸) */
   .seg-div {
@@ -1339,7 +1335,7 @@
   @media (max-width: 1440px) {
     .fc-tasks li { font-size: 11px; }
     .fc-name { font-size: 13px; }
-    .thead, .row { grid-template-columns: 46px 96px 86px minmax(180px, 1.5fr) 80px 68px 44px 58px; font-size: 12px; }
+    .thead, .row { grid-template-columns: 96px 86px minmax(190px, 1.6fr) 80px 68px 44px 58px; font-size: 12px; }
   }
   @media (max-width: 1220px) {
     .workspace { grid-template-columns: 200px minmax(0, 1fr); }
@@ -1462,7 +1458,7 @@
         </div>
       </div>
       <div class="thead">
-        <div>긴급도</div><div>사고번호</div><div>고객·차량</div>
+        <div>사고번호</div><div>고객·차량</div>
         <div>진행 단계 (접수 → 정산)</div><div>조치유형</div><div>경과시간</div><div>담당자</div><div>처리상태</div>
       </div>
       <div class="rows" id="rows"></div>
@@ -2328,7 +2324,7 @@ function progressBar(c) {
   const idx = STAGES.indexOf(c.flowStage);
   const done = c.procStatus === "완료";
   const pct = Math.round(stageFraction(c) * 100);
-  const cls = "prog-cell " + (done ? "is-done" : URGENCY_CLASS[c.urgency]);
+  const cls = "prog-cell" + (done ? " is-done" : "");
   const dividers = [20, 40, 60, 80].map(l => `<span class="seg-div" style="left:${l}%"></span>`).join("");
   const labels = STAGES.map((s, i) => {
     const l = i < idx || done ? "lab done" : i === idx ? "lab cur" : "lab";
@@ -2447,7 +2443,6 @@ function renderList() {
   }
   $("#rows").innerHTML = items.map(c => `
     <div class="row ${c.id === selectedId ? "selected" : ""}" data-id="${c.id}">
-      <div><span class="badge ${URGENCY_CLASS[c.urgency]}">${c.urgency}</span></div>
       <div class="cid">${c.id}</div>
       <div class="cidcar"><span class="cname">${c.name}</span><span class="ccar">${c.car}</span></div>
       ${progressBar(c)}
