@@ -1,10 +1,38 @@
 {
   "project": "Claim ERP",
   "level": "Starter",
-  "updatedAt": "2026-06-14",
-  "activeFeatures": ["SK렌탈 Claim Flow 관리", "이미지시스템"],
-  "primaryFeature": "이미지시스템",
+  "updatedAt": "2026-06-29",
+  "handoff": "docs/HANDOFF.md",
+  "activeBranch": "claude/github-structure-review-92rm88",
+  "openPR": "https://github.com/worksuhyeon-tech/Claim-ERP/pull/4",
+  "activeFeatures": ["SK렌탈 Claim Flow 관리", "이미지시스템", "결재 LIST"],
+  "primaryFeature": "결재 LIST",
   "features": {
+    "결재 LIST": {
+      "phase": "do",
+      "status": "in_progress",
+      "matchRate": 90,
+      "iteration": 0,
+      "summary": "종결요청 리스트를 '결재 LIST'로 개편. 담당자·사고번호 검색 + 결재상태(상신중/결재완료) 필터 + 결재완료 기간조회, 추산/지급/종결/VOC Task별 업무함 카드(클릭 시 해당 Task 목록).",
+      "completedScope": [
+        "화면명 종결요청→결재LIST (뷰키 viewClosing/closing 유지)",
+        "담당자·사고번호 통합 검색",
+        "결재상태 필터(전체/상신중/결재완료)",
+        "결재완료 선택 시 조회기간(결재완료일 기준) 활성화",
+        "추산/지급/종결/VOC 4개 Task 업무함 카드 + 카드 클릭 필터",
+        "더미 결재 데이터 APPROVALS 23건",
+        "Smart업무관리·리스트 고객명 제거 → 정비공장/차량번호 분리 표시"
+      ],
+      "pendingScope": [
+        "결재 행 클릭 상세/액션(상신취소·승인·반려) 미구현",
+        "APPROVALS와 CLAIMS 연동 또는 실제 결재 엔티티 재설계",
+        "미사용 CSS(.closing-*, .btn-cancel) 정리"
+      ],
+      "documents": {
+        "handoff": "docs/HANDOFF.md"
+      },
+      "nextRecommendedAction": "codex에서 docs/HANDOFF.md 확인 후 결재 행 상세/액션부터 이어 작업"
+    },
     "SK렌탈 Claim Flow 관리": {
       "phase": "check",
       "status": "in_progress",
