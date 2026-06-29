@@ -411,6 +411,40 @@
   .badge.sub-req  { background: var(--blue-soft); color: var(--blue); }
   .badge.sub-wait { background: #F1F5F9; color: #475569; }
   .badge.sub-done { background: var(--green-soft); color: var(--green); }
+  .badge.appr-ing  { background: var(--amber-soft); color: var(--amber); }
+  .badge.appr-done { background: var(--green-soft); color: var(--green); }
+
+  /* 결재 LIST */
+  .appr-toolbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 14px 18px; padding: 16px 18px; margin-bottom: 14px; }
+  .appr-field { display: flex; flex-direction: column; gap: 6px; }
+  .appr-field label { font-size: 12px; font-weight: 700; color: var(--text-sub); }
+  .appr-search { position: relative; display: flex; align-items: center; }
+  .appr-search svg { position: absolute; left: 10px; width: 16px; height: 16px; color: var(--text-dim); pointer-events: none; }
+  .appr-search input { padding: 8px 12px 8px 32px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; min-width: 240px; }
+  .appr-field select, .appr-dates input { padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; background: #fff; color: var(--text); }
+  .appr-search input:focus, .appr-field select:focus, .appr-dates input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
+  .appr-dates { display: flex; align-items: center; gap: 8px; }
+  .appr-dates input:disabled { background: #F2F4F8; color: var(--text-dim); cursor: not-allowed; }
+  .appr-dash { color: var(--text-dim); }
+  .appr-actions { margin-left: auto; }
+
+  .appr-cards { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; margin-bottom: 16px; }
+  .appr-card { background: #fff; border: 1px solid var(--line); border-radius: 12px; padding: 15px 18px; cursor: pointer; transition: border-color .15s, box-shadow .15s, background .15s; }
+  .appr-card:hover { border-color: var(--blue-line); }
+  .appr-card.active { border-color: var(--blue); background: var(--blue-soft); box-shadow: 0 0 0 1px var(--blue) inset; }
+  .appr-card .ac-task { font-size: 13px; font-weight: 700; color: var(--text-sub); display: flex; align-items: center; gap: 7px; }
+  .appr-card .ac-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+  .appr-card .ac-count { margin-top: 10px; font-size: 26px; font-weight: 800; color: var(--text); font-variant-numeric: tabular-nums; line-height: 1; }
+  .appr-card .ac-count b { font-size: 13px; font-weight: 700; color: var(--text-sub); margin-left: 3px; }
+  .appr-card.active .ac-count { color: var(--blue-dark); }
+
+  .appr-thead, .appr-row { display: grid; grid-template-columns: 130px 80px minmax(80px,1fr) 92px 96px 110px; gap: 10px; align-items: center; padding: 0 16px; }
+  .appr-thead div { white-space: nowrap; }
+  .appr-row { padding-top: 12px; padding-bottom: 12px; border-bottom: 1px solid #F0F3F8; font-size: 12.5px; }
+  .appr-row .cid { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .appr-row .ctask { font-weight: 700; color: var(--text); }
+  .appr-row .cmuted { color: var(--text-sub); }
+  .appr-row .cdim { color: var(--text-dim); font-variant-numeric: tabular-nums; }
   .btn-cancel { font: inherit; font-size: 12px; font-weight: 700; padding: 6px 12px; border-radius: 8px; cursor: pointer;
     border: 1px solid var(--line-strong); background: #fff; color: var(--text-sub); transition: all .12s ease; }
   .btn-cancel:hover:not(:disabled) { border-color: var(--red); color: var(--red); background: var(--red-soft); }
@@ -1447,7 +1481,7 @@
     </button>
     <button class="nav-item" data-view="closing" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-      <span class="ni-label">종결 요청 리스트</span>
+      <span class="ni-label">결재 LIST</span>
     </button>
     <div class="sn-section">확장 (Pro)</div>
     <button class="nav-item disabled" type="button" disabled>
@@ -1567,20 +1601,51 @@
 
   <section id="viewClosing" class="view" hidden>
     <section class="page-head">
-      <h1>종결 요청 리스트</h1>
-      <p>지급·정산 단계의 결제 대기 건을 모아 상신 상태를 관리합니다. 상신 건은 바로 취소할 수 있습니다.</p>
+      <h1>결재 LIST</h1>
+      <p>추산·지급·종결·VOC 결재 건을 Task별 업무함으로 관리합니다. 담당자·사고번호로 조회하고 결재 상태로 필터링할 수 있습니다.</p>
     </section>
-    <div class="kpi-line" id="closingKpi"></div>
-    <section class="list-card card" style="max-width:980px">
+
+    <section class="card appr-toolbar">
+      <div class="appr-field">
+        <label for="apprSearch">담당자 · 사고번호</label>
+        <div class="appr-search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>
+          <input type="search" id="apprSearch" autocomplete="off" placeholder="담당자명 또는 사고번호 검색" aria-label="담당자·사고번호 검색" />
+        </div>
+      </div>
+      <div class="appr-field">
+        <label for="apprStatus">결재 상태</label>
+        <select id="apprStatus">
+          <option value="전체">전체</option>
+          <option value="상신중">상신중</option>
+          <option value="결재완료">결재완료</option>
+        </select>
+      </div>
+      <div class="appr-field appr-daterange">
+        <label>조회기간 (결재완료일)</label>
+        <div class="appr-dates">
+          <input type="date" id="apprFrom" disabled aria-label="조회 시작일" />
+          <span class="appr-dash">~</span>
+          <input type="date" id="apprTo" disabled aria-label="조회 종료일" />
+        </div>
+      </div>
+      <div class="appr-field appr-actions">
+        <button type="button" class="btn-modal" id="apprReset">초기화</button>
+      </div>
+    </section>
+
+    <section class="appr-cards" id="apprCards"></section>
+
+    <section class="list-card card">
       <div class="list-head">
-        <h2>결제 대기 건</h2>
-        <span class="count" id="closingCount"></span>
-        <span class="hint">상신 상태인 건은 [상신 취소]로 즉시 회수할 수 있습니다 (반려 우회 불필요).</span>
+        <h2 id="apprListTitle">전체 결재 건</h2>
+        <span class="count" id="apprCount"></span>
+        <span class="hint">Task 업무함 카드를 클릭하면 해당 Task의 결재 건만 표시됩니다.</span>
       </div>
-      <div class="thead closing-thead">
-        <div>사고번호</div><div>정비공장·차량</div><div>면책금 구분</div><div>현재상태</div><div>상신상태</div><div></div>
+      <div class="thead appr-thead">
+        <div>사고번호</div><div>Task</div><div>담당자</div><div>결재상태</div><div>상신일</div><div>결재완료일</div>
       </div>
-      <div class="rows" id="closingRows"></div>
+      <div class="rows" id="apprRows"></div>
     </section>
   </section><!-- /#viewClosing -->
 
@@ -3470,7 +3535,7 @@ function selectImgClaim(id) {
   renderImgMain();
 }
 
-const VIEW_TITLES = { claims:"Smart업무관리", images:"이미지 시스템", closing:"종결 요청 리스트" };
+const VIEW_TITLES = { claims:"Smart업무관리", images:"이미지 시스템", closing:"결재 LIST" };
 function switchView(name) {
   activeView = name;
   $("#viewClaims").hidden = name !== "claims";
@@ -3482,34 +3547,126 @@ function switchView(name) {
   if (name === "closing") renderClosingView();
 }
 
-/* ===================== 종결 요청 리스트 + 상신 취소 ===================== */
-const SUB_CLASS = { "상신":"sub-req", "대기":"sub-wait", "완료":"sub-done" };
+/* ===================== 결재 LIST (Task별 업무함) ===================== */
+const APPR_TASKS = [
+  { key:"추산", color:"#2563EB" },
+  { key:"지급", color:"#15803D" },
+  { key:"종결", color:"#7C3AED" },
+  { key:"VOC",  color:"#DC2626" },
+];
+const APPR_STATUS_CLASS = { "상신중":"appr-ing", "결재완료":"appr-done" };
+
+// 더미 결재 데이터 (id=사고번호 / task=결재 Task / status=상신중·결재완료)
+const APPROVALS = [
+  // 추산
+  { id:"CLM-2026-0004", task:"추산", manager:"오세린", status:"상신중",   submittedAt:"2026-06-28", completedAt:"" },
+  { id:"CLM-2026-0024", task:"추산", manager:"오세린", status:"상신중",   submittedAt:"2026-06-29", completedAt:"" },
+  { id:"CLM-2026-0027", task:"추산", manager:"김하늘", status:"상신중",   submittedAt:"2026-06-29", completedAt:"" },
+  { id:"CLM-2026-0021", task:"추산", manager:"오세린", status:"결재완료", submittedAt:"2026-06-24", completedAt:"2026-06-26" },
+  { id:"CLM-2026-0022", task:"추산", manager:"김하늘", status:"결재완료", submittedAt:"2026-06-18", completedAt:"2026-06-20" },
+  { id:"CLM-2026-0003", task:"추산", manager:"김하늘", status:"결재완료", submittedAt:"2026-06-12", completedAt:"2026-06-14" },
+  // 지급
+  { id:"CLM-2026-0009", task:"지급", manager:"김하늘", status:"상신중",   submittedAt:"2026-06-27", completedAt:"" },
+  { id:"CLM-2026-0010", task:"지급", manager:"오세린", status:"상신중",   submittedAt:"2026-06-28", completedAt:"" },
+  { id:"CLM-2026-0037", task:"지급", manager:"유나래", status:"상신중",   submittedAt:"2026-06-27", completedAt:"" },
+  { id:"CLM-2026-0040", task:"지급", manager:"유나래", status:"상신중",   submittedAt:"2026-06-29", completedAt:"" },
+  { id:"CLM-2026-0011", task:"지급", manager:"유나래", status:"결재완료", submittedAt:"2026-06-22", completedAt:"2026-06-25" },
+  { id:"CLM-2026-0038", task:"지급", manager:"오세린", status:"결재완료", submittedAt:"2026-06-15", completedAt:"2026-06-17" },
+  { id:"CLM-2026-0039", task:"지급", manager:"유나래", status:"결재완료", submittedAt:"2026-06-10", completedAt:"2026-06-12" },
+  // 종결
+  { id:"CLM-2026-0008", task:"종결", manager:"최도윤", status:"상신중",   submittedAt:"2026-06-28", completedAt:"" },
+  { id:"CLM-2026-0007", task:"종결", manager:"박지현", status:"상신중",   submittedAt:"2026-06-29", completedAt:"" },
+  { id:"CLM-2026-0042", task:"종결", manager:"유나래", status:"결재완료", submittedAt:"2026-06-26", completedAt:"2026-06-28" },
+  { id:"CLM-2026-0035", task:"종결", manager:"최도윤", status:"결재완료", submittedAt:"2026-06-19", completedAt:"2026-06-21" },
+  { id:"CLM-2026-0034", task:"종결", manager:"최도윤", status:"결재완료", submittedAt:"2026-06-13", completedAt:"2026-06-16" },
+  { id:"CLM-2026-0033", task:"종결", manager:"박지현", status:"결재완료", submittedAt:"2026-06-11", completedAt:"2026-06-13" },
+  // VOC
+  { id:"CLM-2026-0017", task:"VOC", manager:"문태호", status:"상신중",   submittedAt:"2026-06-28", completedAt:"" },
+  { id:"CLM-2026-0041", task:"VOC", manager:"문태호", status:"상신중",   submittedAt:"2026-06-29", completedAt:"" },
+  { id:"CLM-2026-0012", task:"VOC", manager:"문태호", status:"결재완료", submittedAt:"2026-06-20", completedAt:"2026-06-23" },
+  { id:"CLM-2026-0030", task:"VOC", manager:"문태호", status:"결재완료", submittedAt:"2026-06-16", completedAt:"2026-06-18" },
+];
+
+// 결재 LIST 상태
+let apprQuery = "";
+let apprStatus = "전체";   // 전체 / 상신중 / 결재완료
+let apprFrom = "";         // 조회 시작일 (결재완료일 기준)
+let apprTo = "";           // 조회 종료일
+let apprTask = null;       // 선택 Task (null = 전체)
+let apprBound = false;     // 툴바 이벤트 1회 바인딩 플래그
+
+// 검색/상태/기간 필터 적용 (Task 필터는 제외 — 카드 카운트 산출용)
+function apprFilteredBase() {
+  const q = apprQuery.trim().toLowerCase();
+  return APPROVALS.filter(a => {
+    if (q && !`${a.id} ${a.manager}`.toLowerCase().includes(q)) return false;
+    if (apprStatus !== "전체" && a.status !== apprStatus) return false;
+    if (apprStatus === "결재완료") {
+      if (apprFrom && (!a.completedAt || a.completedAt < apprFrom)) return false;
+      if (apprTo && (!a.completedAt || a.completedAt > apprTo)) return false;
+    }
+    return true;
+  });
+}
+
 function renderClosingView() {
-  const items = CLAIMS.filter(c => c.flowStage === "지급 / 정산");
-  const submitted = items.filter(c => c.submitState === "상신").length;
-  const waiting = items.filter(c => c.submitState === "대기").length;
-  $("#closingKpi").innerHTML =
-    `<span>결제 대기 <b>${items.length}건</b></span><span class="kpi-dot">·</span>` +
-    `<span>상신 <b>${submitted}건</b></span><span class="kpi-dot">·</span>` +
-    `<span>미상신 대기 <b>${waiting}건</b></span>`;
-  $("#closingCount").textContent = `총 ${items.length}건`;
-  $("#closingRows").innerHTML = items.map(c => `
-    <div class="closing-row" data-id="${c.id}">
-      <div class="cid">${c.id}</div>
-      <div class="cidcar"><span class="cname">${c.repairShop || "미입고"}</span><span class="ccar">${c.car}</span></div>
-      <div class="cmuted">${c.deductibleType || "-"} · ${c.deductible || "-"}</div>
-      <div class="cmuted">${c.status}</div>
-      <div><span class="badge ${SUB_CLASS[c.submitState] || "sub-wait"}">${c.submitState || "대기"}</span></div>
-      <div><button class="btn-cancel" data-cancel="${c.id}" ${c.submitState === "상신" ? "" : "disabled"}>상신 취소</button></div>
-    </div>`).join("");
-  $("#closingRows").querySelectorAll("[data-cancel]").forEach(btn => {
+  bindApprToolbar();
+  // 결재완료일 조회기간 입력은 '결재완료' 상태일 때만 활성화
+  const dateOn = apprStatus === "결재완료";
+  $("#apprFrom").disabled = !dateOn;
+  $("#apprTo").disabled = !dateOn;
+
+  const base = apprFilteredBase();
+
+  // Task 업무함 카드 (검색 조건 반영한 건수)
+  $("#apprCards").innerHTML = APPR_TASKS.map(t => {
+    const n = base.filter(a => a.task === t.key).length;
+    return `<button type="button" class="appr-card ${apprTask === t.key ? "active" : ""}" data-task="${t.key}">
+      <div class="ac-task"><span class="ac-dot" style="background:${t.color}"></span>${t.key}</div>
+      <div class="ac-count">${n}<b>건</b></div>
+    </button>`;
+  }).join("");
+  $("#apprCards").querySelectorAll("[data-task]").forEach(btn => {
     btn.addEventListener("click", () => {
-      const c = CLAIMS.find(x => x.id === btn.dataset.cancel);
-      if (!c || c.submitState !== "상신") return;
-      c.submitState = "대기";
+      apprTask = (apprTask === btn.dataset.task) ? null : btn.dataset.task;
       renderClosingView();
-      showToast(`${c.id} 상신이 취소되었습니다. (대기 상태로 회수)`);
     });
+  });
+
+  // 선택 Task 목록 (Task 필터 추가 적용)
+  const list = apprTask ? base.filter(a => a.task === apprTask) : base;
+  $("#apprListTitle").textContent = apprTask ? `${apprTask} 결재 건` : "전체 결재 건";
+  $("#apprCount").textContent = `총 ${list.length}건`;
+  if (!list.length) {
+    $("#apprRows").innerHTML = `<div class="rows-empty">조건에 해당하는 결재 건이 없습니다.</div>`;
+    return;
+  }
+  $("#apprRows").innerHTML = list.map(a => `
+    <div class="appr-row" data-id="${a.id}">
+      <div class="cid">${a.id}</div>
+      <div class="ctask">${a.task}</div>
+      <div class="cmuted">${a.manager}</div>
+      <div><span class="badge ${APPR_STATUS_CLASS[a.status] || "appr-ing"}">${a.status}</span></div>
+      <div class="cdim">${a.submittedAt || "-"}</div>
+      <div class="cdim">${a.completedAt || "-"}</div>
+    </div>`).join("");
+}
+
+function bindApprToolbar() {
+  if (apprBound) return;
+  apprBound = true;
+  $("#apprSearch").addEventListener("input", e => { apprQuery = e.target.value; renderClosingView(); });
+  $("#apprStatus").addEventListener("change", e => {
+    apprStatus = e.target.value;
+    if (apprStatus !== "결재완료") { apprFrom = ""; apprTo = ""; $("#apprFrom").value = ""; $("#apprTo").value = ""; }
+    renderClosingView();
+  });
+  $("#apprFrom").addEventListener("change", e => { apprFrom = e.target.value; renderClosingView(); });
+  $("#apprTo").addEventListener("change", e => { apprTo = e.target.value; renderClosingView(); });
+  $("#apprReset").addEventListener("click", () => {
+    apprQuery = ""; apprStatus = "전체"; apprFrom = ""; apprTo = ""; apprTask = null;
+    $("#apprSearch").value = ""; $("#apprStatus").value = "전체"; $("#apprFrom").value = ""; $("#apprTo").value = "";
+    renderClosingView();
   });
 }
 
