@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Claim 조치대상 관리 | CLAIM ERP</title>
+<title>Smart업무관리 | CLAIM ERP</title>
 <style>
   :root {
     --bg: #F6F8FB;
@@ -319,7 +319,7 @@
 
   .thead, .row {
     display: grid;
-    grid-template-columns: 104px 94px minmax(220px, 1.6fr) 88px 74px 46px 62px;
+    grid-template-columns: 112px 108px 92px minmax(184px, 1.5fr) 84px 46px 62px 52px;
     gap: 8px;
     align-items: center;
     padding: 0 14px;
@@ -343,6 +343,8 @@
   .row.selected { background: var(--blue-soft); border-left-color: var(--blue); }
   .row .cid { font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
   .row.selected .cid { color: var(--blue-dark); }
+  .row .cshop { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row .cdays { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--text-sub); }
   .row .cidcar { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
   .row .cidcar .cname { font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .row .cidcar .ccar { color: var(--text-dim); font-size: 11.5px; font-variant-numeric: tabular-nums; }
@@ -1388,7 +1390,7 @@
   @media (max-width: 1440px) {
     .fc-tasks li { font-size: 11px; }
     .fc-name { font-size: 13px; }
-    .thead, .row { grid-template-columns: 96px 86px minmax(190px, 1.6fr) 80px 68px 44px 58px; font-size: 12px; }
+    .thead, .row { grid-template-columns: 92px 104px 84px minmax(168px, 1.5fr) 78px 44px 58px 48px; font-size: 12px; }
   }
   @media (max-width: 1220px) {
     .workspace { grid-template-columns: 200px minmax(0, 1fr); }
@@ -1433,7 +1435,7 @@
     <div class="sn-section">메뉴</div>
     <button class="nav-item active" data-view="claims" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/><circle cx="4.5" cy="18" r="1.2"/></svg>
-      <span class="ni-label">조치대상 관리</span>
+      <span class="ni-label">Smart업무관리</span>
     </button>
     <button class="nav-item" data-view="images" type="button">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m4 17 4.5-4.5 3 3L16 11l4 4.5"/></svg>
@@ -1458,7 +1460,7 @@
 
 <header class="topbar">
   <div class="tb-left">
-    <div class="brand-tag" id="viewName">조치대상 관리</div>
+    <div class="brand-tag" id="viewName">Smart업무관리</div>
   </div>
   <div class="topbar-right">
     <button type="button" class="btn-req" id="btnRequest">
@@ -1478,7 +1480,7 @@
   <section id="viewClaims" class="view">
 
   <section class="page-head">
-    <h1>Claim 조치대상 관리</h1>
+    <h1>Smart업무관리</h1>
     <p>오늘 처리해야 할 사고 Claim을 확인하고 바로 조치하세요.</p>
   </section>
 
@@ -1519,8 +1521,8 @@
         </div>
       </div>
       <div class="thead">
-        <div>사고번호</div><div>고객·차량</div>
-        <div>진행 단계 (접수 → 정산)</div><div>조치유형</div><div>경과시간</div><div>담당자</div><div>처리상태</div>
+        <div>사고번호</div><div>정비공장</div><div>고객·차량</div>
+        <div>진행 단계 (접수 → 정산)</div><div>조치유형</div><div>담당자</div><div>처리상태</div><div>경과일</div>
       </div>
       <div class="rows" id="rows"></div>
     </section>
@@ -2306,7 +2308,15 @@ const CLAIMS = [
 ];
 
 /* 회의 결정 반영 파생 필드 (프로토타입): 면책금 구분 / 운전자정보 유무 / 검토상태 / 상신상태 */
+const SHOPS = ["강남협력공업사", "블루핸즈 분당점", "오토큐 강서점", "민자동차공업사", "KCC오토 수원", "스피드메이트 송파", "현대모터스 일산"];
+const PRE_INTAKE_STATUS = /계약정보 확인|사고정보 확인|운전자 정보 확인|이전 접수이력 확인|입고지 확인|입고 확인 대기/;
 CLAIMS.forEach(c => {
+  // 정비공장 — 입고된 건만 표시, 입고 전이면 공백
+  if (c.repairShop == null) {
+    const preIntake = c.flowStage === "접수·선견적" && PRE_INTAKE_STATUS.test(c.status || "");
+    const n = parseInt((c.id.replace(/\D/g, "").slice(-4) || "0"), 10);
+    c.repairShop = preIntake ? "" : SHOPS[n % SHOPS.length];
+  }
   // 면책금 개별/통합 구분 — 법인 플릿은 통합정액, 그 외 개별정액
   if (c.deductibleType == null) c.deductibleType = /법인 플릿/.test(c.custType) ? "통합정액" : "개별정액";
   if (c.deductible == null) c.deductible = c.deductibleType === "통합정액" ? "월 통합정산 차감" : "30만원";
@@ -2420,6 +2430,11 @@ const $ = (sel) => document.querySelector(sel);
 
 function stageClaims(stage) { return CLAIMS.filter(c => c.flowStage === stage); }
 
+/* 사고접수 후 경과일 (경과시간 문자열의 '일' 파싱, 1일 미만은 당일) */
+function daysElapsed(c) {
+  const m = /([0-9]+)\s*일/.exec(c.elapsed || "");
+  return m ? `${m[1]}일` : "당일";
+}
 /* 운전자 정보 유무 도형 (원=있음 / 삼각형=없음) */
 function driverShape(c) {
   return c.driverInfo === false
@@ -2566,12 +2581,13 @@ function renderList() {
   $("#rows").innerHTML = items.map(c => `
     <div class="row ${c.id === selectedId ? "selected" : ""}" data-id="${c.id}">
       <div class="cid">${c.id}</div>
+      <div class="cmuted cshop">${c.repairShop || ""}</div>
       <div class="cidcar"><span class="cname">${c.name}${driverShape(c)}</span><span class="ccar">${c.car}</span></div>
       ${progressBar(c)}
       <div class="cmuted">${c.actionType}</div>
-      <div class="cdim">${c.elapsed}</div>
       <div class="cmuted">${c.manager}</div>
       <div class="cproc"><span class="badge ${PROC_CLASS[c.procStatus]}">${c.procStatus}</span>${reviewBadge(c)}</div>
+      <div class="cdim cdays">${daysElapsed(c)}</div>
     </div>`).join("");
 }
 
@@ -3450,14 +3466,14 @@ function selectImgClaim(id) {
   renderImgMain();
 }
 
-const VIEW_TITLES = { claims:"조치대상 관리", images:"이미지 시스템", closing:"종결 요청 리스트" };
+const VIEW_TITLES = { claims:"Smart업무관리", images:"이미지 시스템", closing:"종결 요청 리스트" };
 function switchView(name) {
   activeView = name;
   $("#viewClaims").hidden = name !== "claims";
   $("#viewImages").hidden = name !== "images";
   $("#viewClosing").hidden = name !== "closing";
   document.querySelectorAll(".nav-item[data-view]").forEach(b => b.classList.toggle("active", b.dataset.view === name));
-  $("#viewName").textContent = VIEW_TITLES[name] || "조치대상 관리";
+  $("#viewName").textContent = VIEW_TITLES[name] || "Smart업무관리";
   if (name === "images") renderImageView();
   if (name === "closing") renderClosingView();
 }
