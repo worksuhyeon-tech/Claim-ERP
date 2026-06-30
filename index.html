@@ -2499,10 +2499,10 @@ const $ = (sel) => document.querySelector(sel);
 
 function stageClaims(stage) { return CLAIMS.filter(c => c.flowStage === stage); }
 
-/* 사고접수 후 경과일 (경과시간 문자열의 '일' 파싱, 1일 미만은 당일) */
+/* 사고접수 후 경과일 (경과시간 문자열의 '일' 파싱, 1일 미만은 0일) */
 function daysElapsed(c) {
   const m = /([0-9]+)\s*일/.exec(c.elapsed || "");
-  return m ? `${m[1]}일` : "당일";
+  return m ? `${m[1]}일` : "0일";
 }
 /* 운전자 정보 유무 도형 (원=있음 / 삼각형=없음) */
 function driverShape(c) {
