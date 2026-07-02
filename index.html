@@ -1454,88 +1454,83 @@
   }
 
   /* ---------- Smart접수지 ---------- */
+  .smart-receipt-page { display: grid; gap: 16px; }
   .smart-receipt-wrap {
-    max-width: 1400px;
-    margin: 0 auto;
-    border: 1px solid #b7c0d1;
-    background: #e9ecf4;
-    box-shadow: 0 10px 30px rgba(20, 30, 50, .08);
-    font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
-    color: #111827;
-    overflow: hidden;
+    max-width: 1400px; margin: 0 auto; width: 100%;
+    background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+    box-shadow: var(--shadow); overflow: hidden; color: var(--text);
   }
   .sr-window-bar {
-    min-height: 34px;
-    padding: 6px 10px;
-    display: flex; align-items: center; justify-content: space-between;
-    background: linear-gradient(180deg, #0589c9, #0176bb);
-    color: #fff;
-    font-size: 13px; font-weight: 800;
+    min-height: 50px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: #fff; border-bottom: 1px solid var(--line);
   }
-  .sr-close { border: 0; background: transparent; color: #fff; font-size: 24px; line-height: 1; cursor: pointer; }
-  .sr-searchbar, .sr-meta-row, .sr-grid { border-top: 1px solid #c5ccda; }
-  .sr-searchbar {
-    display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    padding: 10px; background: #f4f5fa;
+  .sr-window-title { display: flex; align-items: center; gap: 9px; font-size: 16px; font-weight: 800; letter-spacing: -.2px; }
+  .sr-window-title::before { content: ""; width: 9px; height: 9px; border-radius: 99px; background: var(--blue); box-shadow: 0 0 0 4px var(--blue-soft); }
+  .sr-classified { color: var(--red); background: var(--red-soft); border: 1px solid #FCA5A5; border-radius: 99px; padding: 3px 9px; font-size: 11.5px; font-weight: 800; }
+  .sr-searchbar { display: flex; align-items: end; justify-content: space-between; gap: 14px; padding: 16px; background: #FBFCFE; border-bottom: 1px solid var(--line); }
+  .sr-fields { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; }
+  .sr-field { display: grid; gap: 5px; }
+  .sr-label { font-weight: 800; font-size: 12px; color: var(--text-sub); letter-spacing: .2px; }
+  .sr-input, .sr-select, .sr-memo {
+    min-height: 38px; border: 1px solid var(--line-strong); background: #FBFCFE; border-radius: 10px;
+    padding: 8px 10px; font: inherit; font-size: 13px; color: var(--text); outline: none;
   }
-  .sr-fields { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
-  .sr-label { font-weight: 800; font-size: 12px; margin-right: 6px; }
-  .sr-input, .sr-select, .sr-memo, .sr-smallbox {
-    min-height: 22px; border: 1px solid #b8becc; background: #eef0f7;
-    padding: 2px 6px; font: inherit; font-size: 12px; color: #111827;
-  }
+  .sr-input:focus, .sr-select:focus, .sr-memo:focus { border-color: var(--blue); background: #fff; box-shadow: 0 0 0 3px var(--blue-soft); }
   .sr-select { min-width: 150px; }
-  .sr-input.short { width: 62px; }
-  .sr-input.mid { width: 100px; }
-  .sr-input.tiny { width: 42px; }
-  .sr-actions { display: flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
-  .sr-btn { border: 1px solid #305d91; border-radius: 3px; padding: 3px 9px; background: linear-gradient(#4f78b7, #285996); color: #fff; font-size: 12px; font-weight: 800; cursor: pointer; }
-  .sr-btn.orange { border-color: #b35a0b; background: linear-gradient(#f58b1f, #d96500); }
-  .sr-btn.gray { border-color: #98a1b2; background: linear-gradient(#dfe4ee, #b8c0ce); color: #1f2937; }
-  .sr-titleband {
-    margin: 32px 10px 10px; border: 2px solid #254675; background: #dbe3f6;
-    display: grid; grid-template-columns: 1.4fr 120px 1.35fr 1.5fr; align-items: stretch;
-    min-height: 70px; position: relative;
-  }
-  .sr-status-pill { position: absolute; top: 4px; left: 4px; background: #7b8290; color: #fff; border-radius: 12px; padding: 1px 9px; font-size: 12px; font-weight: 800; }
-  .sr-title-cell { display: flex; align-items: center; justify-content: center; border-left: 1px solid #254675; font-size: 19px; font-weight: 900; text-align: center; }
-  .sr-title-cell:first-of-type { border-left: 0; }
-  .sr-title-cell.small { font-size: 13px; }
-  .sr-meta-row { display: grid; grid-template-columns: 390px 260px 1fr; gap: 30px; padding: 0 10px 10px; }
-  .sr-meta-table { border: 1px solid #bdc4d2; background: #eef0f6; display: grid; grid-template-columns: 72px 1fr; font-size: 12px; }
-  .sr-meta-table div { padding: 4px 7px; border-bottom: 1px solid #c7cedc; }
-  .sr-meta-table div:nth-child(odd) { background: #e4e8f1; font-weight: 800; }
-  .sr-digital { display: grid; grid-template-columns: 66px 1fr; align-self: start; }
-  .sr-digital span { border: 1px solid #bdc4d2; padding: 14px 8px; font-size: 12px; background: #e4e8f1; }
-  .sr-digital .box { background: #f0f2f8; min-height: 50px; }
-  .sr-check-table { width: 100%; border-collapse: collapse; font-size: 12px; background: #eef0f6; }
-  .sr-check-table th, .sr-check-table td { border: 1px solid #bdc4d2; padding: 4px 6px; text-align: center; font-weight: 500; }
-  .sr-check-table input { vertical-align: middle; }
-  .sr-grid { display: grid; grid-template-columns: 1fr 390px 190px; gap: 28px; padding: 12px 10px 0; }
-  .sr-section-title { display: flex; align-items: center; gap: 7px; margin-bottom: 6px; font-size: 13px; font-weight: 900; }
-  .sr-section-title::before { content: ""; width: 6px; height: 16px; border-radius: 4px; background: #e05b4e; display: inline-block; }
-  .sr-toolrow { display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
-  .sr-radio { display: flex; flex-direction: column; gap: 2px; font-size: 12px; }
-  .sr-history { width: 100%; border-collapse: collapse; background: #eef0f6; font-size: 12px; }
-  .sr-history th, .sr-history td { border: 1px solid #bdc4d2; padding: 5px 8px; }
-  .sr-history th { background: #e3e7f0; }
-  .sr-empty { height: 70px; text-align: center; color: #111827; }
-  .sr-callbar { display: flex; align-items: center; gap: 10px; padding: 8px 0; font-size: 12px; flex-wrap: wrap; }
-  .sr-phone { border: 1px solid #78a1bc; background: #cfe4ee; color: #24526d; border-radius: 4px; padding: 1px 4px; font-weight: 900; }
-  .sr-memo-panel { display: grid; grid-template-columns: 86px 1fr; gap: 4px 8px; font-size: 12px; }
-  .sr-memo-panel textarea { grid-column: 2; height: 52px; resize: none; }
-  .sr-memo-line { grid-column: 1 / -1; display: grid; grid-template-columns: 86px 1fr; gap: 8px; align-items: center; }
-  .sr-attrs { font-size: 12px; }
-  .sr-attr-row { display: grid; grid-template-columns: 18px 1fr; gap: 6px; align-items: center; margin-bottom: 6px; }
-  .sr-attr-row .sr-input { width: 100%; }
-  .sr-price { margin-top: 6px; color: #1d2f78; font-weight: 800; font-size: 12px; }
-  .sr-bottom-note { padding: 0 10px 8px; display: flex; justify-content: flex-end; }
-  .sr-play { border: 0; border-radius: 4px; background: #f27a13; color: #fff; padding: 4px 10px; font-size: 12px; font-weight: 900; }
-  @media (max-width: 1100px) {
-    .sr-titleband, .sr-meta-row, .sr-grid { grid-template-columns: 1fr; }
-    .sr-title-cell { border-left: 0; border-top: 1px solid #254675; min-height: 48px; }
-    .sr-title-cell:first-of-type { border-top: 0; }
-  }
+  .sr-input.short { width: 76px; } .sr-input.mid { width: 116px; } .sr-input.tiny { width: 58px; }
+  .sr-actions { display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+  .sr-btn { border: 1px solid var(--line-strong); border-radius: 10px; padding: 9px 12px; background: #fff; color: var(--text-sub); font-size: 13px; font-weight: 800; cursor: pointer; transition: all .12s ease; }
+  .sr-btn:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
+  .sr-btn.primary { border-color: var(--blue); background: var(--blue); color: #fff; box-shadow: var(--shadow); }
+  .sr-btn.primary:hover { background: var(--blue-dark); color: #fff; }
+  .sr-btn.alert { border-color: #FCA5A5; background: #FFF7F7; color: var(--red); }
+  .sr-btn:disabled { opacity: .5; cursor: not-allowed; }
+  .sr-titleband { margin: 16px; border: 1.5px solid var(--blue-line); border-radius: 14px; background: linear-gradient(180deg, var(--blue-soft), #fff 70%); display: grid; grid-template-columns: 1.35fr 130px 1.1fr 1fr; overflow: hidden; }
+  .sr-title-cell { min-height: 74px; padding: 14px 16px; display: flex; flex-direction: column; justify-content: center; gap: 4px; border-left: 1px solid var(--blue-line); }
+  .sr-title-cell:first-child { border-left: 0; }
+  .sr-title-k { color: var(--text-dim); font-size: 11.5px; font-weight: 800; }
+  .sr-title-v { color: var(--text); font-size: 18px; font-weight: 900; letter-spacing: -.2px; }
+  .sr-title-v.small { font-size: 14px; }
+  .sr-meta-row { display: grid; grid-template-columns: 1.05fr .8fr 1.45fr; gap: 12px; padding: 0 16px 16px; }
+  .sr-card { background: #fff; border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+  .sr-meta-table { display: grid; grid-template-columns: 90px 1fr; font-size: 12.5px; }
+  .sr-meta-table div { padding: 9px 12px; border-bottom: 1px solid var(--line); }
+  .sr-meta-table div:nth-child(odd) { background: #F8FAFC; color: var(--text-sub); font-weight: 800; }
+  .sr-meta-table div:nth-last-child(-n+2) { border-bottom: 0; }
+  .sr-digital { padding: 12px; display: grid; gap: 8px; }
+  .sr-digital-title { font-size: 12px; font-weight: 800; color: var(--text-sub); }
+  .sr-digital-box { min-height: 46px; border: 1px dashed var(--blue-line); border-radius: 10px; background: var(--blue-soft); color: var(--blue-dark); display: flex; align-items: center; padding: 10px; font-size: 12.5px; font-weight: 700; }
+  .sr-check-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .sr-check-table th, .sr-check-table td { border: 1px solid var(--line); padding: 8px 7px; text-align: center; font-weight: 600; }
+  .sr-check-table th { background: #F8FAFC; color: var(--text-sub); }
+  .sr-grid { display: grid; grid-template-columns: minmax(0, 1fr) 390px 230px; gap: 12px; padding: 0 16px 16px; }
+  .sr-panel { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 14px; min-width: 0; }
+  .sr-section-title { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; font-size: 14px; font-weight: 900; color: var(--text); }
+  .sr-section-title::before { content: ""; width: 6px; height: 18px; border-radius: 99px; background: var(--blue); display: inline-block; }
+  .sr-toolrow { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .sr-radio { display: flex; gap: 10px; align-items: center; color: var(--text-sub); font-size: 12.5px; font-weight: 700; }
+  .sr-history { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  .sr-history th, .sr-history td { border-bottom: 1px solid var(--line); padding: 9px 8px; text-align: left; }
+  .sr-history th { background: #F8FAFC; color: var(--text-sub); font-weight: 800; }
+  .sr-empty { height: 72px; text-align: center; color: var(--text-dim); }
+  .sr-callbar { display: flex; align-items: center; gap: 8px; padding-top: 12px; font-size: 12.5px; flex-wrap: wrap; color: var(--text-sub); }
+  .sr-phone { border: 1px solid var(--blue-line); background: var(--blue-soft); color: var(--blue-dark); border-radius: 8px; padding: 2px 6px; font-weight: 900; }
+  .sr-memo-panel { display: grid; gap: 10px; font-size: 12.5px; }
+  .sr-memo { width: 100%; min-height: 42px; resize: vertical; }
+  textarea.sr-memo { min-height: 84px; }
+  .sr-memo-line { display: grid; grid-template-columns: 80px 1fr; gap: 8px; align-items: center; }
+  .sr-attrs { font-size: 12.5px; }
+  .sr-attr-row { display: grid; grid-template-columns: 20px 1fr; gap: 8px; align-items: center; margin-bottom: 9px; }
+  .sr-attr-row .sr-input { width: 100%; min-height: 34px; padding: 6px 8px; }
+  .sr-price { margin-top: 10px; color: var(--blue-dark); font-weight: 800; font-size: 12.5px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .sr-result-list { padding: 0 16px 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; }
+  .sr-result { border: 1px solid var(--line); background: #fff; border-radius: 12px; padding: 10px 12px; text-align: left; cursor: pointer; }
+  .sr-result.active { border-color: var(--blue); background: var(--blue-soft); }
+  .sr-result-id { font-weight: 900; color: var(--blue-dark); font-size: 12.5px; }
+  .sr-result-sub { margin-top: 2px; color: var(--text-sub); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sr-bottom-note { padding: 0 16px 16px; display: flex; justify-content: flex-end; }
+  .sr-risk-note { color: var(--red); font-weight: 800; font-size: 12.5px; }
+  @media (max-width: 1220px) { .sr-titleband, .sr-meta-row, .sr-grid { grid-template-columns: 1fr; } .sr-title-cell { border-left: 0; border-top: 1px solid var(--blue-line); } .sr-title-cell:first-child { border-top: 0; } .sr-searchbar { align-items: stretch; flex-direction: column; } }
 
 </style>
 </head>
@@ -1663,56 +1658,11 @@
 
 
   <section id="viewSmartReceipt" class="view" hidden>
-    <div class="smart-receipt-wrap" aria-label="Smart접수지 화면">
-      <div class="sr-window-bar"><span>Smart접수지(물)</span><span><button class="sr-btn gray" type="button">대인비</button><button class="sr-close" type="button" aria-label="닫기">×</button></span></div>
-      <div class="sr-searchbar">
-        <div class="sr-fields">
-          <span class="sr-label">조회구분</span><select class="sr-select"><option>사고번호</option></select>
-          <input class="sr-input mid" value="20260618" aria-label="사고일자" />
-          <input class="sr-input short" value="00004" aria-label="사고순번" />
-          <select class="sr-input short"><option>자차</option></select>
-          <input class="sr-input tiny" value="001" aria-label="담보순번" />
-        </div>
-        <div class="sr-actions"><button class="sr-btn orange" type="button">🔍검색</button><button class="sr-btn" type="button">대기</button><button class="sr-btn orange" type="button">↻ 재설정</button></div>
-      </div>
-      <div class="sr-titleband">
-        <span class="sr-status-pill">대기</span>
-        <div class="sr-title-cell">유 20260618 - 00004 - 자차 - 001</div>
-        <div class="sr-title-cell small">0% 미확정</div>
-        <div class="sr-title-cell">CLE200 Coupe (A/T)&nbsp;&nbsp; 326서 3899</div>
-        <div class="sr-title-cell"></div>
-      </div>
-      <div class="sr-meta-row">
-        <div class="sr-meta-table"><div>사고담당</div><div></div><div>피해담당</div><div>시스템지원센터&nbsp;&nbsp;&nbsp;&nbsp; 미입고관리RPA</div></div>
-        <div class="sr-digital"><span>디지털안내</span><span class="box"></span></div>
-        <table class="sr-check-table"><tr><th>검토</th><th><input type="checkbox"> 정비</th><th><input type="checkbox"> 부품</th><th><input type="checkbox"> 유리</th><th><input type="checkbox"> 실런트</th><th><input type="checkbox"> 운반</th><th><input type="checkbox"> 기타</th><th><input type="checkbox"> 렌트</th><th><input type="checkbox"> 교통</th><th><input type="checkbox"> 복구</th><th>통합</th></tr><tr><td>-</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td style="color:#24609b">이동</td></tr></table>
-      </div>
-      <div class="sr-grid">
-        <section>
-          <div class="sr-section-title">진행 이력</div>
-          <div class="sr-toolrow"><div class="sr-radio"><label><input type="radio" name="srScope"> MY</label><label><input type="radio" name="srScope" checked> 전체</label></div><div class="sr-actions"><button class="sr-btn">스크립트 및 BP</button><button class="sr-btn">수기청구알림톡 발송</button><button class="sr-btn">계산기</button><button class="sr-btn">QR</button><button class="sr-btn">컨택</button><button class="sr-btn">메모일괄</button><button class="sr-btn">메세지발송</button><button class="sr-btn">영상입력</button><button class="sr-btn">입회정보</button><button class="sr-btn">간편렌트</button></div></div>
-          <table class="sr-history"><thead><tr><th>순번</th><th>일시</th><th>구분</th><th>내용</th><th>컨택담당자</th></tr></thead><tbody><tr><td colspan="5" class="sr-empty">데이터가 없습니다.</td></tr></tbody></table>
-          <div class="sr-callbar"><span>사고관련자 통화하기</span><span>운전 <b class="sr-phone">☎</b></span><span>소유 <b class="sr-phone">☎</b></span><span>통보 <b class="sr-phone">☎</b></span><span>피보 <b class="sr-phone">☎</b></span><span>계약 <b class="sr-phone">☎</b></span><span>기타 <b class="sr-phone">☎</b></span><input class="sr-input short"><span>-</span><input class="sr-input short"><span>-</span><input class="sr-input short"></div>
-        </section>
-        <section>
-          <div class="sr-section-title">진행 메모 <span style="font-weight:500"><input type="checkbox"> 자동차관리 금지</span> <button class="sr-btn">신규입력</button><button class="sr-btn gray">수정</button></div>
-          <div class="sr-memo-panel"><label><input type="radio" disabled> 피보/운전</label><textarea class="sr-memo"></textarea><label><input type="radio" disabled> 피해/소유</label><div></div><div class="sr-memo-line"><span>고객정보</span><input class="sr-memo"></div><div class="sr-memo-line"><span>고객요청</span><input class="sr-memo"></div><div class="sr-memo-line"><span>주요내용</span><input class="sr-memo"></div></div>
-          <div class="sr-price"><button class="sr-btn gray" disabled>간편일괄</button> ※(표준) 945,000원 <button class="sr-btn">VOC 입력</button><button class="sr-btn gray" disabled>간편</button><button class="sr-btn gray" disabled>저장</button></div>
-          <p style="margin-top:10px;color:#102575;font-weight:800;font-size:12px">피해물 담당자와 로그인 사번이 서로 다름</p>
-        </section>
-        <section class="sr-attrs">
-          <div class="sr-section-title">미결 속성 <button class="sr-btn" style="margin-left:auto">저장</button></div>
-          <div class="sr-attr-row"><input type="checkbox"><span>재통화 <input class="sr-input" type="date"></span></div>
-          <div class="sr-attr-row"><input type="checkbox"><span>VOC <label style="margin-left:12px"><input type="checkbox"> CS</label></span></div>
-          <div class="sr-attr-row"><input type="checkbox"><span>교통 <input class="sr-input"></span></div>
-          <div class="sr-attr-row"><input type="checkbox"><span>렌트 <input class="sr-input"></span></div>
-          <div class="sr-attr-row"><input type="checkbox"><span>기타 <input class="sr-input"></span></div>
-          <div class="sr-attr-row"><input type="checkbox"><input class="sr-input"></div>
-          <div class="sr-attr-row"><input type="checkbox"><input class="sr-input"></div>
-        </section>
-      </div>
-      <div class="sr-bottom-note"><button class="sr-play" type="button">배당확인 ▶</button></div>
-    </div>
+    <section class="page-head">
+      <h1>Smart접수지</h1>
+      <p>기존 Claim Mock data로 사고건을 조회하고, 진행 이력·메모·미결 속성을 직접 테스트합니다.</p>
+    </section>
+    <div class="smart-receipt-page" id="smartReceiptRoot" aria-label="Smart접수지 화면"></div>
   </section><!-- /#viewSmartReceipt -->
 
   <section id="viewImages" class="view" hidden>
@@ -2606,7 +2556,10 @@ const DEFAULT_MESSAGE_TEMPLATES = [
 let messageTemplates = loadMessageTemplates();
 
 /* ===================== 이미지 시스템 상태/데이터 ===================== */
-let activeView = "claims";        // "claims" | "images"
+let activeView = "claims";        // "claims" | "images" | "smartReceipt"
+let smartSelectedId = "CLM-2026-0004"; // Smart접수지는 대표 테스트 시나리오 사고건으로 시작
+let smartResults = [];
+const smartAttrs = {};
 let imgSelectedClaimId = null;    // 이미지뷰에서 선택된 사고건
 let imgActiveFolder = null;       // 현재 보고 있는 폴더
 let imgSearch = "";               // 이미지뷰 사고건 검색어
@@ -3728,6 +3681,139 @@ function selectImgClaim(id) {
   renderImgMain();
 }
 
+
+/* ===================== Smart접수지 ===================== */
+function smartClaimById(id) { return CLAIMS.find(c => c.id === id) || CLAIMS[0]; }
+function smartNoParts(claim) {
+  const seq = (claim.id.match(/(\d{4})$/) || ["0001"])[0];
+  return { ymd:"20260618", seq, cover:"자차", item:"001" };
+}
+function smartSearchText(claim) {
+  return [claim.id, claim.name, claim.car, claim.carModel, claim.manager, claim.actionType, claim.status].join(" ").toLowerCase();
+}
+function smartResultList(query) {
+  const q = (query || "").trim().toLowerCase();
+  if (!q) return CLAIMS.slice(0, 8);
+  const normalized = q.replace(/\D/g, "");
+  return CLAIMS.filter(c => smartSearchText(c).includes(q) || c.id.replace(/\D/g, "").includes(normalized)).slice(0, 8);
+}
+function smartEstimate(claim) {
+  const n = parseInt((claim.id.replace(/\D/g, "").slice(-2) || "0"), 10);
+  return `${won(((n % 20) + 5) * 70000)}원`;
+}
+function smartHistoryRows(claim) {
+  const rows = [
+    { at:"06.18 09:20", type:"접수", text:`${claim.name} 고객 사고 접수 생성`, manager:claim.manager },
+    { at:"06.18 09:45", type:claim.actionType, text:claim.actionDesc, manager:claim.manager },
+    { at:"06.18 10:10", type:"권장조치", text:claim.nextAction, manager:claim.manager }
+  ];
+  (consultLog[claim.id] || []).forEach(log => rows.push({ at:log.at, type:log.category, text:log.text, manager:log.manager }));
+  if (memos[claim.id]) rows.push({ at:formatNowStamp(), type:"메모", text:memos[claim.id], manager:claim.manager });
+  return rows;
+}
+function renderSmartReceipt() {
+  const root = $("#smartReceiptRoot");
+  if (!root) return;
+  const claim = smartClaimById(smartSelectedId);
+  smartSelectedId = claim.id;
+  const parts = smartNoParts(claim);
+  const attrs = smartAttrs[claim.id] || {};
+  const work = claim.work || deriveWork(claim);
+  const rows = smartHistoryRows(claim);
+  const results = smartResults.length ? smartResults : smartResultList(claim.id);
+  root.innerHTML = `
+    <div class="smart-receipt-wrap">
+      <div class="sr-window-bar">
+        <div class="sr-window-title">Smart접수지(물)</div>
+        <span class="sr-classified">대외비</span>
+      </div>
+      <div class="sr-searchbar">
+        <div class="sr-fields">
+          <label class="sr-field"><span class="sr-label">조회구분</span><select class="sr-select" id="srSearchType"><option>사고번호</option><option>고객명</option><option>차량번호</option></select></label>
+          <label class="sr-field"><span class="sr-label">사고일자</span><input class="sr-input mid" id="srYmd" value="${parts.ymd}" /></label>
+          <label class="sr-field"><span class="sr-label">순번</span><input class="sr-input short" id="srSeq" value="${parts.seq}" /></label>
+          <label class="sr-field"><span class="sr-label">담보</span><select class="sr-input short" id="srCover"><option>${parts.cover}</option><option>대물</option></select></label>
+          <label class="sr-field"><span class="sr-label">담보순번</span><input class="sr-input tiny" id="srItem" value="${parts.item}" /></label>
+          <label class="sr-field"><span class="sr-label">통합검색</span><input class="sr-input mid" id="srQuery" value="${claim.id}" aria-label="Smart접수지 통합검색" /></label>
+        </div>
+        <div class="sr-actions"><button class="sr-btn primary" type="button" id="srSearchBtn">검색</button><button class="sr-btn" type="button" id="srWaitingBtn">대기</button><button class="sr-btn" type="button" id="srResetBtn">재설정</button></div>
+      </div>
+      <div class="sr-result-list">${results.map(c => `<button type="button" class="sr-result ${c.id === claim.id ? "active" : ""}" data-sr-claim="${c.id}"><div class="sr-result-id">${c.id}</div><div class="sr-result-sub">${c.name} · ${c.car} · ${c.actionType}</div></button>`).join("")}</div>
+      <div class="sr-titleband">
+        <div class="sr-title-cell"><span class="sr-title-k">사고번호</span><span class="sr-title-v">유 ${parts.ymd} - ${parts.seq} - ${parts.cover} - ${parts.item}</span></div>
+        <div class="sr-title-cell"><span class="sr-title-k">처리상태</span><span class="badge ${PROC_CLASS[claim.procStatus]}">${claim.procStatus}</span></div>
+        <div class="sr-title-cell"><span class="sr-title-k">차량정보</span><span class="sr-title-v">${claim.carModel} · ${claim.car}</span></div>
+        <div class="sr-title-cell"><span class="sr-title-k">고객 / 담당</span><span class="sr-title-v small">${claim.name} · ${claim.manager}</span></div>
+      </div>
+      <div class="sr-meta-row">
+        <div class="sr-card sr-meta-table"><div>사고담당</div><div>${claim.manager}</div><div>피해담당</div><div>${claim.actionType} · ${claim.status}</div></div>
+        <div class="sr-card sr-digital"><div class="sr-digital-title">디지털안내</div><div class="sr-digital-box">${claim.nextAction}</div></div>
+        <table class="sr-card sr-check-table"><tr><th>검토</th><th>정비</th><th>부품</th><th>유리</th><th>실런트</th><th>렌트</th><th>승인</th><th>추산</th><th>통합</th></tr><tr><td>${claim.urgency}</td><td>${work.repair}</td><td>${work.part}</td><td>${work.glass}</td><td>${work.sealant}</td><td>${work.rent}</td><td>${work.approval}</td><td>${work.estimate}</td><td>이동</td></tr></table>
+      </div>
+      <div class="sr-grid">
+        <section class="sr-panel">
+          <div class="sr-section-title">진행 이력</div>
+          <div class="sr-toolrow"><div class="sr-radio"><label><input type="radio" name="srScope"> MY</label><label><input type="radio" name="srScope" checked> 전체</label></div><div class="sr-actions"><button class="sr-btn" data-sr-action="script">스크립트 및 BP</button><button class="sr-btn" data-sr-action="notice">알림톡 발송</button><button class="sr-btn" data-sr-action="contact">컨택</button><button class="sr-btn" data-sr-action="rent">간편렌트</button></div></div>
+          <table class="sr-history"><thead><tr><th>순번</th><th>일시</th><th>구분</th><th>내용</th><th>담당자</th></tr></thead><tbody>${rows.map((r, i) => `<tr><td>${i + 1}</td><td>${escapeHtml(r.at)}</td><td>${escapeHtml(r.type)}</td><td>${escapeHtml(r.text)}</td><td>${escapeHtml(r.manager)}</td></tr>`).join("")}</tbody></table>
+          <div class="sr-callbar"><span>사고관련자 통화하기</span><span>운전 <b class="sr-phone">전화</b></span><span>소유 <b class="sr-phone">전화</b></span><span>피보 <b class="sr-phone">전화</b></span><span>계약 <b class="sr-phone">전화</b></span></div>
+        </section>
+        <section class="sr-panel">
+          <div class="sr-section-title">진행 메모</div>
+          <div class="sr-memo-panel"><label><input type="checkbox" id="srNoAuto" ${attrs.noAuto ? "checked" : ""}> 자동차관리 금지</label><textarea class="sr-memo" id="srMainMemo" placeholder="진행 메모를 입력하세요.">${escapeHtml(memos[claim.id] || "")}</textarea><div class="sr-memo-line"><span>고객정보</span><input class="sr-memo" id="srCustomerInfo" value="${claim.custType}" /></div><div class="sr-memo-line"><span>고객요청</span><input class="sr-memo" id="srCustomerReq" value="${escapeHtml(claim.nextAction)}" /></div><div class="sr-memo-line"><span>주요내용</span><input class="sr-memo" id="srMajorMemo" value="${escapeHtml(claim.actionDesc)}" /></div></div>
+          <div class="sr-price"><button class="sr-btn" type="button" id="srSaveMemo">메모 저장</button><span>※(표준) ${smartEstimate(claim)}</span><button class="sr-btn alert" type="button" id="srVocBtn">VOC 입력</button></div>
+          <p class="sr-risk-note">${claim.manager === "박지현" ? "담당자와 로그인 사번이 일치합니다." : "피해물 담당자와 로그인 사번이 서로 다름"}</p>
+        </section>
+        <section class="sr-panel sr-attrs">
+          <div class="sr-section-title">미결 속성</div>
+          <div class="sr-attr-row"><input type="checkbox" id="srReCall" ${attrs.reCall ? "checked" : ""}><span>재통화 <input class="sr-input" id="srReCallDate" type="date" value="${attrs.reCallDate || ""}"></span></div>
+          <div class="sr-attr-row"><input type="checkbox" id="srVoc" ${attrs.voc ? "checked" : ""}><span>VOC <label style="margin-left:12px"><input type="checkbox" id="srCs" ${attrs.cs ? "checked" : ""}> CS</label></span></div>
+          <div class="sr-attr-row"><input type="checkbox" id="srTraffic" ${attrs.traffic ? "checked" : ""}><span>교통 <input class="sr-input" id="srTrafficMemo" value="${attrs.trafficMemo || ""}"></span></div>
+          <div class="sr-attr-row"><input type="checkbox" id="srRent" ${attrs.rent ? "checked" : ""}><span>렌트 <input class="sr-input" id="srRentMemo" value="${attrs.rentMemo || ""}"></span></div>
+          <button class="sr-btn primary" type="button" id="srSaveAttrs">미결 속성 저장</button>
+        </section>
+      </div>
+      <div class="sr-bottom-note"><button class="sr-btn primary" type="button" id="srAssignBtn">배당확인</button></div>
+    </div>`;
+  bindSmartReceiptEvents(claim.id);
+}
+function bindSmartReceiptEvents(claimId) {
+  const root = $("#smartReceiptRoot");
+  root.querySelectorAll("[data-sr-claim]").forEach(btn => btn.addEventListener("click", () => { smartSelectedId = btn.dataset.srClaim; smartResults = smartResultList(btn.dataset.srClaim); renderSmartReceipt(); }));
+  root.querySelector("#srSearchBtn").addEventListener("click", () => {
+    const q = root.querySelector("#srQuery").value || root.querySelector("#srSeq").value;
+    smartResults = smartResultList(q);
+    if (smartResults[0]) smartSelectedId = smartResults[0].id;
+    renderSmartReceipt();
+    showToast(smartResults.length ? `${smartResults.length}건을 조회했습니다.` : "조회 결과가 없습니다.");
+  });
+  root.querySelector("#srResetBtn").addEventListener("click", () => { smartSelectedId = "CLM-2026-0004"; smartResults = smartResultList("CLM-2026-0004"); renderSmartReceipt(); showToast("대표 테스트 사고건으로 재설정했습니다."); });
+  root.querySelector("#srWaitingBtn").addEventListener("click", () => { setProcStatus(claimId, "처리중"); smartSelectedId = claimId; renderSmartReceipt(); showToast(`${claimId} 건을 대기/처리중 상태로 표시했습니다.`); });
+  root.querySelector("#srSaveMemo").addEventListener("click", () => {
+    const memo = root.querySelector("#srMainMemo").value.trim();
+    memos[claimId] = memo;
+    if (memo) (consultLog[claimId] = consultLog[claimId] || []).push({ at:formatNowStamp(), manager:smartClaimById(claimId).manager, category:"Smart접수지", text:memo });
+    renderSmartReceipt();
+    showToast("진행 메모를 저장했습니다.");
+  });
+  root.querySelector("#srSaveAttrs").addEventListener("click", () => {
+    smartAttrs[claimId] = {
+      noAuto: root.querySelector("#srNoAuto").checked,
+      reCall: root.querySelector("#srReCall").checked,
+      reCallDate: root.querySelector("#srReCallDate").value,
+      voc: root.querySelector("#srVoc").checked,
+      cs: root.querySelector("#srCs").checked,
+      traffic: root.querySelector("#srTraffic").checked,
+      trafficMemo: root.querySelector("#srTrafficMemo").value,
+      rent: root.querySelector("#srRent").checked,
+      rentMemo: root.querySelector("#srRentMemo").value
+    };
+    showToast("미결 속성을 저장했습니다.");
+  });
+  root.querySelector("#srVocBtn").addEventListener("click", () => { root.querySelector("#srVoc").checked = true; showToast("VOC 속성을 체크했습니다. 저장을 눌러 반영하세요."); });
+  root.querySelector("#srAssignBtn").addEventListener("click", () => showToast(`${claimId} 배당 상태를 확인했습니다.`));
+  root.querySelectorAll("[data-sr-action]").forEach(btn => btn.addEventListener("click", () => showToast(`${btn.textContent} 기능을 실행했습니다. (데모)`)));
+}
+
 const VIEW_TITLES = { claims:"Smart업무관리", smartReceipt:"Smart접수지", images:"이미지 시스템", closing:"결재 LIST" };
 function switchView(name) {
   activeView = name;
@@ -3737,6 +3823,7 @@ function switchView(name) {
   $("#viewClosing").hidden = name !== "closing";
   document.querySelectorAll(".nav-item[data-view]").forEach(b => b.classList.toggle("active", b.dataset.view === name));
   $("#viewName").textContent = VIEW_TITLES[name] || "Smart업무관리";
+  if (name === "smartReceipt") renderSmartReceipt();
   if (name === "images") renderImageView();
   if (name === "closing") renderClosingView();
 }
