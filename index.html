@@ -156,6 +156,20 @@
   .nav-item:hover:not(.disabled) { background: #F2F5FA; color: var(--text); }
   .nav-item.active { background: var(--blue-soft); color: var(--blue-dark); }
   .nav-item.disabled { color: var(--text-dim); cursor: default; opacity: .85; }
+  .nav-row { display: flex; align-items: center; gap: 4px; }
+  .nav-row .nav-item { flex: 1; min-width: 0; }
+  .nav-popout {
+    flex: none; display: inline-flex; align-items: center; justify-content: center;
+    width: 32px; height: 32px; padding: 0;
+    border: 1px solid transparent; border-radius: 8px;
+    background: transparent; color: var(--text-dim);
+    cursor: pointer; transition: background .12s ease, color .12s ease, border-color .12s ease;
+  }
+  .nav-popout svg { width: 15px; height: 15px; }
+  .nav-popout:hover, .nav-popout:focus-visible {
+    border-color: var(--blue-line); background: #F2F7FF; color: var(--blue);
+    outline: none;
+  }
   .ni-pro {
     font-size: 10px; font-weight: 800; color: var(--text-dim);
     background: #EEF1F6; border-radius: 99px; padding: 1px 7px;
@@ -1433,8 +1447,9 @@
     .img-layout { grid-template-columns: 1fr; }
     .img-claims { position: static; max-height: 320px; }
     .app-shell.nav-pinned .side-nav { width: 64px; padding: 16px 8px; }
-    .app-shell.nav-pinned .side-nav .sn-brand-text, .app-shell.nav-pinned .side-nav .ni-label, .app-shell.nav-pinned .side-nav .ni-pro, .app-shell.nav-pinned .side-nav .sn-section, .app-shell.nav-pinned .nav-pin { display: none; }
+    .app-shell.nav-pinned .side-nav .sn-brand-text, .app-shell.nav-pinned .side-nav .ni-label, .app-shell.nav-pinned .side-nav .ni-pro, .app-shell.nav-pinned .side-nav .sn-section, .app-shell.nav-pinned .nav-pin, .app-shell.nav-pinned .nav-popout { display: none; }
     .app-shell.nav-pinned .side-nav .sn-brand { justify-content: center; padding: 4px 0 14px; }
+    .app-shell.nav-pinned .nav-row .nav-item { flex: none; }
     .app-shell.nav-pinned .nav-item { justify-content: center; padding: 10px 0; }
     .modal-summary { grid-template-columns: 1fr; }
     .modal-steps { grid-template-columns: 1fr 1fr; }
@@ -1866,26 +1881,51 @@
       </button>
     </div>
     <div class="sn-section">메뉴</div>
-    <button class="nav-item active" data-view="claims" type="button">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/><circle cx="4.5" cy="18" r="1.2"/></svg>
-      <span class="ni-label">Smart업무관리</span>
-    </button>
-    <button class="nav-item" data-view="intake" type="button">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8a2 2 0 0 1 2 2v13a1 1 0 0 1-1.5.87L14 18.5l-2.5 1.4L9 18.5l-2.5 1.4A1 1 0 0 1 5 19V6a2 2 0 0 1 2-2Z"/><path d="M9 8h6M9 12h6"/></svg>
-      <span class="ni-label">Smart접수지</span>
-    </button>
-    <button class="nav-item" data-view="images" type="button">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m4 17 4.5-4.5 3 3L16 11l4 4.5"/></svg>
-      <span class="ni-label">이미지시스템</span>
-    </button>
-    <button class="nav-item" data-view="closing" type="button">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-      <span class="ni-label">결재 LIST</span>
-    </button>
-    <button class="nav-item" data-view="assign" type="button">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="1.9" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.9" fill="currentColor" stroke="none"/><circle cx="7" cy="18" r="1.9" fill="currentColor" stroke="none"/></svg>
-      <span class="ni-label">전결·순환배당 관리</span>
-    </button>
+    <div class="nav-row">
+      <button class="nav-item active" data-view="claims" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/><circle cx="4.5" cy="18" r="1.2"/></svg>
+        <span class="ni-label">Smart업무관리</span>
+      </button>
+      <button class="nav-popout" data-open-view="claims" type="button" title="Smart업무관리 새창으로 열기" aria-label="Smart업무관리 새창으로 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
+      </button>
+    </div>
+    <div class="nav-row">
+      <button class="nav-item" data-view="intake" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8a2 2 0 0 1 2 2v13a1 1 0 0 1-1.5.87L14 18.5l-2.5 1.4L9 18.5l-2.5 1.4A1 1 0 0 1 5 19V6a2 2 0 0 1 2-2Z"/><path d="M9 8h6M9 12h6"/></svg>
+        <span class="ni-label">Smart접수지</span>
+      </button>
+      <button class="nav-popout" data-open-view="intake" type="button" title="Smart접수지 새창으로 열기" aria-label="Smart접수지 새창으로 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
+      </button>
+    </div>
+    <div class="nav-row">
+      <button class="nav-item" data-view="images" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m4 17 4.5-4.5 3 3L16 11l4 4.5"/></svg>
+        <span class="ni-label">이미지시스템</span>
+      </button>
+      <button class="nav-popout" data-open-view="images" type="button" title="이미지시스템 새창으로 열기" aria-label="이미지시스템 새창으로 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
+      </button>
+    </div>
+    <div class="nav-row">
+      <button class="nav-item" data-view="closing" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span class="ni-label">결재 LIST</span>
+      </button>
+      <button class="nav-popout" data-open-view="closing" type="button" title="결재 LIST 새창으로 열기" aria-label="결재 LIST 새창으로 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
+      </button>
+    </div>
+    <div class="nav-row">
+      <button class="nav-item" data-view="assign" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="1.9" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.9" fill="currentColor" stroke="none"/><circle cx="7" cy="18" r="1.9" fill="currentColor" stroke="none"/></svg>
+        <span class="ni-label">전결·순환배당 관리</span>
+      </button>
+      <button class="nav-popout" data-open-view="assign" type="button" title="전결·순환배당 관리 새창으로 열기" aria-label="전결·순환배당 관리 새창으로 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
+      </button>
+    </div>
     <div class="sn-section">확장 (Pro)</div>
     <button class="nav-item disabled" type="button" disabled>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h4l2 5 4-12 2 7h6"/></svg>
@@ -2928,6 +2968,7 @@ const INTAKE_MEMO_TYPES = ["피보/운전", "피해소유", "고객요청", "공
 const INTAKE_ATTRS = ["재통화", "VOC", "교통", "렌트", "CS", "기타"];
 // Smart접수지 조회구분 (참조: reference/조회구분값.png)
 const INTAKE_QUERY_TYPES = ["사고번호", "차량번호", "피해차량번호", "피보험자 휴대폰", "통보자 휴대폰", "피해자 휴대폰", "운전자 휴대폰", "소유자 휴대폰"];
+let intakeQueryType = INTAKE_QUERY_TYPES[0];
 const intakeProgressLogs = {
   "CLM-2026-0004": [
     { at:"06.18 09:12", type:"피보/운전", text:"운전자 통화 완료. 사고 경위와 입고 희망 공업사 확인." },
@@ -3972,7 +4013,22 @@ function selectImgClaim(id) {
 }
 
 const VIEW_TITLES = { claims:"Smart업무관리", intake:"Smart접수지", images:"이미지 시스템", closing:"결재 LIST", assign:"전결·순환배당 관리" };
+const VIEW_KEYS = Object.keys(VIEW_TITLES);
+
+function getInitialView() {
+  const view = new URLSearchParams(window.location.search).get("view");
+  return VIEW_KEYS.includes(view) ? view : "claims";
+}
+
+function openViewWindow(name) {
+  if (!VIEW_KEYS.includes(name)) return;
+  const url = new URL(window.location.href);
+  url.searchParams.set("view", name);
+  window.open(url.toString(), "_blank", "noopener");
+}
+
 function switchView(name) {
+  if (!VIEW_KEYS.includes(name)) name = "claims";
   activeView = name;
   $("#viewClaims").hidden = name !== "claims";
   $("#viewIntake").hidden = name !== "intake";
@@ -4743,20 +4799,107 @@ function bindIntakeWorkbench(d) {
   });
 }
 
+function normalizeIntakeText(value) {
+  return String(value || "").replace(/\s+/g, "").toUpperCase();
+}
+
+function intakeDigits(value) {
+  return String(value || "").replace(/\D/g, "");
+}
+
+function claimNoMatches(claimId, value) {
+  const query = normalizeIntakeText(value);
+  const queryDigits = intakeDigits(value);
+  const normalizedId = normalizeIntakeText(claimId).replace(/-/g, "");
+  const idDigits = intakeDigits(claimId);
+  if (!query) return false;
+  return normalizedId === query.replace(/-/g, "")
+    || claimId.toUpperCase() === query
+    || (queryDigits.length >= 4 && idDigits.endsWith(queryDigits));
+}
+
+function intakePhoneForType(type, d) {
+  if (type === "피보험자 휴대폰") return d.parties.insured.phone;
+  if (type === "통보자 휴대폰") return d.parties.notifier.phone;
+  if (type === "운전자 휴대폰") return d.parties.driver.phone;
+  if (type === "소유자 휴대폰") return d.parties.owner.phone;
+  if (type === "피해자 휴대폰") {
+    const row = d.damageList.find(r => r.ownerPhone) || {};
+    return row.ownerPhone || d.damage.owner || "";
+  }
+  return "";
+}
+
+function intakePhoneParts(phone) {
+  const n = intakeDigits(phone);
+  return [n.slice(0, 3), n.slice(3, 7), n.slice(7, 11)];
+}
+
+function readIntakeSearchValue() {
+  const fields = Array.from(document.querySelectorAll("#intakeSearchFields input"));
+  if (!fields.length) return "";
+  return /휴대폰/.test(intakeQueryType)
+    ? fields.map(input => input.value.trim()).join("")
+    : fields[0].value.trim();
+}
+
+function intakeClaimMatches(c, type, value) {
+  if (!value.trim()) return false;
+  const d = getIntakeData(c.id);
+  if (!d) return false;
+  if (type === "사고번호") return claimNoMatches(c.id, value);
+  if (type === "차량번호") return normalizeIntakeText(c.car) === normalizeIntakeText(value);
+  if (type === "피해차량번호") {
+    return d.damageList.some(r => normalizeIntakeText(r.carNo) === normalizeIntakeText(value));
+  }
+  if (/휴대폰/.test(type)) {
+    return intakeDigits(intakePhoneForType(type, d)) === intakeDigits(value);
+  }
+  return false;
+}
+
+function runIntakeSearch() {
+  const type = $("#intakeQueryType") ? $("#intakeQueryType").value : intakeQueryType;
+  intakeQueryType = INTAKE_QUERY_TYPES.includes(type) ? type : INTAKE_QUERY_TYPES[0];
+  const value = readIntakeSearchValue();
+  if (!value.trim()) {
+    showToast("조회할 값을 입력하세요.");
+    return;
+  }
+  const hit = CLAIMS.find(c => intakeClaimMatches(c, intakeQueryType, value));
+  if (!hit) {
+    showToast("조회 조건에 해당하는 사고건이 없습니다.");
+    return;
+  }
+  intakeClaimId = hit.id;
+  selectedId = hit.id;
+  renderIntake();
+  showToast(`${hit.id} 건을 조회했습니다.`);
+}
+
+function bindIntakeSearchInputs() {
+  document.querySelectorAll("#intakeSearchFields input").forEach(input => {
+    input.addEventListener("keydown", e => {
+      if (e.key === "Enter") runIntakeSearch();
+    });
+  });
+}
+
 // 조회구분에 따라 검색 입력 필드를 다르게 렌더 (휴대폰 = 3칸 010-1234-1234)
 function intakeSearchFieldsHtml(type, d) {
   if (/휴대폰/.test(type)) {
-    return `<input class="lg-input" maxlength="3" inputmode="numeric" placeholder="010" style="width:52px">
+    const [p1, p2, p3] = intakePhoneParts(intakePhoneForType(type, d));
+    return `<input class="lg-input" maxlength="3" inputmode="numeric" placeholder="010" value="${iEsc(p1)}" style="width:52px">
       <span class="dash">-</span>
-      <input class="lg-input" maxlength="4" inputmode="numeric" placeholder="1234" style="width:60px">
+      <input class="lg-input" maxlength="4" inputmode="numeric" placeholder="1234" value="${iEsc(p2)}" style="width:60px">
       <span class="dash">-</span>
-      <input class="lg-input" maxlength="4" inputmode="numeric" placeholder="1234" style="width:60px">`;
+      <input class="lg-input" maxlength="4" inputmode="numeric" placeholder="1234" value="${iEsc(p3)}" style="width:60px">`;
   }
   if (type === "차량번호" || type === "피해차량번호") {
-    return `<input class="lg-input" placeholder="12가3456" style="width:130px">`;
+    return `<input class="lg-input" value="${iEsc(d.car)}" placeholder="12가3456" style="width:130px">`;
   }
   // 사고번호(기본): 접수번호 단일 입력 (담보는 자차 고정이라 선택 불필요)
-  return `<input class="lg-input" value="${iEsc(d.id)}" placeholder="사고접수번호" style="width:150px" readonly>`;
+  return `<input class="lg-input" value="${iEsc(d.id)}" placeholder="사고접수번호" style="width:150px">`;
 }
 
 function renderIntake() {
@@ -4767,6 +4910,7 @@ function renderIntake() {
   if (!d) { root.innerHTML = `<div style="padding:40px;text-align:center;color:#8a90a0">표시할 사고건이 없습니다.</div>`; return; }
   const done = d.procStatus === "완료";
   const unresolvedText = (d.unresolved && d.unresolved.length) ? d.unresolved.join(", ") : "없음";
+  const queryType = INTAKE_QUERY_TYPES.includes(intakeQueryType) ? intakeQueryType : INTAKE_QUERY_TYPES[0];
   root.innerHTML = `
     <button class="lg-back" type="button" id="intakeBack">← 목록으로</button>
     <div class="lg">
@@ -4774,10 +4918,10 @@ function renderIntake() {
         <div class="lg-titlebar"><span class="t">Smart접수지 (물)</span><span class="r"><span class="lg-secret">대외비</span><span class="lg-x">✕</span></span></div>
         <div class="lg-search">
           <span class="lk">조회구분</span>
-          <select class="lg-select" id="intakeQueryType">${INTAKE_QUERY_TYPES.map(t => `<option value="${iEsc(t)}">${iEsc(t)}</option>`).join("")}</select>
-          <span id="intakeSearchFields" class="lg-search-fields">${intakeSearchFieldsHtml(INTAKE_QUERY_TYPES[0], d)}</span>
+          <select class="lg-select" id="intakeQueryType">${INTAKE_QUERY_TYPES.map(t => `<option value="${iEsc(t)}" ${t === queryType ? "selected" : ""}>${iEsc(t)}</option>`).join("")}</select>
+          <span id="intakeSearchFields" class="lg-search-fields">${intakeSearchFieldsHtml(queryType, d)}</span>
           <span class="grow"></span>
-          <div class="lg-search-btns"><button class="lg-sbtn" type="button">🔍 검색</button><button class="lg-sbtn gray" type="button">대기</button><button class="lg-sbtn gray" type="button">↻ 재설정</button></div>
+          <div class="lg-search-btns"><button class="lg-sbtn" type="button" id="intakeSearchBtn">🔍 검색</button><button class="lg-sbtn gray" type="button">대기</button><button class="lg-sbtn gray" type="button" id="intakeResetBtn">↻ 재설정</button></div>
         </div>
         <div class="lg-body">
           ${lgIdBand(d)}
@@ -4808,9 +4952,19 @@ function renderIntake() {
   bindIntakeEstimate(d);
   const qt = $("#intakeQueryType");
   if (qt) qt.addEventListener("change", () => {
+    intakeQueryType = INTAKE_QUERY_TYPES.includes(qt.value) ? qt.value : INTAKE_QUERY_TYPES[0];
     const box = $("#intakeSearchFields");
-    if (box) box.innerHTML = intakeSearchFieldsHtml(qt.value, d);
+    if (box) box.innerHTML = intakeSearchFieldsHtml(intakeQueryType, d);
+    bindIntakeSearchInputs();
   });
+  const sb = $("#intakeSearchBtn");
+  if (sb) sb.addEventListener("click", runIntakeSearch);
+  const rb = $("#intakeResetBtn");
+  if (rb) rb.addEventListener("click", () => {
+    intakeQueryType = INTAKE_QUERY_TYPES[0];
+    renderIntake();
+  });
+  bindIntakeSearchInputs();
   const cb = $("#intakeComplete");
   if (cb) cb.addEventListener("click", () => {
     if (d.procStatus === "완료") return;
@@ -5651,6 +5805,9 @@ document.addEventListener("keydown", e => {
 document.querySelectorAll(".nav-item[data-view]").forEach(btn => {
   btn.addEventListener("click", () => switchView(btn.dataset.view));
 });
+document.querySelectorAll(".nav-popout[data-open-view]").forEach(btn => {
+  btn.addEventListener("click", () => openViewWindow(btn.dataset.openView));
+});
 
 /* ----- 좌측 메뉴: 자동 숨김 / 호버 열기 / 핀 고정 ----- */
 (function initSideNav() {
@@ -6473,6 +6630,9 @@ function showToast(msg) {
   $("#todayLabel").textContent = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")} (${days[d.getDay()]})`;
   selectFirst();
   renderAll();
+  const initialView = getInitialView();
+  if (initialView === "intake") openIntake();
+  else if (initialView !== "claims") switchView(initialView);
 })();
 </script>
 </body>
