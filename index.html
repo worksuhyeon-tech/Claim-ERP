@@ -156,20 +156,6 @@
   .nav-item:hover:not(.disabled) { background: #F2F5FA; color: var(--text); }
   .nav-item.active { background: var(--blue-soft); color: var(--blue-dark); }
   .nav-item.disabled { color: var(--text-dim); cursor: default; opacity: .85; }
-  .nav-row { display: flex; align-items: center; gap: 4px; }
-  .nav-row .nav-item { flex: 1; min-width: 0; }
-  .nav-popout {
-    flex: none; display: inline-flex; align-items: center; justify-content: center;
-    width: 32px; height: 32px; padding: 0;
-    border: 1px solid transparent; border-radius: 8px;
-    background: transparent; color: var(--text-dim);
-    cursor: pointer; transition: background .12s ease, color .12s ease, border-color .12s ease;
-  }
-  .nav-popout svg { width: 15px; height: 15px; }
-  .nav-popout:hover, .nav-popout:focus-visible {
-    border-color: var(--blue-line); background: #F2F7FF; color: var(--blue);
-    outline: none;
-  }
   .ni-pro {
     font-size: 10px; font-weight: 800; color: var(--text-dim);
     background: #EEF1F6; border-radius: 99px; padding: 1px 7px;
@@ -1447,9 +1433,8 @@
     .img-layout { grid-template-columns: 1fr; }
     .img-claims { position: static; max-height: 320px; }
     .app-shell.nav-pinned .side-nav { width: 64px; padding: 16px 8px; }
-    .app-shell.nav-pinned .side-nav .sn-brand-text, .app-shell.nav-pinned .side-nav .ni-label, .app-shell.nav-pinned .side-nav .ni-pro, .app-shell.nav-pinned .side-nav .sn-section, .app-shell.nav-pinned .nav-pin, .app-shell.nav-pinned .nav-popout { display: none; }
+    .app-shell.nav-pinned .side-nav .sn-brand-text, .app-shell.nav-pinned .side-nav .ni-label, .app-shell.nav-pinned .side-nav .ni-pro, .app-shell.nav-pinned .side-nav .sn-section, .app-shell.nav-pinned .nav-pin { display: none; }
     .app-shell.nav-pinned .side-nav .sn-brand { justify-content: center; padding: 4px 0 14px; }
-    .app-shell.nav-pinned .nav-row .nav-item { flex: none; }
     .app-shell.nav-pinned .nav-item { justify-content: center; padding: 10px 0; }
     .modal-summary { grid-template-columns: 1fr; }
     .modal-steps { grid-template-columns: 1fr 1fr; }
@@ -1672,6 +1657,50 @@
   .lg-est-tbl tfoot th { text-align: right; }
   .lg-est-tbl tfoot td.amt { color: #1F3E7A; }
 
+  /* Smart접수지 저장/결재 상태 밴드 (신규) */
+  .lg-srband { display: flex; flex-wrap: wrap; align-items: stretch; border: 1px solid #90B1DE;
+    background: #fff; border-radius: 4px; margin: 0 0 10px; overflow: hidden; }
+  .lg-srband .cell { display: flex; align-items: center; gap: 7px; padding: 7px 14px; border-left: 1px solid #DBE3EF; }
+  .lg-srband .cell:first-child { border-left: none; }
+  .lg-srband .cell .k { color: #5B6273; font-weight: 700; font-size: 11.5px; }
+  .lg-srband .cell .v { color: #22252E; font-weight: 800; font-size: 12.5px; }
+  .lg-sr-pill { font-weight: 800; font-size: 11px; border-radius: 3px; padding: 2px 8px; border: 1px solid transparent; }
+  .lg-sr-pill.none { background: #F1F2F6; color: #8A90A0; border-color: #E1E3EA; }
+  .lg-sr-pill.done { background: #E7F3EC; color: #15803D; border-color: #BFE3CC; }
+  .lg-sr-pill.ing { background: #FEF3E2; color: #B4690E; border-color: #F5D9A8; }
+  .lg-sr-pill.reject { background: #FBE9E7; color: #C0341D; border-color: #F2C4BB; }
+
+  /* 탭1·2 저장/수정 바 + 저장이력 인라인 테이블 (신규) */
+  .lg-sr-bar { display: flex; align-items: center; gap: 8px; margin-top: 12px; padding-top: 10px; border-top: 1px dashed var(--lg-line2); }
+  .lg-sr-bar .sr-meta { font-size: 11.5px; color: #6B7080; font-weight: 700; }
+  .lg-sr-bar .sp { flex: 1; }
+  .lg-sr-hist { margin-top: 9px; border: 1px solid var(--lg-line2); border-radius: 4px; overflow: auto; max-height: 240px; }
+  .lg-sr-hist table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+  .lg-sr-hist th, .lg-sr-hist td { border: 1px solid var(--lg-line2); padding: 5px 8px; text-align: left; vertical-align: top; }
+  .lg-sr-hist thead th { background: var(--lg-label); color: #3A3F4E; font-weight: 700; position: sticky; top: 0; }
+  .lg-sr-hist td.seq { text-align: center; width: 34px; color: #6B7080; }
+  .lg-sr-hist td.act { text-align: center; width: 52px; font-weight: 800; }
+  .lg-sr-hist .chg em { color: #C0341D; font-style: normal; }
+  .lg-sr-hist .chg b { color: #15803D; font-weight: 700; }
+  .lg-sr-hist .chg .none { color: #A0A4B0; }
+
+  /* 탭3 결재 요약줄 + 버튼 (신규) */
+  .lg-est-appr { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 16px;
+    border: 1px solid #C6D6EF; background: #F4F7FC; border-radius: 4px; padding: 9px 12px; margin-bottom: 10px; }
+  .lg-est-appr .ea-item { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+  .lg-est-appr .ea-item .k { color: #5B6273; font-weight: 700; }
+  .lg-est-appr .ea-item .v { color: #22252E; font-weight: 800; }
+  .lg-est-appr .ea-btns { margin-left: auto; display: flex; gap: 6px; }
+
+  /* 결재이력 모달 테이블 (신규) */
+  .lg-appr-hist { border: 1px solid var(--lg-line2); border-radius: 4px; overflow: auto; max-height: 60vh; }
+  .lg-appr-hist table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .lg-appr-hist th, .lg-appr-hist td { border: 1px solid var(--lg-line2); padding: 6px 9px; text-align: left; white-space: nowrap; }
+  .lg-appr-hist thead th { background: var(--lg-label); color: #3A3F4E; font-weight: 700; position: sticky; top: 0; }
+  .lg-appr-hist td.seq { text-align: center; width: 44px; }
+  .lg-appr-hist td.cmt { white-space: normal; min-width: 200px; }
+  .lg-appr-hist .empty { padding: 24px; text-align: center; color: #8A90A0; }
+
   @media (max-width: 980px) {
     .lg-cols { grid-template-columns: 1fr; }
     .lg-panels { grid-template-columns: 1fr; }
@@ -1881,51 +1910,26 @@
       </button>
     </div>
     <div class="sn-section">메뉴</div>
-    <div class="nav-row">
-      <button class="nav-item active" data-view="claims" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/><circle cx="4.5" cy="18" r="1.2"/></svg>
-        <span class="ni-label">Smart업무관리</span>
-      </button>
-      <button class="nav-popout" data-open-view="claims" type="button" title="Smart업무관리 새창으로 열기" aria-label="Smart업무관리 새창으로 열기">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
-      </button>
-    </div>
-    <div class="nav-row">
-      <button class="nav-item" data-view="intake" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8a2 2 0 0 1 2 2v13a1 1 0 0 1-1.5.87L14 18.5l-2.5 1.4L9 18.5l-2.5 1.4A1 1 0 0 1 5 19V6a2 2 0 0 1 2-2Z"/><path d="M9 8h6M9 12h6"/></svg>
-        <span class="ni-label">Smart접수지</span>
-      </button>
-      <button class="nav-popout" data-open-view="intake" type="button" title="Smart접수지 새창으로 열기" aria-label="Smart접수지 새창으로 열기">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
-      </button>
-    </div>
-    <div class="nav-row">
-      <button class="nav-item" data-view="images" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m4 17 4.5-4.5 3 3L16 11l4 4.5"/></svg>
-        <span class="ni-label">이미지시스템</span>
-      </button>
-      <button class="nav-popout" data-open-view="images" type="button" title="이미지시스템 새창으로 열기" aria-label="이미지시스템 새창으로 열기">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
-      </button>
-    </div>
-    <div class="nav-row">
-      <button class="nav-item" data-view="closing" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
-        <span class="ni-label">결재 LIST</span>
-      </button>
-      <button class="nav-popout" data-open-view="closing" type="button" title="결재 LIST 새창으로 열기" aria-label="결재 LIST 새창으로 열기">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
-      </button>
-    </div>
-    <div class="nav-row">
-      <button class="nav-item" data-view="assign" type="button">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="1.9" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.9" fill="currentColor" stroke="none"/><circle cx="7" cy="18" r="1.9" fill="currentColor" stroke="none"/></svg>
-        <span class="ni-label">전결·순환배당 관리</span>
-      </button>
-      <button class="nav-popout" data-open-view="assign" type="button" title="전결·순환배당 관리 새창으로 열기" aria-label="전결·순환배당 관리 새창으로 열기">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
-      </button>
-    </div>
+    <button class="nav-item active" data-view="claims" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/><circle cx="4.5" cy="18" r="1.2"/></svg>
+      <span class="ni-label">Smart업무관리</span>
+    </button>
+    <button class="nav-item" data-view="intake" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8a2 2 0 0 1 2 2v13a1 1 0 0 1-1.5.87L14 18.5l-2.5 1.4L9 18.5l-2.5 1.4A1 1 0 0 1 5 19V6a2 2 0 0 1 2-2Z"/><path d="M9 8h6M9 12h6"/></svg>
+      <span class="ni-label">Smart접수지</span>
+    </button>
+    <button class="nav-item" data-view="images" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m4 17 4.5-4.5 3 3L16 11l4 4.5"/></svg>
+      <span class="ni-label">이미지시스템</span>
+    </button>
+    <button class="nav-item" data-view="closing" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      <span class="ni-label">결재 LIST</span>
+    </button>
+    <button class="nav-item" data-view="assign" type="button">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="1.9" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.9" fill="currentColor" stroke="none"/><circle cx="7" cy="18" r="1.9" fill="currentColor" stroke="none"/></svg>
+      <span class="ni-label">전결·순환배당 관리</span>
+    </button>
     <div class="sn-section">확장 (Pro)</div>
     <button class="nav-item disabled" type="button" disabled>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h4l2 5 4-12 2 7h6"/></svg>
@@ -2170,6 +2174,7 @@
 <div class="modal-root" id="assignSimRoot" aria-hidden="true"></div>
 <div class="modal-root" id="apprPwRoot" aria-hidden="true"></div>
 <div class="modal-root" id="apprDocRoot" aria-hidden="true"></div>
+<div class="modal-root" id="srApprRoot" aria-hidden="true"></div>
 
 <script>
 "use strict";
@@ -2968,7 +2973,6 @@ const INTAKE_MEMO_TYPES = ["피보/운전", "피해소유", "고객요청", "공
 const INTAKE_ATTRS = ["재통화", "VOC", "교통", "렌트", "CS", "기타"];
 // Smart접수지 조회구분 (참조: reference/조회구분값.png)
 const INTAKE_QUERY_TYPES = ["사고번호", "차량번호", "피해차량번호", "피보험자 휴대폰", "통보자 휴대폰", "피해자 휴대폰", "운전자 휴대폰", "소유자 휴대폰"];
-let intakeQueryType = INTAKE_QUERY_TYPES[0];
 const intakeProgressLogs = {
   "CLM-2026-0004": [
     { at:"06.18 09:12", type:"피보/운전", text:"운전자 통화 완료. 사고 경위와 입고 희망 공업사 확인." },
@@ -2982,6 +2986,19 @@ const intakePropertyState = {
     note:"피해담당자와 로그의 사고내용이 서로 다름",
   },
 };
+// Smart접수지 저장 데이터 — 사고번호 키. 시드(defaultDetail)보다 항상 우선하며,
+// 탭1(계약 사고 정보)·탭2(피해 진행 정보) 저장값과 결재 상신 순번 캐시를 보관한다.
+const smartReceipts = {};
+function getSmartReceipt(id) {
+  if (!smartReceipts[id]) smartReceipts[id] = {
+    contractAccidentInfo: { isSaved:false, savedAt:null, savedBy:null, fields:null, histories:[] },
+    damageProgressInfo:   { isSaved:false, savedAt:null, savedBy:null, fields:null, histories:[] },
+    estimateClaimInfo:    { approvalSequences: [] }, // {apprId, approvalType, resolutionNo, requestedAt} 참조 캐시
+  };
+  return smartReceipts[id];
+}
+// 편집 중 입력값 임시 보관 — renderIntake 전체 재렌더 시 입력 손실 방지 (사고번호 → {필드키: 값})
+const intakeDrafts = {};
 const actionProgress = {}; // 사고번호별 빠른 액션 팝업 진행 상태
 const noticeSends = {}; // 사고번호별 알림톡/문자 발송 상태
 const accidentEdits = {}; // 사고번호별 사고조사 수정값
@@ -4013,22 +4030,7 @@ function selectImgClaim(id) {
 }
 
 const VIEW_TITLES = { claims:"Smart업무관리", intake:"Smart접수지", images:"이미지 시스템", closing:"결재 LIST", assign:"전결·순환배당 관리" };
-const VIEW_KEYS = Object.keys(VIEW_TITLES);
-
-function getInitialView() {
-  const view = new URLSearchParams(window.location.search).get("view");
-  return VIEW_KEYS.includes(view) ? view : "claims";
-}
-
-function openViewWindow(name) {
-  if (!VIEW_KEYS.includes(name)) return;
-  const url = new URL(window.location.href);
-  url.searchParams.set("view", name);
-  window.open(url.toString(), "_blank", "noopener");
-}
-
 function switchView(name) {
-  if (!VIEW_KEYS.includes(name)) name = "claims";
   activeView = name;
   $("#viewClaims").hidden = name !== "claims";
   $("#viewIntake").hidden = name !== "intake";
@@ -4459,18 +4461,21 @@ function getIntakeProperty(id, d) {
 }
 
 /* ---- 레거시 테이블 헬퍼 ---- */
-// entries: { k, v, full?, blue? } — full은 값이 3칸 병합, 아니면 k/v 쌍을 2개씩 묶어 4열 배치
+// entries: { k, v, full?, blue?, raw? } — full은 값이 3칸 병합, 아니면 k/v 쌍을 2개씩 묶어 4열 배치
+// raw가 있으면 escape 없이 그대로 삽입(입력 컨트롤 주입용). raw 값 내부의 사용자 데이터는 호출부에서 iEsc 처리.
 function lgTable(entries) {
   const rows = [];
   let buf = [];
   const flush = () => { if (buf.length) { rows.push("<tr>" + buf.join("") + "</tr>"); buf = []; } };
   entries.forEach(e => {
-    const val = iEsc(e.v);
+    const isRaw = e.raw != null;
+    const content = isRaw ? e.raw : (iEsc(e.v) || "-");
+    const cls = `${e.blue ? "blue " : ""}${(!isRaw && !e.v) ? "ph" : ""}`;
     if (e.full) {
       flush();
-      rows.push(`<tr><th>${e.k}</th><td colspan="3" class="${e.blue ? "blue " : ""}${val ? "" : "ph"}">${val || "-"}</td></tr>`);
+      rows.push(`<tr><th>${e.k}</th><td colspan="3" class="${cls}">${content}</td></tr>`);
     } else {
-      buf.push(`<th>${e.k}</th><td class="${e.blue ? "blue " : ""}${val ? "" : "ph"}">${val || "-"}</td>`);
+      buf.push(`<th>${e.k}</th><td class="${cls}">${content}</td>`);
       if (buf.length === 2) flush();
     }
   });
@@ -4504,6 +4509,177 @@ function lgRow2(d) {
   }).join("");
   const right = `<div class="lg-checkbox-box"><span class="lg-chk head">검토 · 청구진행</span>${checks}<span class="lg-chk">통합</span><span class="lg-move">이동 ›</span></div>`;
   return `<div class="lg-row2"><div>${left}</div>${right}</div>`;
+}
+
+/* ---- Smart접수지 저장/결재 상태 밴드 (신규) ---- */
+const SR_APPR_PILL = { "상신중": "ing", "결재완료": "done", "반려": "reject" };
+// 해당 사고건의 결재건 (결재LIST와 동일한 APPROVALS를 진실 원천으로 사용)
+function srApprovalsFor(claimNo) {
+  return APPROVALS.filter(a => a.claimNo === claimNo);
+}
+// 대표 피해물명 — 피해물 목록 첫 서열 기준. seq는 "001" 형식이므로 정수 변환("자차1")하여
+// 결재(APPROVALS)의 damagedObjectName("자차1"/"자차2")과 순번 정합을 맞춘다.
+function srPrimaryObject(d) {
+  const first = d.damageList && d.damageList[0];
+  const n = first && first.seq != null ? parseInt(String(first.seq), 10) : NaN;
+  return "자차" + (isNaN(n) || n < 1 ? 1 : n);
+}
+function srStatusBandHtml(d) {
+  const sr = getSmartReceipt(d.id);
+  const savePill = info => info.isSaved
+    ? `<span class="lg-sr-pill done">${info.histories.length > 1 ? "수정완료" : "저장완료"}</span>`
+    : `<span class="lg-sr-pill none">미저장</span>`;
+  const apprs = srApprovalsFor(d.id).slice().sort((a, b) => (b.requestedAt || "").localeCompare(a.requestedAt || ""));
+  const last = apprs[0];
+  const apprPill = last
+    ? `<span class="lg-sr-pill ${SR_APPR_PILL[last.approvalStatus] || "ing"}">${iEsc(last.approvalType)} ${iEsc(last.approvalStatus)}</span>`
+    : `<span class="lg-sr-pill none">결재 없음</span>`;
+  const cell = (k, v) => `<div class="cell"><span class="k">${k}</span><span class="v">${v}</span></div>`;
+  return `<div class="lg-srband">
+    ${cell("사고번호", iEsc(d.id))}
+    ${cell("피해물", iEsc(srPrimaryObject(d)))}
+    ${cell("업무단계", iEsc(d.flowStage))}
+    ${cell("계약정보", savePill(sr.contractAccidentInfo))}
+    ${cell("피해진행", savePill(sr.damageProgressInfo))}
+    ${cell("최종결재", apprPill)}
+  </div>`;
+}
+
+/* ---- 탭1·2 편집 필드 정의 + 저장/수정 (신규) ---- */
+let intakeRenderedId = null;                     // 현재 DOM에 렌더된 사고건 (draft 캡처 키)
+let intakeHistOpen = { contract:false, damage:false };
+function srClean(v) { return (v == null || v === "-") ? "" : String(v); }
+function srDeriveRepairStatus(d) {               // 수리 진행상태 시드 기본값
+  const idx = STAGES.indexOf(d.flowStage);
+  if (idx >= 3) return "출고완료";
+  if (idx >= 2) return "수리완료";
+  if (idx >= 1) return "수리중";
+  return "입고대기";
+}
+const SR_FIELD_DEFS = {
+  contract: [
+    { key:"driverBirth",      label:"운전자 생년월일", get:d => srClean(d.parties.driver.birth) },
+    { key:"driverLicense",    label:"운전자 면허정보", get:d => srClean(d.parties.driver.license) },
+    { key:"accidentDatetime", label:"사고일시",       get:d => srClean(d.accident.datetime) },
+    { key:"accidentPlace",    label:"사고장소",       get:d => srClean(d.accident.place) },
+    { key:"accidentContent",  label:"사고내용",       type:"textarea", get:d => srClean(d.accident.content) },
+  ],
+  damage: [
+    { key:"damageObject", label:"피해물",        get:d => srClean(d.damage.object) },
+    { key:"repairShop",   label:"수리업체",      get:d => srClean(d.repairShop || d.repair.shop) },
+    { key:"repairStatus", label:"수리 진행상태", type:"select", options:["입고대기","수리중","수리완료","출고완료"], get:d => srDeriveRepairStatus(d) },
+    { key:"inDate",       label:"입고일",        get:d => srClean(d.inDate) },
+    { key:"outPlanDate",  label:"출고예정일",    get:d => srClean(d.outDate) },
+    { key:"outDoneDate",  label:"출고완료일",    get:() => "" },
+    { key:"rentYn",       label:"렌트 여부",     type:"select", options:["Y","N"], get:d => d.damage.rentClaim === "청구" ? "Y" : "N" },
+    { key:"transportYn",  label:"탁송 여부",     type:"select", options:["Y","N"], get:() => "N" },
+    { key:"deductibleYn", label:"면책금 여부",   type:"select", options:["Y","N"], get:d => /면제|없음|비대상/.test(d.repair.paySpecial || "") ? "N" : "Y" },
+    { key:"objectState",  label:"피해물 상태",   get:d => srClean(d.damage.info) },
+  ],
+};
+function srSectionKey(tab) { return tab === "contract" ? "contractAccidentInfo" : "damageProgressInfo"; }
+function srSeedDefaults(d, tab) {                // 저장 전 자동 세팅값(시드)
+  const o = {};
+  SR_FIELD_DEFS[tab].forEach(f => { o[f.key] = f.get(d) || ""; });
+  return o;
+}
+function srSavedValues(d, tab) {                 // 저장값 > 시드값 (draft 미반영)
+  const info = getSmartReceipt(d.id)[srSectionKey(tab)];
+  const seed = srSeedDefaults(d, tab);
+  return (info.isSaved && info.fields) ? Object.assign({}, seed, info.fields) : seed;
+}
+function srDisplayValues(d, tab) {               // 화면 표시값: 저장/시드값 위에 편집 중 draft 우선
+  const base = srSavedValues(d, tab);
+  const draft = intakeDrafts[d.id] || {};
+  SR_FIELD_DEFS[tab].forEach(f => { if (f.key in draft) base[f.key] = draft[f.key]; });
+  return base;
+}
+function srInputHtml(f, val) {                   // lgTable raw 셀에 주입할 입력 컨트롤
+  const v = iEsc(val);
+  if (f.type === "textarea") return `<textarea class="lg-ta" data-srfield="${f.key}" style="min-height:44px">${v}</textarea>`;
+  if (f.type === "select") {
+    const opts = f.options.map(o => `<option value="${iEsc(o)}" ${o === val ? "selected" : ""}>${iEsc(o)}</option>`).join("");
+    return `<select class="lg-sel" data-srfield="${f.key}">${opts}</select>`;
+  }
+  return `<input class="lg-in" type="text" data-srfield="${f.key}" value="${v}">`;
+}
+// 저장/수정 바 + (열려 있으면) 저장이력 테이블
+function srSaveBarHtml(d, tab) {
+  const info = getSmartReceipt(d.id)[srSectionKey(tab)];
+  const label = info.isSaved ? "수정" : "저장";
+  const meta = info.isSaved
+    ? `최종 저장 ${info.savedAt.slice(5, 16)} · ${iEsc(info.savedBy)}`
+    : "저장 전 — 수정 가능 항목을 보정한 뒤 저장하세요.";
+  const n = info.histories.length;
+  const bar = `<div class="lg-sr-bar">
+    <span class="sr-meta">${meta}</span>
+    <span class="sp"></span>
+    <button class="lg-mini gray" type="button" data-srhist="${tab}">저장이력${n ? ` (${n})` : ""}</button>
+    <button class="lg-abtn primary" type="button" data-srsave="${tab}">${label}</button>
+  </div>`;
+  return bar + (intakeHistOpen[tab] ? srHistoryHtml(info) : "");
+}
+function srHistoryHtml(info) {
+  if (!info.histories.length) {
+    return `<div class="lg-sr-hist"><table><tbody><tr><td colspan="5" style="text-align:center;color:#8A90A0">저장 이력이 없습니다.</td></tr></tbody></table></div>`;
+  }
+  const rows = info.histories.map(h => {
+    const chg = (h.changes && h.changes.length)
+      ? h.changes.map(c => `${iEsc(c.label)}: <em>${iEsc(c.before) || `<span class="none">-</span>`}</em> → <b>${iEsc(c.after) || "-"}</b>`).join("<br>")
+      : `<span class="none">최초 저장 (변경 항목 없음)</span>`;
+    return `<tr><td class="seq">${h.seq}</td><td class="act">${iEsc(h.action)}</td><td>${iEsc(h.savedBy)}</td><td>${iEsc(h.savedAt)}</td><td class="chg">${chg}</td></tr>`;
+  }).join("");
+  return `<div class="lg-sr-hist"><table><thead><tr><th>순번</th><th>구분</th><th>저장자</th><th>저장일시</th><th>변경내역</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+// 저장자·상신자 신원 — 담당자명이 전결권한 직원목록과 일치
+function srCurrentStaff(claim) {
+  return (claim && staffAssignmentSettings.find(s => s.name === claim.manager))
+    || assignStaffById("EMP004")
+    || { id:"", name:(claim && claim.manager) || "담당자", employeeNo:"" };
+}
+function srCollectInputs() {                      // 현재 탭(intakeBody) 입력값 수집
+  const out = {};
+  document.querySelectorAll("#intakeBody [data-srfield]").forEach(el => { out[el.dataset.srfield] = el.value; });
+  return out;
+}
+function srDiff(defs, before, after) {
+  const norm = v => (v == null ? "" : String(v));
+  return defs.filter(f => norm(before[f.key]) !== norm(after[f.key]))
+    .map(f => ({ field:f.key, label:f.label, before: before[f.key] || "", after: after[f.key] || "" }));
+}
+function saveSmartReceiptTab(tab) {
+  const d = getIntakeData(intakeClaimId);
+  if (!d) return;
+  const info = getSmartReceipt(d.id)[srSectionKey(tab)];
+  const before = srSavedValues(d, tab);
+  const after = Object.assign({}, before, srCollectInputs());
+  const changes = srDiff(SR_FIELD_DEFS[tab], before, after);
+  if (info.isSaved && !changes.length) { showToast("변경된 항목이 없습니다."); return; }
+  const action = info.isSaved ? "수정" : "저장";
+  const staff = srCurrentStaff(CLAIMS.find(c => c.id === d.id));
+  info.fields = after;
+  info.isSaved = true;
+  info.savedAt = apprNow();
+  info.savedBy = staff.name;
+  info.histories.unshift({ seq: info.histories.length + 1, action, savedAt: info.savedAt, savedBy: staff.name, changes });
+  delete intakeDrafts[d.id];
+  showToast(`${d.id} ${tab === "contract" ? "계약 사고 정보" : "피해 진행 정보"}가 ${action}되었습니다.`);
+  renderIntake();
+}
+function captureIntakeDrafts() {                  // 재렌더 전 입력값 보존 (현재 렌더된 사고건 키로)
+  if (intakeRenderedId == null) return;
+  const root = $("#intakeRoot");
+  if (!root) return;
+  const fields = root.querySelectorAll("[data-srfield]");
+  if (!fields.length) return;
+  const store = intakeDrafts[intakeRenderedId] || (intakeDrafts[intakeRenderedId] = {});
+  fields.forEach(el => { store[el.dataset.srfield] = el.value; });
+}
+function bindIntakeSrBar() {
+  document.querySelectorAll("#intakeBody [data-srsave]").forEach(b =>
+    b.addEventListener("click", () => saveSmartReceiptTab(b.dataset.srsave)));
+  document.querySelectorAll("#intakeBody [data-srhist]").forEach(b =>
+    b.addEventListener("click", () => { const t = b.dataset.srhist; intakeHistOpen[t] = !intakeHistOpen[t]; renderIntake(); }));
 }
 
 /* ---- 진행 이력 / 진행 메모 / 미결 속성 (동작 유지) ---- */
@@ -4544,23 +4720,25 @@ function intakeWorkbenchHtml(d) {
 /* ---- 탭1: 계약 사고 정보 ---- */
 function intakeContractTab(d) {
   const P = d.parties;
-  const left = lgSect("사고 관련자", "※ 운전자 접수 / 저장")
+  const V = srDisplayValues(d, "contract");                     // 저장/시드/편집 반영 표시값
+  const CI = k => srInputHtml(SR_FIELD_DEFS.contract.find(f => f.key === k), V[k]);  // 수정 가능 입력 컨트롤
+  const left = lgSect("사고 관련자", "※ 생년월일·면허 외부연동 / 직접입력 가능")
     + lgTable([
       { k: "운전자", v: `${P.driver.name || ""} ${P.driver.rel ? "(" + P.driver.rel + ")" : ""}`.trim() },
       { k: "연락처", v: P.driver.phone, blue: true },
-      { k: "생년월일", v: P.driver.birth }, { k: "면허", v: P.driver.license },
+      { k: "생년월일", raw: CI("driverBirth") }, { k: "면허", raw: CI("driverLicense") },
       { k: "소유자", v: P.owner.name }, { k: "연락처", v: P.owner.phone, blue: true },
       { k: "피보험자", v: P.insured.name }, { k: "연락처", v: P.insured.phone, blue: true },
       { k: "통보자", v: `${P.notifier.name || ""} ${P.notifier.rel ? "(" + P.notifier.rel + ")" : ""}`.trim() },
       { k: "연락처", v: P.notifier.phone, blue: true },
       { k: "개동", v: "운전 Y / 소유 Y", full: true },
     ])
-    + lgSect("사고 정보")
+    + lgSect("사고 정보", "※ 실무자 확인 후 보정 가능")
     + lgTable([
-      { k: "사고일시", v: d.accident.datetime, full: true },
-      { k: "사고장소", v: d.accident.place, full: true },
+      { k: "사고일시", raw: CI("accidentDatetime"), full: true },
+      { k: "사고장소", raw: CI("accidentPlace"), full: true },
       { k: "장소상세", v: d.accident.placeDetail, full: true },
-      { k: "내용", v: d.accident.content, full: true },
+      { k: "내용", raw: CI("accidentContent"), full: true },
       { k: "특이사항", v: d.accident.note }, { k: "조사Task", v: d.accident.task },
       { k: "경찰접수", v: d.accident.police }, { k: "타차운전", v: d.accident.otherDrive },
     ])
@@ -4603,7 +4781,7 @@ function intakeContractTab(d) {
       { k: "계약자", v: d.contract.contractor, full: true },
       { k: "담당RC", v: d.contract.rc, full: true },
     ]);
-  return `<div class="lg-cols"><div>${left}</div><div>${right}</div></div>`;
+  return `<div class="lg-cols"><div>${left}</div><div>${right}</div></div>${srSaveBarHtml(d, "contract")}`;
 }
 
 /* ---- 탭2: 피해 진행 정보 ---- */
@@ -4613,20 +4791,25 @@ function intakeDamageTab(d) {
     const on = (d.parts.checked || []).includes(p);
     return `<div class="lg-dmg-item${on ? " on" : ""}"><span class="b"></span>${p}</div>`;
   }).join("");
-  const left = lgSect("피해 진행")
+  const V = srDisplayValues(d, "damage");                       // 저장/시드/편집 반영 표시값
+  const DI = k => srInputHtml(SR_FIELD_DEFS.damage.find(f => f.key === k), V[k]);  // 수정 가능 입력 컨트롤
+  const left = lgSect("피해 진행", "※ IF 기본값 자동 세팅 / 직원 보정")
     + lgTable([
-      { k: "피해물", v: d.damage.object, full: true },
-      { k: "소유자", v: d.damage.owner }, { k: "정보사항", v: d.damage.info },
-      { k: "교통비청구", v: d.damage.transport }, { k: "렌트청구", v: d.damage.rentClaim },
+      { k: "피해물", raw: DI("damageObject"), full: true },
+      { k: "소유자", v: d.damage.owner }, { k: "피해물 상태", raw: DI("objectState") },
+      { k: "렌트 여부", raw: DI("rentYn") }, { k: "탁송 여부", raw: DI("transportYn") },
       { k: "부가세대상", v: d.damage.vatTarget }, { k: "고객정보", v: d.damage.custInfo },
     ])
-    + lgSect("공업사 · 수리")
+    + lgSect("공업사 · 수리", "※ 수리 진행정보 보정")
     + lgTable([
-      { k: "공업사", v: d.repair.shop, full: true },
+      { k: "수리업체", raw: DI("repairShop"), full: true },
+      { k: "수리 진행상태", raw: DI("repairStatus") }, { k: "면책금 여부", raw: DI("deductibleYn") },
+      { k: "입고일", raw: DI("inDate") }, { k: "출고예정일", raw: DI("outPlanDate") },
+      { k: "출고완료일", raw: DI("outDoneDate") }, { k: "종결일자", v: d.repair.closeDate },
       { k: "수리기간", v: d.repair.period, full: true },
       { k: "사고가액", v: d.repair.accAmount, full: true },
       { k: "지급특약", v: d.repair.paySpecial }, { k: "추산/지급", v: d.repair.estimatePay },
-      { k: "지급재원", v: d.repair.payResource }, { k: "종결일자", v: d.repair.closeDate },
+      { k: "지급재원", v: d.repair.payResource, full: true },
     ]);
   const right = lgSect("담당자 · 피해정보")
     + lgTable([
@@ -4642,7 +4825,7 @@ function intakeDamageTab(d) {
     + `<div class="lg-scroll"><table class="lg-tbl auto"><tr><th>담보</th><th>서열</th><th>차량번호</th><th>피해물/자</th><th>지급금액</th><th>진행</th><th>소유자연락처</th><th>보상담당자</th><th>배당일</th><th>피해접수일</th></tr>${d.damageList.length
       ? d.damageList.map(r => `<tr><td>${iEsc(r.cover) || "-"}</td><td>${iEsc(r.seq) || "-"}</td><td>${iEsc(r.carNo) || "-"}</td><td>${iEsc(r.object) || "-"}</td><td>${iEsc(r.payAmount) || "-"}</td><td>${iEsc(r.progress) || "-"}</td><td>${iEsc(r.ownerPhone) || "-"}</td><td>${iEsc(r.handler) || "-"}</td><td>${iEsc(r.assignDate) || "-"}</td><td>${iEsc(r.receiptDate) || "-"}</td></tr>`).join("")
       : `<tr><td colspan="10" class="ph">등록된 피해물이 없습니다.</td></tr>`}</table></div>`;
-  return `<div class="lg-cols"><div>${left}</div><div>${right}</div></div>${guide}${dmgList}`;
+  return `<div class="lg-cols"><div>${left}</div><div>${right}</div></div>${guide}${dmgList}${srSaveBarHtml(d, "damage")}`;
 }
 
 function renderIntakeTab(name, d) {
@@ -4662,10 +4845,106 @@ const ESTIMATE_STAGES = [
 function estSum(rows, field) {
   return rows.reduce((s, r) => s + Number(r[field].amount || 0), 0);
 }
+
+/* ---- 탭3 결재 요약 + 순번 이력 (신규) ---- */
+const SR_ACT_LABEL = { "상신": "상신", "승인": "최종결재", "반려": "반려" };
+function srApprLatest(claimNo) {
+  const list = srApprovalsFor(claimNo).slice().sort((a, b) => (b.requestedAt || "").localeCompare(a.requestedAt || ""));
+  return list[0] || null;
+}
+function srLastSeq(claimNo, objectName, type) {          // 종류별 최종 결재순번 (없으면 "-")
+  const nums = srApprovalsFor(claimNo)
+    .filter(a => a.damagedObjectName === objectName && a.approvalType === type)
+    .map(a => parseInt(a.resolutionNo, 10) || 0);
+  return nums.length ? String(Math.max(...nums)).padStart(3, "0") : "-";
+}
+function srHasPending(claimNo, objectName, type) {        // 동일 종류 상신중 존재 여부(중복 상신 방지)
+  return srApprovalsFor(claimNo).some(a => a.damagedObjectName === objectName && a.approvalType === type && a.approvalStatus === "상신중");
+}
+function srPayApprovalType(claimNo, objectName) {         // 지급(종결) 결재완료 이력 있으면 추가지급으로 전환
+  const hasClosedPay = srApprovalsFor(claimNo).some(a => a.damagedObjectName === objectName && a.approvalType === "지급(종결)" && a.approvalStatus === "결재완료");
+  return hasClosedPay ? "추가지급" : "지급(종결)";
+}
+function srEstimateApprHtml(d) {
+  const obj = srPrimaryObject(d);
+  const last = srApprLatest(d.id);
+  const statusPill = last
+    ? `<span class="lg-sr-pill ${SR_APPR_PILL[last.approvalStatus] || "ing"}">${iEsc(last.approvalType)} ${iEsc(last.approvalStatus)}</span>`
+    : `<span class="lg-sr-pill none">결재 없음</span>`;
+  const noDoc = !d.estimateDoc;
+  const payType = srPayApprovalType(d.id, obj);
+  const payLabel = payType === "추가지급" ? "추가지급 결재" : "지급 결재";
+  const estPending = srHasPending(d.id, obj, "추산");
+  const payPending = srHasPending(d.id, obj, payType);
+  const estDisabled = noDoc || estPending;
+  const payDisabled = noDoc || payPending;
+  const estTitle = noDoc ? "선견적/청구 정보 등록 후 상신 가능합니다." : (estPending ? "상신중인 추산 건이 있습니다." : "추산 결재 상신");
+  const payTitle = noDoc ? "선견적/청구 정보 등록 후 상신 가능합니다." : (payPending ? `상신중인 ${payLabel} 건이 있습니다.` : `${payLabel} 상신`);
+  return `<div class="lg-est-appr">
+    <div class="ea-item"><span class="k">현재 결재상태</span>${statusPill}</div>
+    <div class="ea-item"><span class="k">최종 추산 순번</span><span class="v">${srLastSeq(d.id, obj, "추산")}</span></div>
+    <div class="ea-item"><span class="k">최종 지급 순번</span><span class="v">${srLastSeq(d.id, obj, "지급(종결)")}</span></div>
+    <div class="ea-btns">
+      <button class="lg-mini" type="button" data-srappr="추산" ${estDisabled ? "disabled" : ""} title="${estTitle}">추산 결재</button>
+      <button class="lg-mini" type="button" data-srappr="${payType}" ${payDisabled ? "disabled" : ""} title="${payTitle}">${payLabel}</button>
+      <button class="lg-mini gray" type="button" data-srapprhist="1">결재이력</button>
+    </div>
+  </div>`;
+}
+/* 결재 순번 이력 모달 */
+function closeSrModal() {
+  const root = $("#srApprRoot");
+  root.classList.remove("open");
+  root.setAttribute("aria-hidden", "true");
+  root.innerHTML = "";
+}
+function srFlattenHistories(claimNo) {                    // 사고건의 모든 결재 이력을 최신순으로
+  const rows = [];
+  srApprovalsFor(claimNo).forEach(a => (a.histories || []).forEach(h => rows.push(h)));
+  rows.sort((x, y) => (y.actedAt || "").localeCompare(x.actedAt || ""));
+  return rows;
+}
+function openSrApprHistory(claimId) {
+  const rows = srFlattenHistories(claimId);
+  const d = getIntakeData(claimId);
+  const body = rows.length
+    ? `<div class="lg-appr-hist"><table>
+        <thead><tr><th class="seq">순번</th><th>결재종류</th><th>결의순번</th><th>결재구분</th><th>결재자</th><th>결재시간</th><th class="cmt">결재의견</th></tr></thead>
+        <tbody>${rows.map((h, i) => `<tr>
+          <td class="seq">${rows.length - i}</td>
+          <td>${iEsc(h.approvalType)}</td>
+          <td style="text-align:center">${iEsc(h.resolutionNo)}</td>
+          <td>${iEsc(SR_ACT_LABEL[h.actionType] || h.actionType)}</td>
+          <td>${iEsc(h.actorName)}</td>
+          <td>${iEsc(h.actedAt)}</td>
+          <td class="cmt">${iEsc(h.comment) || "-"}</td>
+        </tr>`).join("")}</tbody>
+      </table></div>`
+    : `<div class="lg-appr-hist"><div class="empty">결재 이력이 없습니다.</div></div>`;
+  const root = $("#srApprRoot");
+  root.innerHTML = `
+    <div class="modal-backdrop" data-modal-close></div>
+    <section class="action-modal" role="dialog" aria-modal="true" aria-label="결재 순번 이력">
+      <div class="modal-head">
+        <div class="modal-title-wrap">
+          <div class="modal-eyebrow">${iEsc(claimId)}${d ? " · " + iEsc(srPrimaryObject(d)) : ""}</div>
+          <h2 class="modal-title">결재 순번 이력</h2>
+          <div class="modal-sub">추산·지급 결재의 상신/승인/반려 이력을 최신순으로 표시합니다.</div>
+        </div>
+        <button class="modal-close" type="button" aria-label="닫기" data-modal-close>×</button>
+      </div>
+      <div class="modal-body">${body}</div>
+      <div class="modal-foot"><button class="btn-modal primary" type="button" data-modal-close>닫기</button></div>
+    </section>`;
+  root.querySelectorAll("[data-modal-close]").forEach(el => el.addEventListener("click", closeSrModal));
+  root.classList.add("open");
+  root.setAttribute("aria-hidden", "false");
+}
+
 function intakeEstimateTab(d) {
   const doc = d.estimateDoc;
   if (!doc) {
-    return `<div class="lg-est-empty">등록된 청구 견적 정보가 없습니다.</div>`;
+    return `${srEstimateApprHtml(d)}<div class="lg-est-empty">등록된 청구 견적 정보가 없습니다. 선견적/청구 정보 등록 후 추산·지급 결재를 상신할 수 있습니다.</div>`;
   }
   const rows = estimateDocType === "pre" ? doc.pre : doc.claim;
   const isPre = estimateDocType === "pre";
@@ -4738,6 +5017,7 @@ function intakeEstimateTab(d) {
       <div class="be-title"><span class="dot"></span>견적 정보 <span class="be-cur">현재 보기: ${docLabel}</span></div>
       <div class="be-btns"><button class="lg-mini gray" type="button">이미지</button><button class="lg-mini" type="button">통합손해사정</button></div>
     </div>
+    ${srEstimateApprHtml(d)}
     ${flow}
     ${toggle}
     ${band}
@@ -4751,9 +5031,16 @@ function bindIntakeEstimate(d) {
     const bodyEl = $("#intakeBody");
     if (bodyEl) {
       bodyEl.innerHTML = renderIntakeTab(intakeTab, d);
-      bindIntakeEstimate(d); // 토글 재바인딩
+      bindIntakeEstimate(d); // 토글·결재 버튼 재바인딩
     }
   }));
+  // 추산/지급 결재 상신 + 결재이력 (탭3 전용, 다른 탭에선 매칭 요소 없음)
+  document.querySelectorAll("[data-srappr]").forEach(b => b.addEventListener("click", () => {
+    if (b.disabled) return;
+    openSrSubmit(d.id, b.dataset.srappr);
+  }));
+  const histBtn = document.querySelector("[data-srapprhist]");
+  if (histBtn) histBtn.addEventListener("click", () => openSrApprHistory(d.id));
 }
 
 function bindIntakeWorkbench(d) {
@@ -4799,118 +5086,31 @@ function bindIntakeWorkbench(d) {
   });
 }
 
-function normalizeIntakeText(value) {
-  return String(value || "").replace(/\s+/g, "").toUpperCase();
-}
-
-function intakeDigits(value) {
-  return String(value || "").replace(/\D/g, "");
-}
-
-function claimNoMatches(claimId, value) {
-  const query = normalizeIntakeText(value);
-  const queryDigits = intakeDigits(value);
-  const normalizedId = normalizeIntakeText(claimId).replace(/-/g, "");
-  const idDigits = intakeDigits(claimId);
-  if (!query) return false;
-  return normalizedId === query.replace(/-/g, "")
-    || claimId.toUpperCase() === query
-    || (queryDigits.length >= 4 && idDigits.endsWith(queryDigits));
-}
-
-function intakePhoneForType(type, d) {
-  if (type === "피보험자 휴대폰") return d.parties.insured.phone;
-  if (type === "통보자 휴대폰") return d.parties.notifier.phone;
-  if (type === "운전자 휴대폰") return d.parties.driver.phone;
-  if (type === "소유자 휴대폰") return d.parties.owner.phone;
-  if (type === "피해자 휴대폰") {
-    const row = d.damageList.find(r => r.ownerPhone) || {};
-    return row.ownerPhone || d.damage.owner || "";
-  }
-  return "";
-}
-
-function intakePhoneParts(phone) {
-  const n = intakeDigits(phone);
-  return [n.slice(0, 3), n.slice(3, 7), n.slice(7, 11)];
-}
-
-function readIntakeSearchValue() {
-  const fields = Array.from(document.querySelectorAll("#intakeSearchFields input"));
-  if (!fields.length) return "";
-  return /휴대폰/.test(intakeQueryType)
-    ? fields.map(input => input.value.trim()).join("")
-    : fields[0].value.trim();
-}
-
-function intakeClaimMatches(c, type, value) {
-  if (!value.trim()) return false;
-  const d = getIntakeData(c.id);
-  if (!d) return false;
-  if (type === "사고번호") return claimNoMatches(c.id, value);
-  if (type === "차량번호") return normalizeIntakeText(c.car) === normalizeIntakeText(value);
-  if (type === "피해차량번호") {
-    return d.damageList.some(r => normalizeIntakeText(r.carNo) === normalizeIntakeText(value));
-  }
-  if (/휴대폰/.test(type)) {
-    return intakeDigits(intakePhoneForType(type, d)) === intakeDigits(value);
-  }
-  return false;
-}
-
-function runIntakeSearch() {
-  const type = $("#intakeQueryType") ? $("#intakeQueryType").value : intakeQueryType;
-  intakeQueryType = INTAKE_QUERY_TYPES.includes(type) ? type : INTAKE_QUERY_TYPES[0];
-  const value = readIntakeSearchValue();
-  if (!value.trim()) {
-    showToast("조회할 값을 입력하세요.");
-    return;
-  }
-  const hit = CLAIMS.find(c => intakeClaimMatches(c, intakeQueryType, value));
-  if (!hit) {
-    showToast("조회 조건에 해당하는 사고건이 없습니다.");
-    return;
-  }
-  intakeClaimId = hit.id;
-  selectedId = hit.id;
-  renderIntake();
-  showToast(`${hit.id} 건을 조회했습니다.`);
-}
-
-function bindIntakeSearchInputs() {
-  document.querySelectorAll("#intakeSearchFields input").forEach(input => {
-    input.addEventListener("keydown", e => {
-      if (e.key === "Enter") runIntakeSearch();
-    });
-  });
-}
-
 // 조회구분에 따라 검색 입력 필드를 다르게 렌더 (휴대폰 = 3칸 010-1234-1234)
 function intakeSearchFieldsHtml(type, d) {
   if (/휴대폰/.test(type)) {
-    const [p1, p2, p3] = intakePhoneParts(intakePhoneForType(type, d));
-    return `<input class="lg-input" maxlength="3" inputmode="numeric" placeholder="010" value="${iEsc(p1)}" style="width:52px">
+    return `<input class="lg-input" maxlength="3" inputmode="numeric" placeholder="010" style="width:52px">
       <span class="dash">-</span>
-      <input class="lg-input" maxlength="4" inputmode="numeric" placeholder="1234" value="${iEsc(p2)}" style="width:60px">
+      <input class="lg-input" maxlength="4" inputmode="numeric" placeholder="1234" style="width:60px">
       <span class="dash">-</span>
-      <input class="lg-input" maxlength="4" inputmode="numeric" placeholder="1234" value="${iEsc(p3)}" style="width:60px">`;
+      <input class="lg-input" maxlength="4" inputmode="numeric" placeholder="1234" style="width:60px">`;
   }
   if (type === "차량번호" || type === "피해차량번호") {
-    return `<input class="lg-input" value="${iEsc(d.car)}" placeholder="12가3456" style="width:130px">`;
+    return `<input class="lg-input" placeholder="12가3456" style="width:130px">`;
   }
   // 사고번호(기본): 접수번호 단일 입력 (담보는 자차 고정이라 선택 불필요)
-  return `<input class="lg-input" value="${iEsc(d.id)}" placeholder="사고접수번호" style="width:150px">`;
+  return `<input class="lg-input" value="${iEsc(d.id)}" placeholder="사고접수번호" style="width:150px" readonly>`;
 }
 
 function renderIntake() {
+  captureIntakeDrafts();                    // 재렌더 전 편집 중 입력값 보존
   const id = intakeClaimId || selectedId || (CLAIMS[0] && CLAIMS[0].id);
   intakeClaimId = id;
   const d = getIntakeData(id);
   const root = $("#intakeRoot");
-  if (!d) { root.innerHTML = `<div style="padding:40px;text-align:center;color:#8a90a0">표시할 사고건이 없습니다.</div>`; return; }
+  if (!d) { root.innerHTML = `<div style="padding:40px;text-align:center;color:#8a90a0">표시할 사고건이 없습니다.</div>`; intakeRenderedId = null; return; }
   const done = d.procStatus === "완료";
   const unresolvedText = (d.unresolved && d.unresolved.length) ? d.unresolved.join(", ") : "없음";
-  const queryType = INTAKE_QUERY_TYPES.includes(intakeQueryType) ? intakeQueryType : INTAKE_QUERY_TYPES[0];
   root.innerHTML = `
     <button class="lg-back" type="button" id="intakeBack">← 목록으로</button>
     <div class="lg">
@@ -4918,13 +5118,14 @@ function renderIntake() {
         <div class="lg-titlebar"><span class="t">Smart접수지 (물)</span><span class="r"><span class="lg-secret">대외비</span><span class="lg-x">✕</span></span></div>
         <div class="lg-search">
           <span class="lk">조회구분</span>
-          <select class="lg-select" id="intakeQueryType">${INTAKE_QUERY_TYPES.map(t => `<option value="${iEsc(t)}" ${t === queryType ? "selected" : ""}>${iEsc(t)}</option>`).join("")}</select>
-          <span id="intakeSearchFields" class="lg-search-fields">${intakeSearchFieldsHtml(queryType, d)}</span>
+          <select class="lg-select" id="intakeQueryType">${INTAKE_QUERY_TYPES.map(t => `<option value="${iEsc(t)}">${iEsc(t)}</option>`).join("")}</select>
+          <span id="intakeSearchFields" class="lg-search-fields">${intakeSearchFieldsHtml(INTAKE_QUERY_TYPES[0], d)}</span>
           <span class="grow"></span>
-          <div class="lg-search-btns"><button class="lg-sbtn" type="button" id="intakeSearchBtn">🔍 검색</button><button class="lg-sbtn gray" type="button">대기</button><button class="lg-sbtn gray" type="button" id="intakeResetBtn">↻ 재설정</button></div>
+          <div class="lg-search-btns"><button class="lg-sbtn" type="button">🔍 검색</button><button class="lg-sbtn gray" type="button">대기</button><button class="lg-sbtn gray" type="button">↻ 재설정</button></div>
         </div>
         <div class="lg-body">
           ${lgIdBand(d)}
+          ${srStatusBandHtml(d)}
           ${lgRow2(d)}
           ${intakeWorkbenchHtml(d)}
           <div class="lg-tabs">
@@ -4950,21 +5151,13 @@ function renderIntake() {
   }));
   bindIntakeWorkbench(d);
   bindIntakeEstimate(d);
+  bindIntakeSrBar();
+  intakeRenderedId = id;                     // draft 캡처 기준 사고건 갱신
   const qt = $("#intakeQueryType");
   if (qt) qt.addEventListener("change", () => {
-    intakeQueryType = INTAKE_QUERY_TYPES.includes(qt.value) ? qt.value : INTAKE_QUERY_TYPES[0];
     const box = $("#intakeSearchFields");
-    if (box) box.innerHTML = intakeSearchFieldsHtml(intakeQueryType, d);
-    bindIntakeSearchInputs();
+    if (box) box.innerHTML = intakeSearchFieldsHtml(qt.value, d);
   });
-  const sb = $("#intakeSearchBtn");
-  if (sb) sb.addEventListener("click", runIntakeSearch);
-  const rb = $("#intakeResetBtn");
-  if (rb) rb.addEventListener("click", () => {
-    intakeQueryType = INTAKE_QUERY_TYPES[0];
-    renderIntake();
-  });
-  bindIntakeSearchInputs();
   const cb = $("#intakeComplete");
   if (cb) cb.addEventListener("click", () => {
     if (d.procStatus === "완료") return;
@@ -5090,7 +5283,6 @@ let apprTo = "";             // 조회 종료일
 let apprSelectedId = null;   // 선택 결재건 id
 let apprBound = false;       // 툴바 이벤트 1회 바인딩 플래그
 let apprSeeded = false;      // coreInfo/histories 시드 1회 주입 플래그
-let apprPwTargetId = null;   // 비밀번호 인증 대기 중인 결재건 id
 
 // ---- 헬퍼 (전결권한 화면의 assignWon/assignStaffById 재사용) ----
 function apprAmountLabel(type) {
@@ -5223,6 +5415,8 @@ function apprBuildCoreInfo(item) {
 // 각 결재건에 coreInfo + 상신/처리 이력을 1회 주입 (renderClosingView 최초 진입 시)
 function seedApprovals() {
   APPROVALS.forEach(item => {
+    // Smart접수지에서 상신 시 이미 coreInfo/histories를 채워 넣으므로, 시드가 이를 덮어쓰지 않도록 가드.
+    if (item.coreInfo) return;
     item.coreInfo = apprBuildCoreInfo(item);
     const requester = assignStaffById(item.requesterId) || { id: item.requesterId, name: item.requesterName, employeeNo: "" };
     item.histories = [{
@@ -5521,6 +5715,16 @@ function apprFinalizeApprove(item, approver) {
   item.approverId = approver.id;
   item.approverName = approver.name;
   pushApprHistory(item, "승인", approver, item.approverComment, before, "결재완료");
+  // 지급성 결재 최종승인 → 해당 사고건을 지급/정산 단계로 이동 (Smart업무관리 반영)
+  if (apprIsPayType(item.approvalType)) {
+    const c = CLAIMS.find(x => x.id === item.claimNo);
+    if (c && c.flowStage !== "지급 / 정산") {
+      c.flowStage = "지급 / 정산";
+      c.submitState = c.procStatus === "완료" ? "완료" : "상신";
+      c.work = deriveWork(c);
+      renderAll();
+    }
+  }
   renderClosingView();
   showToast("결재완료 처리되었습니다.");
 }
@@ -5549,18 +5753,35 @@ function apprReject(id) {
   showToast("반려 처리되었습니다.");
 }
 
-// ---- 비밀번호 인증 모달 (지급성 결재 최종승인) ----
-function openApprPw(id) {
-  apprPwTargetId = id;
+// ---- 비밀번호 인증 모달 (지급성 결재 상신/최종승인 공용) ----
+// apprPwContext: { kind:"approve", id }                          → Speed결재 지급성 최종승인
+//                { kind:"intakeSubmit", claimId, approvalType, comment } → Smart접수지 지급성 상신
+let apprPwContext = null;
+function openApprPw(id) {   // Speed결재 지급성 최종승인
+  openPwModal({ kind: "approve", id }, {
+    eyebrow: "지급성 결재 · 최종승인",
+    sub: "지급(종결)·추가지급 승인에는 결재 비밀번호가 필요합니다.",
+    submit: "확인"
+  });
+}
+function openIntakePw(claimId, approvalType, comment) {   // Smart접수지 지급성 상신
+  openPwModal({ kind: "intakeSubmit", claimId, approvalType, comment }, {
+    eyebrow: `${approvalType} · 지급성 결재 상신`,
+    sub: "지급(종결)·추가지급 상신에는 결재 비밀번호가 필요합니다.",
+    submit: "인증 후 상신"
+  });
+}
+function openPwModal(ctx, texts) {
+  apprPwContext = ctx;
   const root = $("#apprPwRoot");
   root.innerHTML = `
     <div class="modal-backdrop" data-modal-close></div>
     <section class="action-modal" role="dialog" aria-modal="true" aria-label="지급 비밀번호 인증">
       <div class="modal-head">
         <div class="modal-title-wrap">
-          <div class="modal-eyebrow">지급성 결재 · 최종승인</div>
+          <div class="modal-eyebrow">${iEsc(texts.eyebrow)}</div>
           <h2 class="modal-title">비밀번호 인증</h2>
-          <div class="modal-sub">지급(종결)·추가지급 승인에는 결재 비밀번호가 필요합니다.</div>
+          <div class="modal-sub">${iEsc(texts.sub)}</div>
         </div>
         <button class="modal-close" type="button" aria-label="닫기" data-modal-close>×</button>
       </div>
@@ -5573,7 +5794,7 @@ function openApprPw(id) {
       </div>
       <div class="modal-foot">
         <button class="btn-modal" type="button" data-modal-close>취소</button>
-        <button class="btn-modal primary" type="button" id="apprPwSubmit">확인</button>
+        <button class="btn-modal primary" type="button" id="apprPwSubmit">${iEsc(texts.submit)}</button>
       </div>
     </section>`;
   root.querySelectorAll("[data-modal-close]").forEach(el => el.addEventListener("click", closeApprPw));
@@ -5588,15 +5809,21 @@ function closeApprPw() {
   root.classList.remove("open");
   root.setAttribute("aria-hidden", "true");
   root.innerHTML = "";
-  apprPwTargetId = null;
+  apprPwContext = null;
 }
 function submitApprPw() {
   const val = ($("#apprPwInput") && $("#apprPwInput").value) || "";
   if (val !== APPR_PASSWORD) { showToast("비밀번호가 불일치합니다."); return; }  // 불일치 → 상태 불변
-  const item = APPROVALS.find(a => a.id === apprPwTargetId);
-  const approver = assignStaffById(currentApproverId);
+  const ctx = apprPwContext;
   closeApprPw();
-  if (item && approver) apprFinalizeApprove(item, approver);
+  if (!ctx) return;
+  if (ctx.kind === "approve") {
+    const item = APPROVALS.find(a => a.id === ctx.id);
+    const approver = assignStaffById(currentApproverId);
+    if (item && approver) apprFinalizeApprove(item, approver);
+  } else if (ctx.kind === "intakeSubmit") {
+    finalizeIntakeSubmit(ctx.claimId, ctx.approvalType, ctx.comment);
+  }
 }
 
 function bindApprToolbar() {
@@ -5614,6 +5841,129 @@ function bindApprToolbar() {
     $("#apprFrom").value = ""; $("#apprTo").value = "";
     renderClosingView();
   });
+}
+
+/* ===================== Smart접수지 결재 상신 (신규) ===================== */
+// APR-nnn 최대값 + 1
+function srNextApprId() {
+  const n = APPROVALS.reduce((m, a) => Math.max(m, parseInt(String(a.id).replace(/\D/g, ""), 10) || 0), 0) + 1;
+  return "APR-" + String(n).padStart(3, "0");
+}
+// 사고번호 + 피해물 + 결재종류 기준 3자리 순번 (기존 시드 건도 포함해 계산 → 자연 연속)
+function srNextResolutionNo(claimNo, objectName, type) {
+  const max = APPROVALS
+    .filter(a => a.claimNo === claimNo && a.damagedObjectName === objectName && a.approvalType === type)
+    .reduce((m, a) => Math.max(m, parseInt(a.resolutionNo, 10) || 0), 0);
+  return String(max + 1).padStart(3, "0");
+}
+// 결재금액: 추산=선견 합계 / 지급성=손해사정 반영 지급액(없으면 청구 합계)
+function srApprovalAmount(d, type) {
+  const doc = d.estimateDoc;
+  if (!doc) return 0;
+  if (type === "추산") return estSum(doc.pre, "base");
+  const adj = estSum(doc.claim, "adjust");
+  return adj || Number(doc.paidAmount || 0) || estSum(doc.claim, "base");
+}
+// 결재 신규 건 생성 — coreInfo/histories까지 채워 결재LIST/Speed결재에서 즉시 정상 동작
+// approvalType은 5종(추산/지급(종결)/면책종결/추가지급/VOC) 모두 지원(현재 버튼은 추산·지급 중심).
+function createIntakeApproval(claimId, approvalType, comment) {
+  const c = CLAIMS.find(x => x.id === claimId);
+  const d = getIntakeData(claimId);
+  if (!c || !d) return null;
+  const staff = srCurrentStaff(c);
+  const obj = srPrimaryObject(d);
+  const item = {
+    id: srNextApprId(),
+    claimNo: c.id,
+    resolutionNo: srNextResolutionNo(c.id, obj, approvalType),
+    approvalType,
+    requesterId: staff.id,
+    requesterName: staff.name,
+    damagedObjectName: obj,
+    damageInfo: `${c.carModel || d.carModel || "-"} / ${c.car || "-"}`,
+    repairShopName: c.repairShop || (d.repair && d.repair.shop) || "-",
+    approvalAmount: srApprovalAmount(d, approvalType),
+    approvalStatus: "상신중",
+    requestedAt: apprNow(),
+    completedAt: null,
+    requesterComment: comment,
+    approverId: null,
+    approverName: "",
+    approverComment: ""
+  };
+  item.coreInfo = apprBuildCoreInfo(item);
+  item.histories = [{
+    id: 1, claimNo: item.claimNo, resolutionNo: item.resolutionNo, approvalType,
+    actionType: "상신", actorId: staff.id, actorName: staff.name, actorEmployeeNo: staff.employeeNo,
+    actedAt: item.requestedAt, status: "상신중", comment: comment || "",
+    statusBefore: "작성중", statusAfter: "상신중"
+  }];
+  APPROVALS.unshift(item);
+  getSmartReceipt(claimId).estimateClaimInfo.approvalSequences.push({
+    apprId: item.id, approvalType, resolutionNo: item.resolutionNo, requestedAt: item.requestedAt
+  });
+  return item;
+}
+
+// 상신 의견 입력 모달
+let srSubmitCtx = null;   // { claimId, approvalType }
+function openSrSubmit(claimId, approvalType) {
+  const c = CLAIMS.find(x => x.id === claimId);
+  const d = getIntakeData(claimId);
+  if (!c || !d) return;
+  const obj = srPrimaryObject(d);
+  const amount = srApprovalAmount(d, approvalType);
+  const seq = srNextResolutionNo(c.id, obj, approvalType);
+  const isPay = apprIsPayType(approvalType);
+  srSubmitCtx = { claimId, approvalType };
+  const root = $("#srApprRoot");
+  root.innerHTML = `
+    <div class="modal-backdrop" data-modal-close></div>
+    <section class="action-modal" role="dialog" aria-modal="true" aria-label="${iEsc(approvalType)} 결재 상신">
+      <div class="modal-head">
+        <div class="modal-title-wrap">
+          <div class="modal-eyebrow">${iEsc(approvalType)} · 결의순번 ${seq} (예정)</div>
+          <h2 class="modal-title">${iEsc(approvalType)} 결재 상신</h2>
+          <div class="modal-sub">${iEsc(c.id)} · ${iEsc(obj)} · 결재금액 ${assignWon(amount)}원${isPay ? " · 상신 시 비밀번호 인증" : ""}</div>
+        </div>
+        <button class="modal-close" type="button" aria-label="닫기" data-modal-close>×</button>
+      </div>
+      <div class="modal-body">
+        <div style="display:flex;gap:10px;align-items:center;margin-bottom:10px">
+          <span style="font-weight:700;color:#5B6273;font-size:12px;min-width:64px">상신자</span>
+          <span style="font-weight:800;color:#22252E">${iEsc(srCurrentStaff(c).name)}</span>
+        </div>
+        <div style="font-weight:700;color:#3A3F4E;font-size:12px;margin-bottom:5px">상신자 의견 <span style="color:#D23B2B">(필수)</span></div>
+        <textarea class="lg-ta" id="srSubmitComment" style="min-height:90px" placeholder="상신 사유·의견을 입력하세요."></textarea>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-modal" type="button" data-modal-close>취소</button>
+        <button class="btn-modal primary" type="button" id="srSubmitBtn">${isPay ? "비밀번호 인증 후 상신" : "상신"}</button>
+      </div>
+    </section>`;
+  root.querySelectorAll("[data-modal-close]").forEach(el => el.addEventListener("click", () => { srSubmitCtx = null; closeSrModal(); }));
+  $("#srSubmitBtn").addEventListener("click", submitSrApproval);
+  root.classList.add("open");
+  root.setAttribute("aria-hidden", "false");
+  setTimeout(() => { const el = $("#srSubmitComment"); if (el) el.focus(); }, 0);
+}
+function submitSrApproval() {
+  if (!srSubmitCtx) return;
+  const ta = $("#srSubmitComment");
+  const comment = ta ? ta.value.trim() : "";
+  if (!comment) { showToast("상신자 의견을 입력해 주세요."); if (ta) ta.focus(); return; }
+  const { claimId, approvalType } = srSubmitCtx;
+  if (apprIsPayType(approvalType)) { openIntakePw(claimId, approvalType, comment); return; }  // 지급성 → 비밀번호
+  finalizeIntakeSubmit(claimId, approvalType, comment);
+}
+function finalizeIntakeSubmit(claimId, approvalType, comment) {
+  const item = createIntakeApproval(claimId, approvalType, comment);
+  srSubmitCtx = null;
+  closeSrModal();
+  if (item) {
+    showToast(`${claimId} ${approvalType} 결재가 상신되었습니다. (결의순번 ${item.resolutionNo})`);
+    renderIntake();
+  }
 }
 
 /* ===================== 이미지 문자 발송 모달 ===================== */
@@ -5796,6 +6146,7 @@ document.addEventListener("keydown", e => {
   if (e.key !== "Escape") return;
   if ($("#apprDocRoot").classList.contains("open")) { closeApprDoc(); return; }
   if ($("#apprPwRoot").classList.contains("open")) { closeApprPw(); return; }
+  if ($("#srApprRoot").classList.contains("open")) { closeSrModal(); return; }
   if ($("#assignSimRoot").classList.contains("open")) { closeAssignSim(); return; }
   if ($("#imageViewerRoot").classList.contains("open")) { closeImageViewer(); return; }
   if ($("#actionModalRoot").classList.contains("open")) closeActionModal();
@@ -5804,9 +6155,6 @@ document.addEventListener("keydown", e => {
 /* ----- 이미지 시스템 이벤트 ----- */
 document.querySelectorAll(".nav-item[data-view]").forEach(btn => {
   btn.addEventListener("click", () => switchView(btn.dataset.view));
-});
-document.querySelectorAll(".nav-popout[data-open-view]").forEach(btn => {
-  btn.addEventListener("click", () => openViewWindow(btn.dataset.openView));
 });
 
 /* ----- 좌측 메뉴: 자동 숨김 / 호버 열기 / 핀 고정 ----- */
@@ -6630,9 +6978,6 @@ function showToast(msg) {
   $("#todayLabel").textContent = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")} (${days[d.getDay()]})`;
   selectFirst();
   renderAll();
-  const initialView = getInitialView();
-  if (initialView === "intake") openIntake();
-  else if (initialView !== "claims") switchView(initialView);
 })();
 </script>
 </body>
