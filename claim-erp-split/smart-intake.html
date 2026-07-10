@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Smart접수지 | CLAIM ERP</title>
+<link rel="stylesheet" href="common.css" />
+</head>
+<body>
+
+<div class="app-shell">
+
+<div class="app-shell">
+
+  <div class="nav-edge" id="navEdge" title="메뉴 열기" aria-hidden="true"><span class="nav-edge-grip">›</span></div>
+
+  <nav class="side-nav" aria-label="주 메뉴">
+    <div class="sn-brand">
+      <div class="brand-mark">C</div>
+      <div class="sn-brand-text">
+        <div class="brand-name">CLAIM <span>ERP</span></div>
+        <div class="sn-brand-sub">Claim 운영센터</div>
+      </div>
+      <button class="nav-pin" id="navPin" type="button" title="메뉴 고정" aria-pressed="false" aria-label="메뉴 고정">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v5.76l1.79 2.68A1 1 0 0 1 16.96 17H7.04a1 1 0 0 1-.83-1.56L8 12.76"/></svg>
+      </button>
+    </div>
+    <div class="sn-section">메뉴</div>
+    <div class="nav-row">
+      <button class="nav-item" data-view="claims" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/><circle cx="4.5" cy="18" r="1.2"/></svg>
+        <span class="ni-label">Smart업무관리</span>
+      </button>
+      <button class="nav-popout" data-open-view="claims" type="button" title="Smart업무관리 새창으로 열기" aria-label="Smart업무관리 새창으로 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
+      </button>
+    </div>
+    <div class="nav-row">
+      <button class="nav-item active" data-view="intake" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8a2 2 0 0 1 2 2v13a1 1 0 0 1-1.5.87L14 18.5l-2.5 1.4L9 18.5l-2.5 1.4A1 1 0 0 1 5 19V6a2 2 0 0 1 2-2Z"/><path d="M9 8h6M9 12h6"/></svg>
+        <span class="ni-label">Smart접수지</span>
+      </button>
+      <button class="nav-popout" data-open-view="intake" type="button" title="Smart접수지 새창으로 열기" aria-label="Smart접수지 새창으로 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
+      </button>
+    </div>
+    <div class="nav-row">
+      <button class="nav-item" data-view="images" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m4 17 4.5-4.5 3 3L16 11l4 4.5"/></svg>
+        <span class="ni-label">이미지시스템</span>
+      </button>
+      <button class="nav-popout" data-open-view="images" type="button" title="이미지시스템 새창으로 열기" aria-label="이미지시스템 새창으로 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
+      </button>
+    </div>
+    <div class="nav-row">
+      <button class="nav-item" data-view="closing" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span class="ni-label">결재 LIST</span>
+      </button>
+      <button class="nav-popout" data-open-view="closing" type="button" title="결재 LIST 새창으로 열기" aria-label="결재 LIST 새창으로 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
+      </button>
+    </div>
+    <div class="nav-row">
+      <button class="nav-item" data-view="assign" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="1.9" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.9" fill="currentColor" stroke="none"/><circle cx="7" cy="18" r="1.9" fill="currentColor" stroke="none"/></svg>
+        <span class="ni-label">전결·순환배당 관리</span>
+      </button>
+      <button class="nav-popout" data-open-view="assign" type="button" title="전결·순환배당 관리 새창으로 열기" aria-label="전결·순환배당 관리 새창으로 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
+      </button>
+    </div>
+    <div class="sn-section">확장 (Pro)</div>
+    <button class="nav-item disabled" type="button" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h4l2 5 4-12 2 7h6"/></svg>
+      <span class="ni-label">통합 대시보드</span><span class="ni-pro">Pro</span>
+    </button>
+    <button class="nav-item disabled" type="button" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg>
+      <span class="ni-label">정산 관리</span><span class="ni-pro">Pro</span>
+    </button>
+  </nav>
+
+  <div class="app-main">
+
+<header class="topbar">
+  <div class="tb-left">
+    <div class="brand-tag" id="viewName">Smart접수지</div>
+  </div>
+  <div class="topbar-right">
+    <button type="button" class="btn-req" id="btnRequest">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M5 17a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h9l5 4v5a2 2 0 0 1-2 2"/><circle cx="7.5" cy="17.5" r="1.6"/><circle cx="16.5" cy="17.5" r="1.6"/></svg>
+      대차/탑승 신청
+    </button>
+    <span id="todayLabel"></span>
+    <div class="user-chip">
+      <div class="avatar">박</div>
+      <span><b>박지현</b> 매니저 · Claim운영1팀</span>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+
+  <section id="viewIntake" class="view">
+    <div id="intakeRoot"></div>
+  </section><!-- /#viewIntake -->
+
+</main>
+
+  </div><!-- /.app-main -->
+</div><!-- /.app-shell -->
+
+<div class="toast-wrap" id="toastWrap"></div>
+<div class="modal-root" id="actionModalRoot" aria-hidden="true"></div>
+<div class="modal-root" id="imageViewerRoot" aria-hidden="true"></div>
+<div class="modal-root" id="assignSimRoot" aria-hidden="true"></div>
+<div class="modal-root" id="apprPwRoot" aria-hidden="true"></div>
+<div class="modal-root" id="apprDocRoot" aria-hidden="true"></div>
+
+
+<script src="common.js"></script>
+<script src="intake.js"></script>
+</body>
+</html>
