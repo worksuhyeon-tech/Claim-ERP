@@ -671,10 +671,230 @@ const ESTIMATE_STAGES = [
 function estSum(rows, field) {
   return rows.reduce((s, r) => s + Number(r[field].amount || 0), 0);
 }
+
+/* ---- 탭3: 결재 & 추산이력 컴포넌트 (레퍼런스 레이아웃) ----
+   공용 결재 기반(APPROVALS·config·apprNow·apprBuildCoreInfo·pushApprHistory·srCurrentStaff)은 common.js에 존재. */
+const SR_ACT_LABEL = { "상신": "상신", "승인": "최종결재", "반려": "반려", "상신취소": "상신취소" };
+const SR_ACT_BADGE = { "상신": "ing", "승인": "done", "반려": "reject", "상신취소": "reject" };
+function srApprovalsFor(claimNo) { return APPROVALS.filter(a => a.claimNo === claimNo); }
+// 대표 피해물명 — 피해물 목록 첫 서열(001→"자차1"). 결재의 damagedObjectName과 순번 정합.
+function srPrimaryObject(d) {
+  const first = d.damageList && d.damageList[0];
+  const n = first && first.seq != null ? parseInt(String(first.seq), 10) : NaN;
+  return "자차" + (isNaN(n) || n < 1 ? 1 : n);
+}
+function srFlattenHistories(claimNo) {            // 사고건의 모든 결재 이력을 최신순으로
+  const rows = [];
+  srApprovalsFor(claimNo).forEach(a => (a.histories || []).forEach(h => rows.push(h)));
+  rows.sort((x, y) => (y.actedAt || "").localeCompare(x.actedAt || ""));
+  return rows;
+}
+function srNextApprId() {
+  const n = APPROVALS.reduce((m, a) => Math.max(m, parseInt(String(a.id).replace(/\D/g, ""), 10) || 0), 0) + 1;
+  return "APR-" + String(n).padStart(3, "0");
+}
+// 사고번호 + 피해물 + 결재종류 기준 3자리 순번 (기존 시드 건 포함 → 자연 연속)
+function srNextResolutionNo(claimNo, objectName, type) {
+  const max = APPROVALS
+    .filter(a => a.claimNo === claimNo && a.damagedObjectName === objectName && a.approvalType === type)
+    .reduce((m, a) => Math.max(m, parseInt(a.resolutionNo, 10) || 0), 0);
+  return String(max + 1).padStart(3, "0");
+}
+// 결재금액: 추산=선견 합계 / 지급성=손해사정 반영 지급액(없으면 청구 합계) / 면책·VOC=0
+function srApprovalAmount(d, type) {
+  const doc = d.estimateDoc;
+  if (!doc) return 0;
+  if (type === "추산") return estSum(doc.pre, "base");
+  if (type === "면책종결" || type === "VOC") return 0;
+  const adj = estSum(doc.claim, "adjust");
+  return adj || Number(doc.paidAmount || 0) || estSum(doc.claim, "base");
+}
+// 결재 신규 건 생성 — coreInfo/histories까지 채워 결재LIST/Speed결재에서 즉시 정상 동작
+function createIntakeApproval(claimId, approvalType, comment) {
+  const c = CLAIMS.find(x => x.id === claimId);
+  const d = getIntakeData(claimId);
+  if (!c || !d) return null;
+  const staff = srCurrentStaff(c);
+  const obj = srPrimaryObject(d);
+  const item = {
+    id: srNextApprId(),
+    claimNo: c.id,
+    resolutionNo: srNextResolutionNo(c.id, obj, approvalType),
+    approvalType,
+    requesterId: staff.id,
+    requesterName: staff.name,
+    damagedObjectName: obj,
+    damageInfo: `${c.carModel || d.carModel || "-"} / ${c.car || "-"}`,
+    repairShopName: c.repairShop || (d.repair && d.repair.shop) || "-",
+    approvalAmount: srApprovalAmount(d, approvalType),
+    approvalStatus: "상신중",
+    requestedAt: apprNow(),
+    completedAt: null,
+    requesterComment: comment,
+    approverId: null,
+    approverName: "",
+    approverComment: ""
+  };
+  item.coreInfo = apprBuildCoreInfo(item);
+  item.histories = [{
+    id: 1, claimNo: item.claimNo, resolutionNo: item.resolutionNo, approvalType,
+    actionType: "상신", actorId: staff.id, actorName: staff.name, actorEmployeeNo: staff.employeeNo,
+    actedAt: item.requestedAt, status: "상신중", comment: comment || "",
+    statusBefore: "작성중", statusAfter: "상신중"
+  }];
+  APPROVALS.unshift(item);
+  return item;
+}
+function finalizeIntakeSubmit(claimId, approvalType, comment) {
+  const item = createIntakeApproval(claimId, approvalType, comment);
+  if (item) {
+    showToast(`${claimId} ${approvalType} 결재가 상신되었습니다. (결의순번 ${item.resolutionNo})`);
+    renderIntake();
+  }
+}
+// 상신 취소 — 상신중 건만 취소 가능. 취소 후 동일 종류 재상신이 가능해진다.
+function cancelIntakeApproval(id) {
+  const item = APPROVALS.find(a => a.id === id);
+  if (!item || item.approvalStatus !== "상신중") return;
+  const staff = srCurrentStaff(CLAIMS.find(c => c.id === item.claimNo));
+  const before = item.approvalStatus;
+  item.approvalStatus = "상신취소";
+  item.completedAt = apprNow();
+  pushApprHistory(item, "상신취소", staff, "상신자 상신취소", before, "상신취소");
+  showToast(`${item.claimNo} ${item.approvalType} 상신이 취소되었습니다.`);
+  renderIntake();
+}
+// 결재구분 라디오: 추산은 도입 확정 전이라 비활성(선택 불가), 결재는 지급 전용으로 운영.
+const SR_APPR_FORM_TYPES = [
+  { value:"추산",       label:"추산", pay:false, disabled:true },
+  { value:"지급(종결)", label:"지급", pay:true,  disabled:false },
+];
+const SR_APPR_DEFAULT_TYPE = SR_APPR_FORM_TYPES.find(t => !t.disabled) || SR_APPR_FORM_TYPES[0];
+function srApprComponentHtml(d) {
+  const noDoc = !d.estimateDoc;
+  const approverOpts = APPR_APPROVERS.map(id => {
+    const s = assignStaffById(id);
+    return s ? `<option value="${s.id}" ${s.id === currentApproverId ? "selected" : ""}>${iEsc(s.name)} · ${iEsc(s.position || "결재자")}</option>` : "";
+  }).join("");
+  const radios = SR_APPR_FORM_TYPES.map(t =>
+    `<label class="rd${t.disabled ? " off" : ""}"><input type="radio" name="apprFormType" value="${iEsc(t.value)}" ${t.value === SR_APPR_DEFAULT_TYPE.value ? "checked" : ""} ${t.disabled ? "disabled" : ""}> ${iEsc(t.label)}${t.disabled ? ` <span class="rd-note">(준비중)</span>` : ""}</label>`).join("");
+  const defPay = SR_APPR_DEFAULT_TYPE.pay;
+  const form = `<div class="lg-appr-form">
+    <div class="row">
+      <label class="k">결재구분</label>
+      ${radios}
+      <label class="k" style="margin-left:14px">다음결재자</label>
+      <select class="lg-sel" id="apprFormApprover">${approverOpts}</select>
+    </div>
+    <div class="row top">
+      <label class="k">결재의견</label>
+      <textarea class="lg-ta" id="apprFormComment" placeholder="상신 의견을 입력하세요."></textarea>
+    </div>
+    <div class="row">
+      <label class="k">비밀번호</label>
+      <input type="password" class="lg-in" id="apprFormPw" style="max-width:170px" placeholder="지급 결재 비밀번호" autocomplete="off" ${defPay ? "" : "disabled"}>
+      <span class="lg-appr-pwhint${defPay ? " on" : ""}" id="apprFormPwHint">${defPay ? "지급 결재는 비밀번호 인증이 필요합니다." : "추산은 비밀번호가 필요 없습니다."}</span>
+      <span class="grow"></span>
+      <button class="lg-abtn" type="button" id="apprFormCancel" style="display:none">상신취소</button>
+      <button class="lg-abtn primary" type="button" id="apprFormSubmit" ${noDoc ? "disabled" : ""}>결재</button>
+    </div>
+    ${noDoc ? `<div class="lg-appr-note">※ 견적 정보 등록 후 결재를 상신할 수 있습니다.</div>` : ""}
+  </div>`;
+  // 결재자 이력 (상신/최종결재/반려)
+  const hrows = srFlattenHistories(d.id);
+  const apprHist = `<table class="lg-appr-tbl">
+    <thead><tr><th style="width:130px">결재자</th><th style="width:88px">결재</th><th style="width:150px">완료일시</th><th>결재의견</th></tr></thead>
+    <tbody>${hrows.length
+      ? hrows.map(h => `<tr><td>${iEsc(h.actorName)}</td><td><span class="badge-act ${SR_ACT_BADGE[h.actionType] || ""}">${iEsc(SR_ACT_LABEL[h.actionType] || h.actionType)}</span></td><td>${iEsc(h.actedAt)}</td><td class="cmt">${iEsc(h.comment) || "-"}</td></tr>`).join("")
+      : `<tr><td colspan="4" class="ph">결재 이력이 없습니다.</td></tr>`}</tbody>
+  </table>`;
+  // 추산이력 (추산 결재 순번별 적립)
+  const ests = srApprovalsFor(d.id).filter(a => a.approvalType === "추산")
+    .slice().sort((a, b) => (b.resolutionNo || "").localeCompare(a.resolutionNo || ""));
+  const estBody = ests.length ? ests.map(a => {
+    const s = assignStaffById(a.requesterId);
+    const emp = s ? `${s.employeeNo} ${s.name}` : (a.requesterName || "-");
+    const amt = Number(a.approvalAmount || 0);
+    const isFirst = parseInt(a.resolutionNo, 10) === 1;
+    return `<tr>
+      <td class="seq">${iEsc(a.resolutionNo)}</td>
+      <td>${isFirst ? "표준" : ""}</td>
+      <td class="num amt">${won(amt)}</td>
+      <td class="num">0</td>
+      <td class="num">0</td>
+      <td class="num amt">${won(amt)}</td>
+      <td>${iEsc((a.requestedAt || "").slice(0, 10))}</td>
+      <td>${iEsc(emp)}</td>
+    </tr>`;
+  }).join("") : `<tr><td colspan="8" class="ph">추산 이력이 없습니다.</td></tr>`;
+  const estHist = `<div class="lg-scroll"><table class="lg-appr-tbl">
+    <thead><tr><th style="width:52px">순번</th><th style="width:92px">추산적립이력</th><th>손해액</th><th>비용</th><th>특약</th><th>추산합계</th><th style="width:96px">입력일자</th><th style="width:140px">입력사원</th></tr></thead>
+    <tbody>${estBody}</tbody>
+  </table></div>`;
+  return `<div class="lg-appr">
+    ${lgSect("결재", "추산·지급 결재 상신")}
+    ${form}
+    ${apprHist}
+    ${lgSect("추산이력")}
+    ${estHist}
+  </div>`;
+}
+function bindIntakeApprForm(d) {
+  const submitBtn = $("#apprFormSubmit");
+  if (!submitBtn) return;
+  const cancelBtn = $("#apprFormCancel");
+  const pw = $("#apprFormPw");
+  const pwHint = $("#apprFormPwHint");
+  const radios = document.querySelectorAll('input[name="apprFormType"]');
+  const noDoc = !d.estimateDoc;
+  const obj = srPrimaryObject(d);
+  const selectedType = () => {
+    const r = document.querySelector('input[name="apprFormType"]:checked');
+    return r ? r.value : "추산";
+  };
+  const pendingOf = type => srApprovalsFor(d.id)
+    .find(a => a.damagedObjectName === obj && a.approvalType === type && a.approvalStatus === "상신중");
+  // 결재구분에 따라 비밀번호 활성/비활성 + 상신중 재상신 차단 + 상신취소 노출 갱신
+  function refresh() {
+    const type = selectedType();
+    const isPay = apprIsPayType(type);
+    pw.disabled = !isPay;
+    if (!isPay) pw.value = "";
+    if (pwHint) {
+      pwHint.textContent = isPay ? "지급 결재는 비밀번호 인증이 필요합니다." : "추산은 비밀번호가 필요 없습니다.";
+      pwHint.classList.toggle("on", isPay);
+    }
+    const pend = pendingOf(type);
+    if (noDoc) {
+      submitBtn.disabled = true; submitBtn.title = "견적 정보 등록 후 결재 가능"; cancelBtn.style.display = "none";
+    } else if (pend) {
+      submitBtn.disabled = true; submitBtn.title = "상신중인 건이 있습니다. 상신취소 후 재상신하세요.";
+      cancelBtn.style.display = ""; cancelBtn.dataset.apprId = pend.id;
+    } else {
+      submitBtn.disabled = false; submitBtn.title = ""; cancelBtn.style.display = "none";
+    }
+  }
+  radios.forEach(r => r.addEventListener("change", refresh));
+  refresh();
+  submitBtn.addEventListener("click", () => {
+    if (submitBtn.disabled) return;
+    const type = selectedType();
+    if (pendingOf(type)) { showToast("상신중인 건이 있습니다. 상신취소 후 재상신하세요."); return; }
+    const comment = ($("#apprFormComment").value || "").trim();
+    if (!comment) { showToast("결재의견을 입력해 주세요."); const c = $("#apprFormComment"); if (c) c.focus(); return; }
+    if (apprIsPayType(type)) {   // 지급성 → 인라인 비밀번호 검증
+      if ((pw.value || "") !== APPR_PASSWORD) { showToast("비밀번호가 불일치합니다."); pw.focus(); return; }
+    }
+    const approverId = $("#apprFormApprover").value;
+    if (approverId) currentApproverId = approverId;   // 다음결재자를 Speed결재 기본 결재자로
+    finalizeIntakeSubmit(d.id, type, comment);
+  });
+  cancelBtn.addEventListener("click", () => { if (cancelBtn.dataset.apprId) cancelIntakeApproval(cancelBtn.dataset.apprId); });
+}
 function intakeEstimateTab(d) {
   const doc = d.estimateDoc;
   if (!doc) {
-    return `<div class="lg-est-empty">등록된 청구 견적 정보가 없습니다.</div>`;
+    return `<div class="lg-est-empty">등록된 청구 견적 정보가 없습니다.</div>${srApprComponentHtml(d)}`;
   }
   const rows = estimateDocType === "pre" ? doc.pre : doc.claim;
   const isPre = estimateDocType === "pre";
@@ -751,7 +971,7 @@ function intakeEstimateTab(d) {
     ${toggle}
     ${band}
     ${table}
-  </div>`;
+  </div>${srApprComponentHtml(d)}`;
 }
 function bindIntakeEstimate(d) {
   document.querySelectorAll("[data-estdoc]").forEach(b => b.addEventListener("click", () => {
@@ -761,8 +981,10 @@ function bindIntakeEstimate(d) {
     if (bodyEl) {
       bodyEl.innerHTML = renderIntakeTab(intakeTab, d);
       bindIntakeEstimate(d); // 토글 재바인딩
+      bindIntakeApprForm(d); // 결재 폼 재바인딩
     }
   }));
+  bindIntakeApprForm(d);   // 결재 폼 최초 바인딩
 }
 
 function bindIntakeWorkbench(d) {
@@ -941,6 +1163,8 @@ function intakeSearchFieldsHtml(type, d) {
 }
 
 function renderIntake() {
+  // 결재 이력/추산이력 표시를 위해 공용 APPROVALS 시드 1회 주입 (common.js)
+  if (typeof seedApprovals === "function" && !apprSeeded) { seedApprovals(); apprSeeded = true; }
   const id = intakeClaimId || selectedId || (CLAIMS[0] && CLAIMS[0].id);
   intakeClaimId = id;
   const d = getIntakeData(id);
