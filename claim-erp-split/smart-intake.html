@@ -5,6 +5,35 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Smart접수지 | CLAIM ERP</title>
 <link rel="stylesheet" href="common.css" />
+<style>
+  /* 검토·청구진행 바 제거 후 상단 정보 행은 단일 컬럼 */
+  #viewIntake .lg-row2.solo { grid-template-columns: 1fr; }
+
+  /* 차량 부위 손상 — 정비공장 입력 ↔ 담당자 입력 2단 대조 */
+  #viewIntake .lg-dmg-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+  #viewIntake .lg-dmg-col { border: 1px solid var(--lg-line2, #C9D3E4); border-radius: 5px; background: #fff; padding: 8px 10px 10px; }
+  #viewIntake .lg-dmg-col .lg-dmg { border: 0; padding: 0; }
+  #viewIntake .lg-dmg-cap {
+    display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap;
+    font-size: 12.5px; font-weight: 800; color: #2B3140;
+    padding-bottom: 7px; margin-bottom: 9px; border-bottom: 1px dashed var(--lg-line, #D9E0EC);
+  }
+  #viewIntake .lg-dmg-cap span { font-size: 11px; font-weight: 600; color: #8A90A0; }
+  #viewIntake .lg-dmg-cap::before { content: ""; width: 9px; height: 9px; border-radius: 2px; flex: none; }
+  #viewIntake .lg-dmg-cap.shop::before { background: #6B7280; }
+  #viewIntake .lg-dmg-cap.shop { color: #384150; }
+  #viewIntake .lg-dmg-cap.staff::before { background: #B45309; }
+  #viewIntake .lg-dmg-cap.staff { color: #B45309; }
+  /* 담당자 입력 항목은 클릭으로 선택 */
+  #viewIntake .lg-dmg-item.staff-part { cursor: pointer; user-select: none; border-radius: 3px; }
+  #viewIntake .lg-dmg-item.staff-part:hover { background: #FEF3C7; }
+  #viewIntake .lg-dmg-item.staff-part.on { color: #B45309; }
+  #viewIntake .lg-dmg-item.staff-part.on .b { background: #B45309; border-color: #B45309; }
+
+  @media (max-width: 900px) {
+    #viewIntake .lg-dmg-pair { grid-template-columns: 1fr; }
+  }
+</style>
 </head>
 <body>
 
