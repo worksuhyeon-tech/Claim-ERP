@@ -65,7 +65,7 @@ const INTAKE_DETAIL = {
     dispatch:{ manager:"-", driver:"서명희", majorAcc:"//", content:"-", delivery:"-",
       etc:["입고공장 미정","견인 미실시","렌트 미사용","블랙박스 N","영상등재 無"] },
     liability:{ driveLimit:"만48세이상 / 기명1인", ageLimit:"만48세이상", selfPay:"20% / 20만~50만원", propertySurcharge:"물적할증 200만원" },
-    ownDamage:{ joined:"가입(Y)", faultRate:"자차 0% / 대차 100% (미확정)" },
+    ownDamage:{ joined:"가입(Y)", faultRate:"자차 0% (미확정)" },
     insuredCar:{ kind:"승용(1901~2000cc)", code:"61T11 (2021년)", priceAB:"17,180,000 (사고시 15,666,000)",
       totalJoin:"17,180,000 (일부보험 100%)", addCover:"부속B 270,000", detail:"블랙박스",
       special:"차량단독사고보상 / 애니카서비스 / 시니어홀케어특약 / 다른자동차운전담보특약 III / 긴급견인서비스 확대 외" },
@@ -256,7 +256,9 @@ function defaultDetail(c, w) {
 
   const handlerName = p.pick(GEN_NAMES);
   const handlerPhone = genPhone(p);
-  const faultText = idx >= 2 ? "자차 0% / 대차 100%" : "0% 미확정";
+  // 과실율은 자차 과실율만 표기 — 손해사정(idx>=2) 이후 확정, 이전은 미확정
+  const selfFaultPct = p.pick([0, 0, 20, 30, 50, 70, 100]);
+  const faultText = `자차 ${selfFaultPct}% (${idx >= 2 ? "확정" : "미확정"})`;
 
   const guideCols = ["개인정보","사고접수","안심콜","과실안내","진행안내","보험금","종결","분심위","소송안내","정보요청","구상","기타"];
   const doneCols = Math.min(7, 3 + idx + (done ? 1 : 0));
@@ -461,6 +463,7 @@ function lgIdBand(d) {
   return `<div class="lg-idband">
     <span class="tag">${iEsc(d.procStatus) || "대기"}</span>
     <span class="id">${iEsc(d.id)}</span>
+    <span class="seg fault">${iEsc(d.fault) || "자차 0% (미확정)"}</span>
     <span class="seg car">${joinDot([d.carModel, d.car]) || "-"}</span>
   </div>`;
 }
@@ -582,7 +585,6 @@ function dmgPartsHtml(checkedSet, interactive) {
   }).join("");
 }
 function intakeDamageTab(d) {
-  const mark = v => v === "done" ? "✓" : v === "call" ? "☎" : v ? "•" : "–";
   const left = lgSect("피해 진행")
     + lgTable([
       { k: "피해물", v: d.damage.object, full: true },
@@ -614,13 +616,7 @@ function intakeDamageTab(d) {
          </div>
        </div>`;
 
-  const guide = lgSect("고객안내 진행현황")
-    + `<div class="lg-scroll"><table class="lg-tbl auto"><tr>${d.guideCols.map(c => `<th>${c}</th>`).join("")}</tr>${d.guideRows.map(r => `<tr>${d.guideCols.map(c => `<td>${mark(r.cells[c])}</td>`).join("")}</tr>`).join("")}</table></div>`;
-  const dmgList = lgSect("피해물 목록")
-    + `<div class="lg-scroll"><table class="lg-tbl auto"><tr><th>차량번호</th><th>피해물/자</th><th>지급금액</th><th>진행</th><th>소유자연락처</th><th>보상담당자</th><th>배당일</th><th>피해접수일</th></tr>${d.damageList.length
-      ? d.damageList.map(r => `<tr><td>${iEsc(r.carNo) || "-"}</td><td>${iEsc(r.object) || "-"}</td><td>${iEsc(r.payAmount) || "-"}</td><td>${iEsc(r.progress) || "-"}</td><td>${iEsc(r.ownerPhone) || "-"}</td><td>${iEsc(r.handler) || "-"}</td><td>${iEsc(r.assignDate) || "-"}</td><td>${iEsc(r.receiptDate) || "-"}</td></tr>`).join("")
-      : `<tr><td colspan="8" class="ph">등록된 피해물이 없습니다.</td></tr>`}</table></div>`;
-  return `<div class="lg-cols"><div>${left}</div><div>${right}</div></div>${carDamage}${guide}${dmgList}`;
+  return `<div class="lg-cols"><div>${left}</div><div>${right}</div></div>${carDamage}`;
 }
 
 function renderIntakeTab(name, d) {
