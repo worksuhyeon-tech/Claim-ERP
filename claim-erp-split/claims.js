@@ -685,13 +685,14 @@ function ynCell(yes) {
     : '<span class="yn yn-n">N</span>';
 }
 
-/* 리스트 표 고정 구조 — 14열 colgroup + 1줄 헤더 (체크·계획·순번 추가) */
+/* 리스트 표 고정 구조 — 15열 colgroup + 1줄 헤더 (체크·계획·순번·고객구분 추가) */
 const LIST_COLGROUP =
   '<colgroup>' +
-  '<col style="width:3%"><col style="width:4%"><col style="width:4%">' +
-  '<col style="width:12%"><col style="width:15%"><col style="width:9%"><col style="width:8%">' +
+  '<col style="width:3%"><col style="width:3%"><col style="width:3%">' +
+  '<col style="width:11%"><col style="width:13%"><col style="width:8%"><col style="width:7%">' +
+  '<col style="width:6%">' +
   '<col style="width:6%"><col style="width:6%"><col style="width:6%">' +
-  '<col style="width:9%"><col style="width:9%">' +
+  '<col style="width:8%"><col style="width:8%">' +
   '<col style="width:5%"><col style="width:5%">' +
   '</colgroup>';
 const LIST_THEAD =
@@ -700,11 +701,18 @@ const LIST_THEAD =
       '<th class="col-check" data-desc="현재 페이지의 모든 건을 한 번에 선택하거나 해제합니다."><input type="checkbox" id="selectAll" aria-label="전체선택" /></th>' +
       '<th>계획</th><th>순번</th>' +
       '<th>접수번호</th><th>정비공장명</th><th>차량명</th><th>차량번호</th>' +
+      '<th>고객구분</th>' +
       '<th>정비 상태</th><th>부품 상태</th><th>승인 상태</th>' +
       '<th>추산</th><th>지급</th>' +
       '<th>운전자<br>정보동의</th><th>계약<br>정보확인</th>' +
     '</tr>' +
   '</thead>';
+
+/* 고객구분 배지 (렌터카 / 리스) */
+function custBadge(v) {
+  const cls = v === "리스" ? "lease" : "rent";
+  return `<span class="cust-badge ${cls}">${v || "-"}</span>`;
+}
 
 /* 계획(별점) 버튼 셀 */
 function planStar(id) {
@@ -732,6 +740,7 @@ function claimRowHtml(c, seq) {
         <td class="cshop">${c.repairShop || "미입고"}</td>
         <td class="cmodel">${c.carModel}</td>
         <td class="cno">${c.car}</td>
+        <td class="ccust">${custBadge(c.custType)}</td>
         <td>${statusCell(w.repair)}</td>
         <td>${statusCell(w.part)}</td>
         <td>${statusCell(w.approval)}</td>
@@ -780,7 +789,7 @@ function renderList() {
     const msg = q
       ? `<b>'${escapeHtml(q)}'</b>에 해당하는 조치대상 건이 없습니다.`
       : `조건에 해당하는 조치대상 건이 없습니다.`;
-    $("#rows").innerHTML = `${head}<tbody><tr><td colspan="14" class="rows-empty">${msg}</td></tr></tbody></table>`;
+    $("#rows").innerHTML = `${head}<tbody><tr><td colspan="15" class="rows-empty">${msg}</td></tr></tbody></table>`;
     renderPager(1, 1);
     return;
   }
