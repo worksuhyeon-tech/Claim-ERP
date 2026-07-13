@@ -522,9 +522,20 @@ ACTION_WORKFLOWS["접수·선견적"].forEach((a, i, arr) => { a.nextIndex = i <
 
 const TYPE_ORDER = ["고객 미응답", "고객 연락요청", "계약 조사", "사진 미등록", "업체 미회신", "청구서 미수신(선견적만)", "입고/수리 지연", "재통화", "VOC", "교통", "렌트", "CS", "기타", "정산 대기"];
 
-let activeStage = null;   // null = 전체보기
-let activeType = null;    // null = 단계 내 전체 조치유형
-let searchQuery = "";     // 리스트 검색어 (사고번호/고객명/차량번호/담당자/상태/조치유형)
+let activeStage = STAGES[0];    // 선택된 단계 (단일 선택)
+let allTypes = true;            // 조치유형 전체 선택 여부
+let checkedTypes = new Set();   // 체크된 조치유형 (allTypes=false일 때 적용)
+let planFilter = "전체";        // 계획 필터: 전체 / 긴급 / 관심
+let shopQuery = "";             // 정비공장명 검색
+let searchQuery = "";           // 통합 검색어 (접수번호/차량명/차량번호/담당자/고객명)
+let pageSize = 20;              // 페이지당 표시 건수
+let currentPage = 1;            // 현재 페이지 (1-base)
+
+const planState = {};           // 사고번호별 계획(별점): "긴급" | "관심" | undefined
+const selectedRows = new Set(); // 체크된 행 (사고번호)
+
+function planOf(id) { return planState[id]; }
+function typesForStage(stage) { return TYPE_ORDER.filter(t => stageClaims(stage).some(c => c.actionType === t)); }
 
 const actionProgress = {}; // 사고번호별 빠른 액션 팝업 진행 상태
 const noticeSends = {}; // 사고번호별 알림톡/문자 발송 상태
@@ -580,14 +591,22 @@ function numCell(v, cls) {
   return `<span class="num ${cls || ""}">${v}</span>`;
 }
 function scopeClaims() {
-  let list = activeStage ? stageClaims(activeStage) : CLAIMS;
-  if (activeType) list = list.filter(c => c.actionType === activeType);
-  const q = searchQuery.trim().toLowerCase();
+  let list = stageClaims(activeStage);                       // 단계 (단일 선택)
+  if (!allTypes) list = list.filter(c => checkedTypes.has(c.actionType)); // 조치유형 체크박스
+  if (planFilter !== "전체") list = list.filter(c => planOf(c.id) === planFilter); // 계획(별점)
+  const sq = shopQuery.trim().toLowerCase();                 // 정비공장명
+  if (sq) list = list.filter(c => String(c.repairShop || "").toLowerCase().includes(sq));
+  const q = searchQuery.trim().toLowerCase();                // 통합 검색어
   if (q) {
-    list = list.filter(c => [c.id, c.name, c.repairShop, c.carModel, c.car, c.manager, c.status, c.actionType, c.flowStage, c.custType]
+    list = list.filter(c => [c.id, c.carModel, c.car, c.manager, c.name, c.actionType]
       .some(v => String(v || "").toLowerCase().includes(q)));
   }
   return list;
+}
+function currentPageItems() {
+  const items = scopeClaims();
+  const start = (currentPage - 1) * pageSize;
+  return items.slice(start, start + pageSize);
 }
 function openCount(list) { return list.filter(c => c.procStatus !== "완료").length; }
 
@@ -615,45 +634,42 @@ function getNoticeRows(claim, action) {
   });
 }
 
+/* 단계별 통계 카드 — setProcStatus 에서도 호출하므로 함수명 renderFlow 유지 */
 function renderFlow() {
-  const opens = STAGES.map(s => openCount(stageClaims(s)));
-  const maxOpen = Math.max(...opens);
-  const arrow = `<div class="flow-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></div>`;
-
-  $("#flowRow").innerHTML = STAGES.map((stage, i) => {
-    const items = stageClaims(stage).filter(c => c.procStatus !== "완료");
-    const isBottleneck = items.length === maxOpen && maxOpen > 0;
-    const cls = [
-      "flow-card",
-      stage === activeStage ? "active" : "",
-      isBottleneck ? "bottleneck" : ""
-    ].join(" ");
+  $("#statCards").innerHTML = STAGES.map((stage, i) => {
+    const count = stageClaims(stage).length;
+    const cls = "cl-stat" + (stage === activeStage ? " active" : "");
     return `
-      <div class="${cls}" data-stage="${stage}">
-        <div class="fc-stage"><span class="fc-no">${i + 1}</span><span class="fc-name">${stage}</span></div>
-        <div class="fc-nums">
-          <span class="fc-open">${items.length}<small>건</small></span>
-        </div>
-      </div>` + (i < STAGES.length - 1 ? arrow : "");
+      <button class="${cls}" data-stage="${stage}" type="button">
+        <div class="cs-head"><span class="cs-no">${i + 1}</span><span class="cs-name">${stage}</span></div>
+        <div class="cs-count">${count}<small>건</small></div>
+      </button>`;
   }).join("");
-
-  $("#btnAll").classList.toggle("active", activeStage === null);
 }
 
-function renderTabs() {
-  const stageNow = $("#stageNow");
-  if (stageNow) stageNow.textContent = activeStage || "전체";
-  const base = activeStage ? stageClaims(activeStage) : CLAIMS;
-  const types = TYPE_ORDER.filter(t => base.some(c => c.actionType === t));
-  const allTab = `
-    <button class="tab ${activeType === null ? "active" : ""}" data-type="">
-      <span class="t-label">전체</span><span class="t-count">${base.length}</span>
-    </button>`;
-  $("#tabList").innerHTML = allTab + types.map(t => `
-    <button class="tab ${t === activeType ? "active" : ""}" data-type="${t}">
-      <span class="t-label">${t}</span>
-      <span class="t-count">${base.filter(c => c.actionType === t).length}</span>
-    </button>`).join("");
+/* 조치유형 체크박스 (선택 단계 기준으로 동적 생성) */
+function renderFilterChecks() {
+  const types = typesForStage(activeStage);
+  const allChecked = allTypes || (types.length > 0 && types.every(t => checkedTypes.has(t)));
+  const boxes = types.map(t => `
+    <label class="clf-check">
+      <input type="checkbox" data-type="${t}" ${(allTypes || checkedTypes.has(t)) ? "checked" : ""} />
+      <span>${t}</span>
+    </label>`).join("");
+  $("#typeChecks").innerHTML = `
+    <label class="clf-check clf-check-all">
+      <input type="checkbox" id="typeAll" ${allChecked ? "checked" : ""} />
+      <span>전체</span>
+    </label>${boxes}`;
+}
+
+/* 필터 컨트롤 상태 동기화 (단계 select · 계획 버튼 · 체크박스) */
+function renderFilters() {
+  const sel = $("#stageSelect");
+  if (sel && sel.value !== activeStage) sel.value = activeStage;
+  $("#planFilter").querySelectorAll("button").forEach(b =>
+    b.classList.toggle("active", b.dataset.plan === planFilter));
+  renderFilterChecks();
 }
 
 /* 계약 정보확인 Y/N — 접수·선견적 단계에서 계약정보 확인이 남아있으면 N */
@@ -668,17 +684,20 @@ function ynCell(yes) {
     : '<span class="yn yn-n">N</span>';
 }
 
-/* 리스트 표 고정 구조 — 11열 colgroup + 1줄 헤더 (엑셀 SMART업무관리 기준) */
+/* 리스트 표 고정 구조 — 14열 colgroup + 1줄 헤더 (체크·계획·순번 추가) */
 const LIST_COLGROUP =
   '<colgroup>' +
-  '<col style="width:12%"><col style="width:12%"><col style="width:10%"><col style="width:10%">' +
-  '<col style="width:8%"><col style="width:8%"><col style="width:8%">' +
-  '<col style="width:11%"><col style="width:11%">' +
+  '<col style="width:3%"><col style="width:4%"><col style="width:4%">' +
+  '<col style="width:12%"><col style="width:15%"><col style="width:9%"><col style="width:8%">' +
+  '<col style="width:6%"><col style="width:6%"><col style="width:6%">' +
+  '<col style="width:9%"><col style="width:9%">' +
   '<col style="width:5%"><col style="width:5%">' +
   '</colgroup>';
 const LIST_THEAD =
   '<thead>' +
     '<tr>' +
+      '<th class="col-check"><input type="checkbox" id="selectAll" aria-label="전체선택" /></th>' +
+      '<th>계획</th><th>순번</th>' +
       '<th>접수번호</th><th>정비공장명</th><th>차량명</th><th>차량번호</th>' +
       '<th>정비 상태</th><th>부품 상태</th><th>승인 상태</th>' +
       '<th>추산</th><th>지급</th>' +
@@ -686,13 +705,26 @@ const LIST_THEAD =
     '</tr>' +
   '</thead>';
 
+/* 계획(별점) 버튼 셀 */
+function planStar(id) {
+  const p = planOf(id);
+  const cls = p === "긴급" ? "urgent" : p === "관심" ? "watch" : "none";
+  return `<button class="star-btn ${cls}" type="button" data-plan-toggle="${id}" title="${p || "계획 없음"}" aria-label="계획 표시">★</button>`;
+}
+
 /* 사고건 1건 = tbody.row (1행) */
-function claimRowHtml(c) {
+function claimRowHtml(c, seq) {
   const w = c.work;
+  const p = planOf(c.id);
+  const planCls = p === "긴급" ? " plan-urgent" : p === "관심" ? " plan-watch" : "";
   const sel = c.id === selectedId ? " selected" : "";
+  const checked = selectedRows.has(c.id) ? " checked" : "";
   return `
-    <tbody class="row${sel}" data-id="${c.id}">
+    <tbody class="row${sel}${planCls}" data-id="${c.id}">
       <tr>
+        <td class="col-check"><input type="checkbox" class="row-check" data-check="${c.id}"${checked} aria-label="선택" /></td>
+        <td class="col-plan">${planStar(c.id)}</td>
+        <td class="cseq">${seq}</td>
         <td class="cid">${c.id}</td>
         <td class="cshop">${c.repairShop || "미입고"}</td>
         <td class="cmodel">${c.carModel}</td>
@@ -708,19 +740,50 @@ function claimRowHtml(c) {
     </tbody>`;
 }
 
+function syncSelectAll(pageItems) {
+  const all = $("#selectAll");
+  if (!all) return;
+  all.checked = pageItems.length > 0 && pageItems.every(c => selectedRows.has(c.id));
+}
+
+function renderPager(pageCount, page) {
+  const pager = $("#pager");
+  if (!pager) return;
+  if (pageCount <= 1) { pager.innerHTML = ""; return; }
+  let nums = "";
+  for (let p = 1; p <= pageCount; p++) {
+    nums += `<button class="pg-num${p === page ? " active" : ""}" type="button" data-page="${p}">${p}</button>`;
+  }
+  pager.innerHTML =
+    `<button class="pg-arrow" type="button" data-page="${page - 1}" ${page <= 1 ? "disabled" : ""} aria-label="이전 페이지">‹</button>` +
+    nums +
+    `<button class="pg-arrow" type="button" data-page="${page + 1}" ${page >= pageCount ? "disabled" : ""} aria-label="다음 페이지">›</button>`;
+}
+
 function renderList() {
   const items = scopeClaims();
-  const q = searchQuery.trim();
-  $("#listCount").textContent = `${activeStage ? activeStage + " · " : ""}${activeType ? activeType + " · " : ""}${q ? `'${q}' 검색 · ` : ""}총 ${items.length}건`;
-  const head = `<table class="claim-table">${LIST_COLGROUP}${LIST_THEAD}`;
-  if (!items.length) {
+  const total = items.length;
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  if (currentPage > pageCount) currentPage = pageCount;
+  const start = (currentPage - 1) * pageSize;
+  const pageItems = items.slice(start, start + pageSize);
+
+  $("#summaryLine").innerHTML =
+    `<b>총 ${total}건</b><span class="cls-dim"> · 오늘 발생 18건 · 면책 3건 · 종결 12건 · 평균 리드타임 2.8일</span>`;
+
+  const head = `<table class="claim-table cl-table">${LIST_COLGROUP}${LIST_THEAD}`;
+  if (!total) {
+    const q = searchQuery.trim();
     const msg = q
-      ? `<b>'${escapeHtml(q)}'</b>에 해당하는 조치대상 건이 없습니다.<br/>사고번호·정비공장·차량번호·담당자로 검색해 보세요.`
+      ? `<b>'${escapeHtml(q)}'</b>에 해당하는 조치대상 건이 없습니다.`
       : `조건에 해당하는 조치대상 건이 없습니다.`;
-    $("#rows").innerHTML = `${head}<tbody><tr><td colspan="11" class="rows-empty">${msg}</td></tr></tbody></table>`;
+    $("#rows").innerHTML = `${head}<tbody><tr><td colspan="14" class="rows-empty">${msg}</td></tr></tbody></table>`;
+    renderPager(1, 1);
     return;
   }
-  $("#rows").innerHTML = head + items.map(claimRowHtml).join("") + "</table>";
+  $("#rows").innerHTML = head + pageItems.map((c, i) => claimRowHtml(c, start + i + 1)).join("") + "</table>";
+  renderPager(pageCount, currentPage);
+  syncSelectAll(pageItems);
 }
 
 function fillActionTemplate(text, claim) {
@@ -1203,65 +1266,145 @@ function selectFirst() {
 }
 
 function renderAll() {
-  renderFlow();
-  renderTabs();
-  renderList();
+  renderFlow();       // 단계 통계 카드
+  renderFilters();    // 필터 컨트롤 (단계·계획·조치유형)
+  renderList();       // 리스트 + 페이지네이션
 }
 
-$("#flowRow").addEventListener("click", e => {
-  const card = e.target.closest(".flow-card");
-  if (!card) return;
-  activeStage = card.dataset.stage;
-  activeType = null;          // 단계 변경 시 조치유형 필터 초기화
+/* 단계 전환 (통계 카드 클릭 / 드롭다운) */
+function setStage(stage) {
+  if (!STAGES.includes(stage)) return;
+  activeStage = stage;
+  allTypes = true;                               // 단계 변경 시 조치유형 전체로 초기화
+  checkedTypes = new Set(typesForStage(stage));
+  currentPage = 1;
   selectFirst();
   renderAll();
-});
+}
 
-$("#btnAll").addEventListener("click", () => {
-  activeStage = null;
-  activeType = null;
-  selectFirst();
-  renderAll();
+$("#statCards").addEventListener("click", e => {
+  const card = e.target.closest(".cl-stat");
+  if (card) setStage(card.dataset.stage);
 });
+$("#stageSelect").addEventListener("change", e => setStage(e.target.value));
 
-$("#tabList").addEventListener("click", e => {
-  const tab = e.target.closest(".tab");
-  if (!tab) return;
-  activeType = tab.dataset.type || null;
+/* 조치유형 체크박스 */
+$("#typeChecks").addEventListener("change", e => {
+  const cb = e.target;
+  if (cb.id === "typeAll") {
+    allTypes = cb.checked;
+    checkedTypes = cb.checked ? new Set(typesForStage(activeStage)) : new Set();
+  } else if (cb.dataset.type) {
+    if (allTypes) { checkedTypes = new Set(typesForStage(activeStage)); allTypes = false; }
+    if (cb.checked) checkedTypes.add(cb.dataset.type);
+    else checkedTypes.delete(cb.dataset.type);
+    const types = typesForStage(activeStage);
+    allTypes = types.length > 0 && types.every(t => checkedTypes.has(t));
+  } else {
+    return;
+  }
+  currentPage = 1;
   selectFirst();
-  renderTabs();
+  renderFilterChecks();
   renderList();
 });
 
+/* 계획(별점) 필터 */
+$("#planFilter").addEventListener("click", e => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  planFilter = btn.dataset.plan;
+  currentPage = 1;
+  selectFirst();
+  renderFilters();
+  renderList();
+});
+
+/* 정비공장명 · 검색어 (실시간) */
+$("#shopInput").addEventListener("input", e => { shopQuery = e.target.value; currentPage = 1; renderList(); });
+$("#searchInput").addEventListener("input", e => { searchQuery = e.target.value; currentPage = 1; renderList(); });
+$("#searchInput").addEventListener("keydown", e => { if (e.key === "Enter") { currentPage = 1; renderList(); } });
+
+/* 조회 / 초기화 */
+$("#btnSearch").addEventListener("click", () => { currentPage = 1; selectFirst(); renderList(); });
+$("#btnReset").addEventListener("click", () => {
+  allTypes = true;
+  checkedTypes = new Set(typesForStage(activeStage));
+  planFilter = "전체";
+  shopQuery = "";
+  searchQuery = "";
+  $("#shopInput").value = "";
+  $("#searchInput").value = "";
+  currentPage = 1;
+  selectFirst();
+  renderAll();
+});
+
+/* 페이지당 표시 건수 */
+$("#pageSizeSelect").addEventListener("change", e => {
+  pageSize = parseInt(e.target.value, 10) || 20;
+  currentPage = 1;
+  renderList();
+});
+
+/* 페이지네이션 */
+$("#pager").addEventListener("click", e => {
+  const btn = e.target.closest("button[data-page]");
+  if (!btn || btn.disabled) return;
+  const p = parseInt(btn.dataset.page, 10);
+  if (!isNaN(p)) { currentPage = p; renderList(); }
+});
+
+/* 리스트 상호작용 — 전체선택 / 행 체크 / 별점 토글 / 행 클릭 */
 $("#rows").addEventListener("click", e => {
+  // 전체선택 (현재 페이지 기준)
+  if (e.target.id === "selectAll") {
+    currentPageItems().forEach(c => {
+      if (e.target.checked) selectedRows.add(c.id);
+      else selectedRows.delete(c.id);
+    });
+    renderList();
+    return;
+  }
+  // 행 체크박스
+  const rowCheck = e.target.closest(".row-check");
+  if (rowCheck) {
+    if (rowCheck.checked) selectedRows.add(rowCheck.dataset.check);
+    else selectedRows.delete(rowCheck.dataset.check);
+    syncSelectAll(currentPageItems());
+    e.stopPropagation();
+    return;
+  }
+  // 별점(계획) 토글: 없음 → 긴급 → 관심 → 없음
+  const star = e.target.closest("[data-plan-toggle]");
+  if (star) {
+    const id = star.dataset.planToggle;
+    const cur = planState[id];
+    if (cur === "긴급") planState[id] = "관심";
+    else if (cur === "관심") delete planState[id];
+    else planState[id] = "긴급";
+    if (planFilter !== "전체") selectFirst();
+    renderList();
+    e.stopPropagation();
+    return;
+  }
+  // 행 클릭 → 해당 사고건 Smart접수지 열기
   const row = e.target.closest(".row");
   if (!row) return;
   selectedId = row.dataset.id;
-  openIntake(row.dataset.id);   // 행 클릭 → 해당 사고건 Smart접수지 열기
-});
-
-function applySearch(value) {
-  searchQuery = value;
-  $("#searchClear").hidden = !value.trim();
-  selectFirst();   // 검색 결과의 첫 건 자동 선택
-  renderList();
-}
-
-$("#searchInput").addEventListener("input", e => applySearch(e.target.value));
-$("#searchInput").addEventListener("keydown", e => {
-  if (e.key === "Escape") { e.target.value = ""; applySearch(""); e.target.blur(); }
-});
-$("#searchClear").addEventListener("click", () => {
-  const input = $("#searchInput");
-  input.value = "";
-  applySearch("");
-  input.focus();
+  openIntake(row.dataset.id);
 });
 
 
 /* ===================== 초기화 ===================== */
 (function initClaims() {
-  const activeViewMarker = "claims";
+  // 계획(별점) 데모 시드 — 각 단계의 일부 건에 관심/긴급 표시
+  STAGES.forEach(stage => {
+    const items = stageClaims(stage);
+    if (items[1]) planState[items[1].id] = "관심";
+    if (items[3]) planState[items[3].id] = "긴급";
+  });
+  checkedTypes = new Set(typesForStage(activeStage));
   selectFirst();
   renderAll();
 })();

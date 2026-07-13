@@ -6,38 +6,109 @@
 <title>Smart업무관리 | CLAIM ERP</title>
 <link rel="stylesheet" href="common.css" />
 <style>
-  /* ===== Smart업무관리 화면 전용 조정 ===== */
-  /* 상단 프로세스 헤더: 안내문 제거 후 전체보기 버튼만 우측 정렬 */
-  #viewClaims .flow-head { justify-content: flex-end; }
+  /* ===== Smart업무관리 — 상단 통합 검색필터 + 리스트 (포털 admin 스타일) ===== */
+  #viewClaims .page-head { margin-bottom: 14px; }
 
-  /* 병목 배지는 공용 .flow-card.bottleneck::after 를 그대로 사용 */
+  /* --- 검색 필터 카드 --- */
+  #viewClaims .cl-filter { padding: 14px 16px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 12px; }
+  #viewClaims .clf-row { display: flex; align-items: center; gap: 12px 18px; flex-wrap: wrap; }
+  #viewClaims .clf-field { display: flex; align-items: center; gap: 8px; }
+  #viewClaims .clf-field > label { font-size: 12.5px; font-weight: 700; color: var(--text-sub); white-space: nowrap; }
+  #viewClaims .clf-grow { flex: 1; min-width: 260px; }
 
-  /* 상단 검색 툴바 (기존 리스트 내부 검색창을 상단으로 이동) */
-  #viewClaims .claims-toolbar {
-    display: flex; align-items: center; gap: 10px;
-    margin: 0 2px 16px;
-  }
-  #viewClaims .claims-toolbar .list-search {
-    flex: 1; max-width: 520px;
-  }
-  #viewClaims .claims-toolbar .ct-hint {
-    font-size: 12px; color: var(--text-dim);
-  }
+  /* 단계 select */
+  #viewClaims .clf-select-wrap { position: relative; display: inline-flex; align-items: center; }
+  #viewClaims .clf-select-wrap .clf-clock { position: absolute; left: 10px; width: 15px; height: 15px; color: var(--text-dim); pointer-events: none; }
+  #viewClaims #stageSelect { appearance: none; -webkit-appearance: none; padding: 8px 30px 8px 30px; border: 1px solid var(--line-strong); border-radius: 8px; background: #fff; font-size: 13px; font-weight: 700; color: var(--text); cursor: pointer; }
+  #viewClaims .clf-select-wrap::after { content: ""; position: absolute; right: 12px; width: 7px; height: 7px; border-right: 2px solid var(--text-dim); border-bottom: 2px solid var(--text-dim); transform: rotate(45deg); margin-top: -3px; pointer-events: none; }
 
-  /* 리스트 헤더: 제목 제거 후 건수만 표시 */
-  #viewClaims .list-card .list-head { gap: 8px; }
+  /* 조치유형 체크박스 */
+  #viewClaims .clf-checks { display: flex; align-items: center; gap: 7px 14px; flex-wrap: wrap; }
+  #viewClaims .clf-check { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--text-sub); cursor: pointer; user-select: none; }
+  #viewClaims .clf-check input { width: 15px; height: 15px; accent-color: var(--blue); cursor: pointer; }
+  #viewClaims .clf-check-all span { font-weight: 700; color: var(--text); }
 
-  /* Y/N 배지 (운전자 정보동의 / 계약 정보확인) */
-  #viewClaims .yn {
-    display: inline-flex; align-items: center; justify-content: center;
-    min-width: 22px; height: 20px; padding: 0 5px;
-    font-size: 11.5px; font-weight: 800; border-radius: 6px; line-height: 1;
-  }
+  /* 계획 버튼 그룹 */
+  #viewClaims .clf-plan { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 8px; overflow: hidden; }
+  #viewClaims .clf-plan button { display: inline-flex; align-items: center; gap: 4px; padding: 7px 13px; border: 0; border-left: 1px solid var(--line); background: #fff; font-size: 12.5px; font-weight: 700; color: var(--text-sub); cursor: pointer; }
+  #viewClaims .clf-plan button:first-child { border-left: 0; }
+  #viewClaims .clf-plan button:hover { background: #F5F8FC; }
+  #viewClaims .clf-plan button.active { background: #232B39; color: #fff; }
+  #viewClaims .clf-plan .star { font-size: 12px; }
+  #viewClaims .clf-plan .star.urgent { color: var(--red); }
+  #viewClaims .clf-plan .star.watch { color: var(--blue); }
+  #viewClaims .clf-plan button.active .star { color: #fff; }
+
+  /* 인풋 */
+  #viewClaims #shopInput, #viewClaims #searchInput { padding: 8px 12px; border: 1px solid var(--line-strong); border-radius: 8px; background: #fff; font-size: 13px; color: var(--text); }
+  #viewClaims #shopInput { width: 190px; }
+  #viewClaims .clf-search { position: relative; flex: 1; display: flex; }
+  #viewClaims .clf-search input { flex: 1; padding-right: 34px; }
+  #viewClaims .clf-search svg { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--text-dim); pointer-events: none; }
+  #viewClaims #shopInput:focus, #viewClaims #searchInput:focus, #viewClaims #stageSelect:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
+
+  /* 액션 버튼 */
+  #viewClaims .clf-actions { display: inline-flex; gap: 8px; margin-left: auto; }
+  #viewClaims .btn-reset { padding: 8px 16px; border: 1px solid var(--line-strong); border-radius: 8px; background: #fff; font-size: 13px; font-weight: 700; color: var(--text-sub); cursor: pointer; }
+  #viewClaims .btn-reset:hover { border-color: var(--text-dim); color: var(--text); }
+  #viewClaims .btn-search { padding: 8px 22px; border: 1px solid #232B39; border-radius: 8px; background: #232B39; font-size: 13px; font-weight: 700; color: #fff; cursor: pointer; }
+  #viewClaims .btn-search:hover { background: #2E3849; }
+
+  /* --- 단계 통계 카드 --- */
+  #viewClaims .cl-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
+  #viewClaims .cl-stat { text-align: left; padding: 16px 18px; border: 1.5px solid var(--line); border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow); cursor: pointer; transition: border-color .15s, transform .15s; }
+  #viewClaims .cl-stat:hover { border-color: var(--blue-line); transform: translateY(-2px); }
+  #viewClaims .cl-stat.active { border-color: var(--blue); box-shadow: 0 2px 10px rgba(37,99,235,.16); }
+  #viewClaims .cs-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  #viewClaims .cs-no { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 7px; background: #232B39; color: #fff; font-size: 12px; font-weight: 800; }
+  #viewClaims .cl-stat.active .cs-no { background: var(--blue); }
+  #viewClaims .cs-name { font-size: 13.5px; font-weight: 700; color: var(--text-sub); }
+  #viewClaims .cl-stat.active .cs-name { color: var(--blue-dark); }
+  #viewClaims .cs-count { font-size: 26px; font-weight: 800; color: var(--text); letter-spacing: -.5px; }
+  #viewClaims .cs-count small { font-size: 13px; font-weight: 700; color: var(--text-dim); margin-left: 3px; }
+
+  /* --- 요약 라인 --- */
+  #viewClaims .cl-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 2px 10px; }
+  #viewClaims .cls-left { font-size: 13px; color: var(--text); }
+  #viewClaims .cls-left b { font-weight: 800; }
+  #viewClaims .cls-dim { color: var(--text-dim); font-weight: 500; }
+  #viewClaims #pageSizeSelect { padding: 6px 10px; border: 1px solid var(--line-strong); border-radius: 8px; background: #fff; font-size: 12.5px; color: var(--text-sub); cursor: pointer; }
+
+  /* --- 리스트 카드 --- */
+  #viewClaims .list-card { min-height: 0; padding: 4px 4px 6px; }
+  #viewClaims .list-card .rows { max-height: none; overflow: visible; }
+  #viewClaims .cl-table thead th { white-space: normal; line-height: 1.25; background: #F5F8FC; }
+  #viewClaims .cl-table .col-check input { width: 15px; height: 15px; accent-color: var(--blue); cursor: pointer; vertical-align: middle; margin: 0; }
+  #viewClaims .cl-table .cseq { color: var(--text-dim); font-variant-numeric: tabular-nums; font-weight: 700; }
+  #viewClaims .cl-table .num.est { color: var(--text); }   /* 추산 = 검정 */
+  #viewClaims .cl-table .num.pay { color: var(--red); }     /* 지급 = 빨강 */
+  #viewClaims .cl-table tbody.row.plan-urgent td { background: #FEF2F2; }
+  #viewClaims .cl-table tbody.row.plan-watch  td { background: #EFF5FF; }
+  #viewClaims .cl-table tbody.row.plan-urgent:hover td { background: #FDE8E8; }
+  #viewClaims .cl-table tbody.row.plan-watch:hover  td { background: #E4EEFF; }
+
+  /* 별점(계획) 버튼 */
+  #viewClaims .star-btn { border: 0; background: none; cursor: pointer; font-size: 15px; line-height: 1; padding: 2px; color: var(--line-strong); transition: transform .1s; }
+  #viewClaims .star-btn.urgent { color: var(--red); }
+  #viewClaims .star-btn.watch  { color: var(--blue); }
+  #viewClaims .star-btn:hover { transform: scale(1.18); }
+
+  /* Y/N 배지 */
+  #viewClaims .yn { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 20px; padding: 0 5px; font-size: 11.5px; font-weight: 800; border-radius: 6px; line-height: 1; }
   #viewClaims .yn-y { color: var(--green); background: var(--green-soft); }
   #viewClaims .yn-n { color: var(--text-dim); background: #EEF1F6; }
 
-  /* 표 헤더 2줄 텍스트(운전자/계약) 줄바꿈 허용 — 공용 nowrap 무효화 */
-  #viewClaims .claim-table thead th { white-space: normal; line-height: 1.25; }
+  /* 페이지네이션 */
+  #viewClaims .cl-pager { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 14px 0 6px; }
+  #viewClaims .cl-pager button { min-width: 30px; height: 30px; padding: 0 8px; border: 1px solid var(--line); border-radius: 7px; background: #fff; font-size: 12.5px; font-weight: 700; color: var(--text-sub); cursor: pointer; }
+  #viewClaims .cl-pager button:hover:not(:disabled) { border-color: var(--blue-line); color: var(--blue); }
+  #viewClaims .cl-pager .pg-num.active { background: #232B39; border-color: #232B39; color: #fff; }
+  #viewClaims .cl-pager button:disabled { color: var(--line-strong); cursor: default; }
+
+  @media (max-width: 900px) {
+    #viewClaims .cl-stats { grid-template-columns: repeat(2, 1fr); }
+    #viewClaims .clf-actions { margin-left: 0; }
+  }
 </style>
 </head>
 <body>
@@ -141,43 +212,69 @@
     <h1>Smart업무관리</h1>
   </section>
 
-  <div class="flow-head">
-    <button class="btn-all" id="btnAll">전체보기</button>
-  </div>
-  <section class="flow-row" id="flowRow"></section>
-
-  <div class="kpi-line" id="kpiLine">
-    <span>오늘 발생 <b>18건</b></span><span class="kpi-dot">·</span>
-    <span>면책 <b>3건</b></span><span class="kpi-dot">·</span>
-    <span>종결 <b>12건</b></span><span class="kpi-dot">·</span>
-    <span class="tip-wrap">평균 리드타임 <b>2.8일</b>
-      <span class="tip">접수일부터 종결일까지 평균 소요일</span>
-    </span>
-  </div>
-
-  <div class="claims-toolbar">
-    <div class="list-search">
-      <svg class="ls-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>
-      <input type="search" id="searchInput" autocomplete="off" placeholder="사고번호, 정비공장, 차량번호, 담당자 검색" aria-label="조치대상 검색" />
-      <button type="button" id="searchClear" class="ls-clear" aria-label="검색어 지우기" hidden>×</button>
-    </div>
-    <span class="ct-hint">사고번호·정비공장·차량번호·담당자로 검색</span>
-  </div>
-
-  <section class="workspace">
-
-    <aside class="tabs card" id="tabPanel" aria-label="조치유형">
-      <div class="tabs-title">조치유형</div>
-      <div id="tabList"></div>
-    </aside>
-
-    <section class="list-card card">
-      <div class="list-head">
-        <span class="count" id="listCount"></span>
+  <!-- 상단 통합 검색 필터 -->
+  <section class="cl-filter card">
+    <div class="clf-row">
+      <div class="clf-field clf-stage">
+        <label for="stageSelect">단계</label>
+        <div class="clf-select-wrap">
+          <svg class="clf-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <select id="stageSelect" aria-label="단계 선택">
+            <option value="접수·선견적">접수·선견적</option>
+            <option value="수리 승인">수리 승인</option>
+            <option value="손해사정">손해사정</option>
+            <option value="지급 / 정산">지급 / 정산</option>
+          </select>
+        </div>
       </div>
-      <div class="rows" id="rows"></div>
-    </section>
+      <div class="clf-checks" id="typeChecks"><!-- 조치유형 체크박스 (동적) --></div>
+    </div>
+    <div class="clf-row">
+      <div class="clf-field">
+        <label>계획</label>
+        <div class="clf-plan" id="planFilter">
+          <button type="button" data-plan="전체" class="active">전체</button>
+          <button type="button" data-plan="긴급"><span class="star urgent">★</span>긴급</button>
+          <button type="button" data-plan="관심"><span class="star watch">★</span>관심</button>
+        </div>
+      </div>
+      <div class="clf-field">
+        <label for="shopInput">정비공장명</label>
+        <input type="text" id="shopInput" autocomplete="off" placeholder="협력업체명 like검색" />
+      </div>
+      <div class="clf-field clf-grow">
+        <label for="searchInput">검색어</label>
+        <div class="clf-search">
+          <input type="text" id="searchInput" autocomplete="off" placeholder="접수번호, 차량명, 차량번호, 담당자 like검색" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>
+        </div>
+      </div>
+      <div class="clf-actions">
+        <button type="button" class="btn-reset" id="btnReset">초기화</button>
+        <button type="button" class="btn-search" id="btnSearch">조회</button>
+      </div>
+    </div>
+  </section>
 
+  <!-- 단계별 통계 카드 -->
+  <section class="cl-stats" id="statCards"></section>
+
+  <!-- 요약 라인 -->
+  <div class="cl-summary">
+    <div class="cls-left" id="summaryLine"></div>
+    <div class="cls-right">
+      <select id="pageSizeSelect" aria-label="페이지당 표시 건수">
+        <option value="10">10개씩 보기</option>
+        <option value="20" selected>20개씩 보기</option>
+        <option value="50">50개씩 보기</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- 리스트 -->
+  <section class="list-card card">
+    <div class="rows" id="rows"></div>
+    <div class="cl-pager" id="pager"></div>
   </section>
 
   <footer class="page-foot">
