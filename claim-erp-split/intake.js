@@ -5,8 +5,18 @@ let intakeClaimId = null;   // Smart접수지에 바인딩된 사고건
 let intakeTab = "contract"; // "contract"(계약·사고정보) | "damage"(피해 진행정보) | "estimate"(청구 견적 정보)
 let estimateDocType = "claim"; // 청구 견적 문서 전환: "pre"(선견적) | "claim"(청구서)
 
-const INTAKE_MEMO_TYPES = ["피보/운전", "피해소유", "고객요청", "공업사", "내부공유"];
-const INTAKE_ATTRS = ["재통화", "VOC", "교통", "렌트", "기타"];
+// 진행 메모 '구분' = 진행 이력 채널 분류 (라디오 필터와 동일 값)
+const INTAKE_MEMO_TYPES = ["피보/운전", "정비공장", "타사담당자", "담당자", "콜센터"];
+// 미결 속성 — 항목별 부가 입력필드(date/text) 정의
+const INTAKE_ATTRS = [
+  { key: "재통화", field: "date", ph: "재통화 예정일" },
+  { key: "VOC",   field: null },
+  { key: "탁송",  field: "text", ph: "탁송 메모 (최대 20자)" },
+  { key: "렌트",  field: "text", ph: "렌트 메모 (최대 20자)" },
+  { key: "기타",  field: "text", ph: "기타 메모 (최대 20자)" },
+];
+const INTAKE_ATTR_KEYS = INTAKE_ATTRS.map(a => a.key);
+let intakeLogFilter = "전체";   // 진행 이력 채널(구분) 필터
 // Smart접수지 조회구분 (참조: reference/조회구분값.png)
 const INTAKE_QUERY_TYPES = ["사고번호", "차량번호", "피해차량번호", "피보험자 휴대폰", "통보자 휴대폰", "피해자 휴대폰", "운전자 휴대폰", "소유자 휴대폰"];
 let intakeQueryType = INTAKE_QUERY_TYPES[0];
@@ -14,8 +24,8 @@ let intakeQueryType = INTAKE_QUERY_TYPES[0];
 const intakeProgressLogs = {
   "CLM-2026-0004": [
     { at:"06.18 09:12", type:"피보/운전", text:"운전자 통화 완료. 사고 경위와 입고 희망 공업사 확인." },
-    { at:"06.18 10:05", type:"공업사", text:"탑모터스 입고 가능 여부 확인, 선견적 회신 대기." },
-    { at:"06.18 11:20", type:"내부공유", text:"피해담당자와 로그 기준 사고 내용 상이. 추가 확인 필요." },
+    { at:"06.18 10:05", type:"정비공장", text:"탑모터스 입고 가능 여부 확인, 선견적 회신 대기." },
+    { at:"06.18 11:20", type:"담당자", text:"피해담당자와 로그 기준 사고 내용 상이. 추가 확인 필요." },
   ],
 };
 const intakePropertyState = {
@@ -429,11 +439,14 @@ function getIntakeLogs(id) {
 function getIntakeProperty(id, d) {
   if (!intakePropertyState[id]) {
     intakePropertyState[id] = {
-      attrs: (d.unresolved || []).filter(x => INTAKE_ATTRS.includes(x)),
+      attrs: (d.unresolved || []).filter(x => INTAKE_ATTR_KEYS.includes(x)),
       note: d.actionDesc || "",
     };
   }
-  return intakePropertyState[id];
+  const st = intakePropertyState[id];
+  if (!st.fields) st.fields = {};                                    // 항목별 입력값(재통화 날짜/탁송·렌트·기타 메모)
+  if (!st.custom) st.custom = [{ checked:false, text:"" }, { checked:false, text:"" }]; // 담당자 자유 입력 2행
+  return st;
 }
 
 /* ---- 레거시 테이블 헬퍼 ---- */
@@ -476,21 +489,39 @@ function lgRow2(d) {
   return `<div class="lg-row2 solo"><div>${left}</div></div>`;
 }
 
-/* ---- 진행 이력 / 진행 메모 / 미결 속성 (동작 유지) ---- */
+/* ---- 진행 이력 / 진행 메모 / 미결 속성 ---- */
+// 진행 이력 표 — 선택된 구분(채널)으로 필터
+function intakeLogTableHtml(logs) {
+  const rows = intakeLogFilter === "전체" ? logs : logs.filter(r => r.type === intakeLogFilter);
+  if (!rows.length) {
+    const label = intakeLogFilter === "전체" ? "데이터가 없습니다." : `'${intakeLogFilter}' 구분의 진행 이력이 없습니다.`;
+    return `<div class="empty">${iEsc(label)}</div>`;
+  }
+  return `<table><thead><tr><th style="width:32px">순번</th><th style="width:78px">일시</th><th style="width:74px">구분</th><th>내용</th></tr></thead><tbody>${rows.map((r, i) => `<tr><td>${rows.length - i}</td><td>${iEsc(r.at)}</td><td>${iEsc(r.type)}</td><td class="txt">${iEsc(r.text)}</td></tr>`).join("")}</tbody></table>`;
+}
+// 미결 속성 1행 (체크박스 + 항목명 + 부가 입력필드)
+function intakeAttrRowHtml(a, st) {
+  const checked = (st.attrs || []).includes(a.key);
+  let field = "";
+  if (a.field === "date") field = `<input type="date" class="lg-attr-field" data-attr-field="${iEsc(a.key)}" value="${iEsc(st.fields[a.key] || "")}" aria-label="${iEsc(a.key)} 날짜">`;
+  else if (a.field === "text") field = `<input type="text" maxlength="20" class="lg-attr-field" data-attr-field="${iEsc(a.key)}" placeholder="${iEsc(a.ph)}" value="${iEsc(st.fields[a.key] || "")}">`;
+  return `<label class="lg-attr2"><input type="checkbox" name="intakeAttr" value="${iEsc(a.key)}" ${checked ? "checked" : ""}><span class="nm">${iEsc(a.key)}</span></label><div class="lg-attr-fw">${field}</div>`;
+}
+// 담당자 자유 입력 1행 (체크박스 + 입력필드)
+function intakeCustomRowHtml(row, i) {
+  return `<label class="lg-attr2"><input type="checkbox" data-custom-check="${i}" ${row.checked ? "checked" : ""}><span class="nm muted">추가${i + 1}</span></label><div class="lg-attr-fw"><input type="text" maxlength="20" class="lg-attr-field" data-custom-text="${i}" placeholder="담당자 입력 (최대 20자)" value="${iEsc(row.text)}"></div>`;
+}
 function intakeWorkbenchHtml(d) {
   const prop = getIntakeProperty(d.id, d);
-  const attrSet = new Set(prop.attrs || []);
   const logs = getIntakeLogs(d.id);
-  const logTable = logs.length
-    ? `<table><thead><tr><th style="width:32px">순번</th><th style="width:78px">일시</th><th style="width:66px">구분</th><th>내용</th></tr></thead><tbody>${logs.map((r, i) => `<tr><td>${logs.length - i}</td><td>${iEsc(r.at)}</td><td>${iEsc(r.type)}</td><td class="txt">${iEsc(r.text)}</td></tr>`).join("")}</tbody></table>`
-    : `<div class="empty">데이터가 없습니다.</div>`;
   const histBtns = ["메세지발송", "간편렌트"];
+  const filterOpts = ["전체", ...INTAKE_MEMO_TYPES];
   return `<div class="lg-panels">
     <div class="lg-panel">
       <div class="lg-panel-h"><span class="h">진행 이력</span><span class="lg-radio"><label><input type="radio" name="lgHistScope" disabled> MY</label><label><input type="radio" name="lgHistScope" checked disabled> 전체</label></span></div>
       <div class="lg-mini-btns">${histBtns.map(b => `<button class="lg-mini gray" type="button">${b}</button>`).join("")}</div>
-      <div class="lg-radio" style="margin-bottom:6px"><label><input type="radio" name="lgHistFilter" checked disabled> 전체</label><label><input type="radio" name="lgHistFilter" disabled> 피보/운전</label><label><input type="radio" name="lgHistFilter" disabled> 피해/소유</label></div>
-      <div class="lg-log">${logTable}</div>
+      <div class="lg-radio lg-hist-filter" style="margin-bottom:6px">${filterOpts.map(t => `<label><input type="radio" name="lgHistFilter" value="${iEsc(t)}" ${intakeLogFilter === t ? "checked" : ""}> ${iEsc(t)}</label>`).join("")}</div>
+      <div class="lg-log" id="intakeLogBox">${intakeLogTableHtml(logs)}</div>
     </div>
     <div class="lg-panel">
       <div class="lg-panel-h"><span class="h">진행 메모</span></div>
@@ -503,7 +534,11 @@ function intakeWorkbenchHtml(d) {
     </div>
     <div class="lg-panel">
       <div class="lg-panel-h"><span class="h">미결 속성</span><button class="lg-mini" type="button" id="intakeAttrSave">저장</button></div>
-      <div class="lg-attrs">${INTAKE_ATTRS.map(a => `<label class="lg-attr"><input type="checkbox" name="intakeAttr" value="${iEsc(a)}" ${attrSet.has(a) ? "checked" : ""}>${iEsc(a)}</label>`).join("")}</div>
+      <div class="lg-attrs2">
+        ${INTAKE_ATTRS.map(a => intakeAttrRowHtml(a, prop)).join("")}
+        <div class="lg-attr-div"></div>
+        ${prop.custom.map((row, i) => intakeCustomRowHtml(row, i)).join("")}
+      </div>
       <textarea class="lg-ta" id="intakeAttrNote" placeholder="미결 속성 메모 (Smart업무관리에 반영)">${iEsc(prop.note)}</textarea>
     </div>
   </div>`;
@@ -755,8 +790,17 @@ function bindIntakeWorkbench(d) {
   const attrSave = $("#intakeAttrSave");
   if (attrSave) attrSave.addEventListener("click", () => {
     const attrs = Array.from(document.querySelectorAll('input[name="intakeAttr"]:checked')).map(x => x.value);
+    const fields = {};
+    document.querySelectorAll("[data-attr-field]").forEach(el => {
+      const v = el.value.trim();
+      if (v) fields[el.dataset.attrField] = v;
+    });
+    const custom = [0, 1].map(i => ({
+      checked: !!document.querySelector(`[data-custom-check="${i}"]`)?.checked,
+      text: (document.querySelector(`[data-custom-text="${i}"]`)?.value || "").trim(),
+    }));
     const note = $("#intakeAttrNote").value.trim();
-    intakePropertyState[d.id] = { attrs, note };
+    intakePropertyState[d.id] = { attrs, fields, custom, note };
     const detail = INTAKE_DETAIL[d.id] || (INTAKE_DETAIL[d.id] = {});
     detail.unresolved = attrs;
     const claim = CLAIMS.find(x => x.id === d.id);
@@ -771,6 +815,14 @@ function bindIntakeWorkbench(d) {
     if (typeof renderAll === "function") renderAll();
     renderIntake();
   });
+
+  // 진행 이력 채널(구분) 필터 — 선택 즉시 목록만 갱신 (메모 입력값 보존)
+  document.querySelectorAll('input[name="lgHistFilter"]').forEach(r => r.addEventListener("change", () => {
+    if (!r.checked) return;
+    intakeLogFilter = r.value;
+    const box = $("#intakeLogBox");
+    if (box) box.innerHTML = intakeLogTableHtml(getIntakeLogs(d.id));
+  }));
 }
 
 // 담당자 입력 파손부위 클릭 토글 (차량 부위 손상 · 우측 도식)

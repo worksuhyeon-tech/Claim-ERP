@@ -30,6 +30,20 @@
   #viewIntake .lg-dmg-item.staff-part.on { color: #B45309; }
   #viewIntake .lg-dmg-item.staff-part.on .b { background: #B45309; border-color: #B45309; }
 
+  /* 진행 이력 채널(구분) 필터 라디오 */
+  #viewIntake .lg-hist-filter { font-size: 11.5px; gap: 8px; }
+
+  /* 미결 속성 — 항목(체크박스) + 입력필드 2열 */
+  #viewIntake .lg-attrs2 { display: grid; grid-template-columns: auto 1fr; gap: 6px 8px; align-items: center; margin-bottom: 8px; }
+  #viewIntake .lg-attr2 { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--lg-line2, #C9D3E4); border-radius: 4px; padding: 5px 9px; font-size: 11.5px; font-weight: 700; color: #3C4050; background: #fff; white-space: nowrap; cursor: pointer; }
+  #viewIntake .lg-attr2 input[type="checkbox"] { accent-color: var(--lg-blue, #2F5FBF); margin: 0; }
+  #viewIntake .lg-attr2:has(input:checked) { color: var(--lg-blue, #2F5FBF); border-color: #9FB6DE; background: #EEF3FB; }
+  #viewIntake .lg-attr2 .nm.muted { color: #8A90A0; font-weight: 600; }
+  #viewIntake .lg-attr-fw { min-width: 0; }
+  #viewIntake .lg-attr-field { width: 100%; box-sizing: border-box; border: 1px solid var(--lg-line2, #C9D3E4); border-radius: 4px; padding: 5px 8px; font-size: 11.5px; color: #242832; background: #fff; }
+  #viewIntake .lg-attr-field:focus { outline: none; border-color: var(--lg-blue, #2F5FBF); box-shadow: 0 0 0 2px rgba(47,95,191,.15); }
+  #viewIntake .lg-attr-div { grid-column: 1 / -1; border-top: 1px dashed var(--lg-line, #D9E0EC); margin: 2px 0; }
+
   @media (max-width: 900px) {
     #viewIntake .lg-dmg-pair { grid-template-columns: 1fr; }
   }
