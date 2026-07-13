@@ -1319,6 +1319,8 @@
   }
   .image-thumb .it-canvas.doc { color: #B45309; background: #FFFBF2; }
   .image-thumb .it-canvas svg { width: 40px; height: 40px; }
+  .image-thumb .it-canvas.has-img { padding: 0; background: #111418; }
+  .image-thumb .it-img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .image-thumb .it-meta { padding: 8px 10px 10px; border-top: 1px solid var(--line); }
   .image-thumb .it-name { font-size: 12px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .image-thumb .it-info { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
@@ -1607,6 +1609,12 @@
     font-size: 12.5px; padding: 7px 16px; border-radius: 4px; cursor: pointer; }
   .lg-abtn.primary { border-color: #2F5BB7; background: #2F5BB7; color: #fff; }
   .lg-abtn:disabled { color: #AAB; border-color: #DDE; background: #F4F4F8; cursor: default; }
+  .lg-close-type { display: inline-flex; border: 1px solid var(--lg-line); border-radius: 6px; overflow: hidden; margin-right: 4px; }
+  .lg-close-type .lg-ctype { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; font-size: 12px; font-weight: 700;
+    color: #5B6070; background: #fff; cursor: pointer; border-left: 1px solid var(--lg-line); }
+  .lg-close-type .lg-ctype:first-child { border-left: none; }
+  .lg-close-type .lg-ctype input { accent-color: #2F5BB7; margin: 0; }
+  .lg-close-type .lg-ctype.on { color: #1F3E7A; background: #E8EFFA; }
 
   /* 청구 견적 정보 탭 */
   .lg-est-empty { padding: 40px; text-align: center; color: #8A90A0; }
@@ -1615,7 +1623,6 @@
   .lg-est-head .be-title .dot { width: 8px; height: 8px; background: #E0402A; }
   .lg-est-head .be-cur { font-size: 11.5px; font-weight: 700; color: var(--lg-blue);
     background: #EEF3FB; border: 1px solid #C6D6EF; border-radius: 10px; padding: 2px 9px; }
-  .lg-est-head .be-btns { display: flex; gap: 5px; }
 
   /* 4단계 스텝퍼 */
   .lg-est-flow { display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
@@ -1664,6 +1671,49 @@
   .lg-est-tbl tfoot th, .lg-est-tbl tfoot td { background: #EEF1F7; font-weight: 800; color: #22252E; }
   .lg-est-tbl tfoot th { text-align: right; }
   .lg-est-tbl tfoot td.amt { color: #1F3E7A; }
+
+  /* 견적 탭 가로 사진 뷰어 */
+  .lg-est-photos { border: 1px solid var(--lg-line); border-radius: 6px; background: #F7F8FC; padding: 8px 10px 10px; margin-bottom: 10px; }
+  .es-strip-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .es-strip-head .esh-title { font-weight: 800; font-size: 12.5px; color: #2B2F3C; }
+  .es-strip-head .esh-hint { font-size: 11px; color: #7A8090; }
+  .es-strip-head .esh-count { margin-left: auto; font-size: 11px; font-weight: 800; color: #2F5BB7; background: #E8EFFA; border-radius: 99px; padding: 1px 9px; }
+  .es-strip { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+  .es-photo { flex: 0 0 auto; width: 158px; height: 104px; position: relative; padding: 0; border: 1px solid var(--lg-line2);
+    border-radius: 6px; overflow: hidden; background: #111418; cursor: zoom-in; transition: border-color .12s ease, box-shadow .12s ease; }
+  .es-photo:hover { border-color: #2F5BB7; box-shadow: 0 0 0 2px rgba(47,91,183,.18); }
+  .es-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .es-photo-tag { position: absolute; top: 5px; left: 5px; font-size: 10px; font-weight: 800; color: #fff;
+    background: rgba(17,20,24,.72); border-radius: 4px; padding: 1px 6px; }
+  .es-photo-name { position: absolute; left: 0; right: 0; bottom: 0; font-size: 10.5px; color: #fff; font-weight: 600;
+    background: linear-gradient(transparent, rgba(0,0,0,.72)); padding: 12px 6px 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .es-strip-empty { padding: 26px; text-align: center; color: #9AA0AE; font-size: 12px; width: 100%; }
+
+  /* 이미지 확대 뷰어 모달 */
+  #imgZoomRoot { z-index: 96; }
+  .iz-modal { position: absolute; inset: 0; display: flex; flex-direction: column; }
+  #imgZoomRoot .modal-backdrop { background: rgba(8, 11, 16, .9); }
+  .iz-stage { flex: 1; position: relative; overflow: hidden; cursor: zoom-in; touch-action: none; }
+  .iz-stage.zoomed { cursor: grab; }
+  .iz-stage.zoomed:active { cursor: grabbing; }
+  .iz-img { position: absolute; top: 0; left: 0; transform-origin: 0 0; will-change: transform; user-select: none; -webkit-user-drag: none; }
+  .iz-close { position: absolute; top: 14px; right: 18px; z-index: 3; width: 40px; height: 40px; border-radius: 50%;
+    border: none; background: rgba(255,255,255,.12); color: #fff; font-size: 24px; line-height: 1; cursor: pointer; }
+  .iz-close:hover { background: rgba(255,255,255,.24); }
+  .iz-nav { position: absolute; top: 50%; transform: translateY(-50%); z-index: 3; width: 48px; height: 72px; border: none;
+    background: rgba(255,255,255,.1); color: #fff; font-size: 34px; line-height: 1; cursor: pointer; }
+  .iz-nav:hover { background: rgba(255,255,255,.22); }
+  .iz-nav.prev { left: 0; border-radius: 0 8px 8px 0; }
+  .iz-nav.next { right: 0; border-radius: 8px 0 0 8px; }
+  .iz-toolbar { flex: none; display: flex; align-items: center; gap: 10px; padding: 10px 18px;
+    background: rgba(17,20,24,.92); color: #E7EAF0; }
+  .iz-toolbar .iz-name { font-weight: 700; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 42vw; }
+  .iz-toolbar .iz-count { font-size: 12px; color: #A7AEBC; }
+  .iz-toolbar .iz-sp { flex: 1; }
+  .iz-tbtn { border: 1px solid rgba(255,255,255,.22); background: rgba(255,255,255,.08); color: #fff;
+    min-width: 34px; height: 30px; padding: 0 10px; border-radius: 6px; font-size: 15px; font-weight: 800; cursor: pointer; }
+  .iz-tbtn:hover { background: rgba(255,255,255,.2); }
+  .iz-pct { font-size: 12px; font-weight: 700; min-width: 46px; text-align: center; font-variant-numeric: tabular-nums; }
 
   @media (max-width: 980px) {
     .lg-cols { grid-template-columns: 1fr; }

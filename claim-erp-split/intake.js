@@ -4,6 +4,7 @@ const activeView = "intake";
 let intakeClaimId = null;   // Smart접수지에 바인딩된 사고건
 let intakeTab = "contract"; // "contract"(계약·사고정보) | "damage"(피해 진행정보) | "estimate"(청구 견적 정보)
 let estimateDocType = "claim"; // 청구 견적 문서 전환: "pre"(선견적) | "claim"(청구서)
+const intakeCloseType = {};    // 사고번호별 종결 구분: "면책" | "지급" (기본 지급)
 
 // 진행 메모 '구분' = 진행 이력 채널 분류 (라디오 필터와 동일 값)
 const INTAKE_MEMO_TYPES = ["피보/운전", "정비공장", "타사담당자", "담당자", "콜센터"];
@@ -891,6 +892,33 @@ function bindIntakeApprForm(d) {
   });
   cancelBtn.addEventListener("click", () => { if (cancelBtn.dataset.apprId) cancelIntakeApproval(cancelBtn.dataset.apprId); });
 }
+// 견적 탭 가로 사진 뷰어에 표시할 실제 차량 사진 목록 (수리전 → 수리완료 → 사고 → 기타 순)
+function estimateStripImages(d) {
+  const f = claimImages(d.id);
+  const order = ["수리전사진", "수리완료사진", "사고사진", "고객사진", "기타"];
+  const list = [];
+  order.forEach(folder => (f[folder] || []).forEach(im => { if (im.url) list.push(Object.assign({ folder }, im)); }));
+  return list;
+}
+function intakeEstimatePhotoStrip(d) {
+  const imgs = estimateStripImages(d);
+  const inner = imgs.length
+    ? imgs.map((im, i) => `
+        <button type="button" class="es-photo" data-estphoto="${i}" title="${iEsc(im.name)}">
+          <img src="${iEsc(im.url)}" alt="${iEsc(im.name)}" loading="lazy" draggable="false">
+          <span class="es-photo-tag">${iEsc(im.folder)}</span>
+          <span class="es-photo-name">${iEsc(im.name)}</span>
+        </button>`).join("")
+    : `<div class="es-strip-empty">등록된 차량 사진이 없습니다.</div>`;
+  return `<div class="lg-est-photos">
+    <div class="es-strip-head">
+      <span class="esh-title">차량 사진</span>
+      <span class="esh-hint">사진 클릭 → 확대 보기 · 클릭 확대 / 우클릭 축소 / Ctrl+휠 확대·축소</span>
+      <span class="esh-count">${imgs.length}장</span>
+    </div>
+    <div class="es-strip" id="estPhotoStrip">${inner}</div>
+  </div>`;
+}
 function intakeEstimateTab(d) {
   const doc = d.estimateDoc;
   if (!doc) {
@@ -965,8 +993,8 @@ function intakeEstimateTab(d) {
   return `<div class="lg-est">
     <div class="lg-est-head">
       <div class="be-title"><span class="dot"></span>견적 정보 <span class="be-cur">현재 보기: ${docLabel}</span></div>
-      <div class="be-btns"><button class="lg-mini gray" type="button">이미지</button><button class="lg-mini" type="button">통합손해사정</button></div>
     </div>
+    ${intakeEstimatePhotoStrip(d)}
     ${flow}
     ${toggle}
     ${band}
@@ -984,7 +1012,160 @@ function bindIntakeEstimate(d) {
       bindIntakeApprForm(d); // 결재 폼 재바인딩
     }
   }));
+  // 가로 사진 뷰어 — 썸네일 클릭 시 확대 뷰어 오픈
+  const strip = $("#estPhotoStrip");
+  if (strip) {
+    const imgs = estimateStripImages(d);
+    strip.querySelectorAll("[data-estphoto]").forEach(btn => btn.addEventListener("click", () => {
+      openImageZoom(imgs, parseInt(btn.dataset.estphoto, 10) || 0);
+    }));
+  }
   bindIntakeApprForm(d);   // 결재 폼 최초 바인딩
+}
+
+/* ===================== 이미지 확대 뷰어 =====================
+   - 사진 클릭 → 확대(마우스 위치 기준), 우클릭 → 축소
+   - Ctrl+휠 아래 → 확대, 위 → 축소
+   - 확대 상태에서 드래그 → 이동(팬), 이전/다음 · ESC 지원 */
+function openImageZoom(images, startIndex) {
+  if (!images || !images.length) return;
+  const root = $("#imgZoomRoot");
+  if (!root) return;
+  const ZOOM_STEP = 1.4, ZOOM_MAX = 8;
+  let idx = Math.min(Math.max(startIndex | 0, 0), images.length - 1);
+  let scale = 1, minScale = 1, tx = 0, ty = 0;      // 현재 이미지 변환 상태
+  let natW = 0, natH = 0;                            // 이미지 원본 크기
+
+  root.innerHTML = `
+    <div class="modal-backdrop" data-zoom-close></div>
+    <section class="iz-modal" role="dialog" aria-modal="true" aria-label="차량 사진 확대 보기">
+      <button type="button" class="iz-close" aria-label="닫기" data-zoom-close>×</button>
+      <button type="button" class="iz-nav prev" aria-label="이전 사진" data-zoom-prev>‹</button>
+      <div class="iz-stage" id="izStage"><img class="iz-img" id="izImg" alt="" draggable="false"></div>
+      <button type="button" class="iz-nav next" aria-label="다음 사진" data-zoom-next>›</button>
+      <div class="iz-toolbar">
+        <span class="iz-name" id="izName"></span>
+        <span class="iz-count" id="izCount"></span>
+        <span class="iz-sp"></span>
+        <button type="button" class="iz-tbtn" data-zoom-out aria-label="축소">−</button>
+        <span class="iz-pct" id="izPct">100%</span>
+        <button type="button" class="iz-tbtn" data-zoom-in aria-label="확대">+</button>
+        <button type="button" class="iz-tbtn" data-zoom-reset>맞춤</button>
+      </div>
+    </section>`;
+  root.classList.add("open");
+  root.setAttribute("aria-hidden", "false");
+
+  const stage = $("#izStage");
+  const imgEl = $("#izImg");
+
+  const apply = () => {
+    imgEl.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+    const pct = $("#izPct");
+    if (pct) pct.textContent = Math.round((scale / minScale) * 100) + "%";
+    stage.classList.toggle("zoomed", scale > minScale * 1.01);
+  };
+  const clampPan = () => {
+    const sw = stage.clientWidth, sh = stage.clientHeight;
+    const iw = natW * scale, ih = natH * scale;
+    tx = iw <= sw ? (sw - iw) / 2 : Math.min(0, Math.max(sw - iw, tx));
+    ty = ih <= sh ? (sh - ih) / 2 : Math.min(0, Math.max(sh - ih, ty));
+  };
+  const fit = () => {
+    const sw = stage.clientWidth, sh = stage.clientHeight;
+    if (!natW || !natH || !sw || !sh) return;
+    minScale = Math.min(sw / natW, sh / natH);
+    scale = minScale;
+    clampPan();
+    apply();
+    imgEl.style.opacity = "1";
+  };
+  const zoomAt = (factor, cx, cy) => {
+    const next = Math.min(Math.max(scale * factor, minScale), minScale * ZOOM_MAX);
+    if (next === scale) return;
+    const ratio = next / scale;
+    tx = cx - (cx - tx) * ratio;
+    ty = cy - (cy - ty) * ratio;
+    scale = next;
+    clampPan();
+    apply();
+  };
+  const stageCenter = () => [stage.clientWidth / 2, stage.clientHeight / 2];
+  const relPos = e => {
+    const r = stage.getBoundingClientRect();
+    return [e.clientX - r.left, e.clientY - r.top];
+  };
+
+  const load = () => {
+    const im = images[idx];
+    $("#izName").textContent = im.name + (im.folder ? ` · ${im.folder}` : "");
+    $("#izCount").textContent = `${idx + 1} / ${images.length}`;
+    natW = 0; natH = 0;
+    imgEl.style.opacity = "0";
+    imgEl.onload = () => { natW = imgEl.naturalWidth; natH = imgEl.naturalHeight; fit(); };
+    imgEl.src = im.url;
+    root.querySelector(".iz-nav.prev").style.visibility = images.length > 1 ? "" : "hidden";
+    root.querySelector(".iz-nav.next").style.visibility = images.length > 1 ? "" : "hidden";
+  };
+  const go = step => { idx = (idx + step + images.length) % images.length; load(); };
+
+  // 드래그(팬) vs 클릭(확대) 구분
+  let down = null, moved = false;
+  stage.addEventListener("pointerdown", e => {
+    if (e.button !== 0) return;
+    down = { x: e.clientX, y: e.clientY, tx, ty };
+    moved = false;
+    stage.setPointerCapture(e.pointerId);
+  });
+  stage.addEventListener("pointermove", e => {
+    if (!down) return;
+    const dx = e.clientX - down.x, dy = e.clientY - down.y;
+    if (!moved && Math.hypot(dx, dy) > 4) moved = true;
+    if (moved && scale > minScale * 1.01) { tx = down.tx + dx; ty = down.ty + dy; clampPan(); apply(); }
+  });
+  stage.addEventListener("pointerup", e => {
+    if (!down) return;
+    const wasClick = !moved;
+    down = null;
+    if (wasClick) { const [cx, cy] = relPos(e); zoomAt(ZOOM_STEP, cx, cy); }   // 클릭 → 확대
+  });
+  stage.addEventListener("contextmenu", e => {                                  // 우클릭 → 축소
+    e.preventDefault();
+    const [cx, cy] = relPos(e);
+    zoomAt(1 / ZOOM_STEP, cx, cy);
+  });
+  stage.addEventListener("wheel", e => {                                        // Ctrl+휠 → 확대/축소
+    if (!e.ctrlKey) return;
+    e.preventDefault();
+    const [cx, cy] = relPos(e);
+    zoomAt(e.deltaY > 0 ? ZOOM_STEP : 1 / ZOOM_STEP, cx, cy);                   // 아래=확대, 위=축소
+  }, { passive: false });
+
+  const close = () => {
+    document.removeEventListener("keydown", onKey);
+    window.removeEventListener("resize", onResize);
+    root.classList.remove("open");
+    root.setAttribute("aria-hidden", "true");
+    root.innerHTML = "";
+  };
+  const onKey = e => {
+    if (e.key === "Escape") close();
+    else if (e.key === "ArrowLeft") go(-1);
+    else if (e.key === "ArrowRight") go(1);
+    else if (e.key === "+" || e.key === "=") { const [cx, cy] = stageCenter(); zoomAt(ZOOM_STEP, cx, cy); }
+    else if (e.key === "-") { const [cx, cy] = stageCenter(); zoomAt(1 / ZOOM_STEP, cx, cy); }
+  };
+  const onResize = () => fit();
+  document.addEventListener("keydown", onKey);
+  window.addEventListener("resize", onResize);
+  root.querySelectorAll("[data-zoom-close]").forEach(el => el.addEventListener("click", close));
+  root.querySelector("[data-zoom-prev]").addEventListener("click", () => go(-1));
+  root.querySelector("[data-zoom-next]").addEventListener("click", () => go(1));
+  root.querySelector("[data-zoom-in]").addEventListener("click", () => { const [cx, cy] = stageCenter(); zoomAt(ZOOM_STEP, cx, cy); });
+  root.querySelector("[data-zoom-out]").addEventListener("click", () => { const [cx, cy] = stageCenter(); zoomAt(1 / ZOOM_STEP, cx, cy); });
+  root.querySelector("[data-zoom-reset]").addEventListener("click", fit);
+
+  load();
 }
 
 function bindIntakeWorkbench(d) {
@@ -1171,6 +1352,7 @@ function renderIntake() {
   const root = $("#intakeRoot");
   if (!d) { root.innerHTML = `<div style="padding:40px;text-align:center;color:#8a90a0">표시할 사고건이 없습니다.</div>`; return; }
   const done = d.procStatus === "완료";
+  const closeType = intakeCloseType[id] || "지급"; // 종결 구분 기본값: 지급
   const unresolvedText = (d.unresolved && d.unresolved.length) ? d.unresolved.join(", ") : "없음";
   const queryType = INTAKE_QUERY_TYPES.includes(intakeQueryType) ? intakeQueryType : INTAKE_QUERY_TYPES[0];
   root.innerHTML = `
@@ -1198,8 +1380,10 @@ function renderIntake() {
           <div class="lg-actionbar">
             <span class="lg-std">미결 태그: ${iEsc(unresolvedText)}</span>
             <span class="sp"></span>
-            <button class="lg-abtn" type="button" id="intakeHold" ${done ? "disabled" : ""}>보류</button>
-            <button class="lg-abtn primary" type="button" id="intakeComplete" ${done ? "disabled" : ""}>${done ? "처리완료됨" : "처리완료"}</button>
+            <div class="lg-close-type" role="radiogroup" aria-label="종결 구분">
+              ${["면책", "지급"].map(t => `<label class="lg-ctype ${closeType === t ? "on" : ""}"><input type="radio" name="intakeCloseType" value="${t}" ${closeType === t ? "checked" : ""} ${done ? "disabled" : ""}>${t}</label>`).join("")}
+            </div>
+            <button class="lg-abtn primary" type="button" id="intakeComplete" ${done ? "disabled" : ""}>${done ? "종결됨" : "종결"}</button>
           </div>
         </div>
       </div>
@@ -1228,17 +1412,18 @@ function renderIntake() {
     renderIntake();
   });
   bindIntakeSearchInputs();
+  // 종결 구분 라디오(면책/지급) — 선택 즉시 상태 저장 + 강조 갱신
+  root.querySelectorAll('input[name="intakeCloseType"]').forEach(r => r.addEventListener("change", () => {
+    if (!r.checked) return;
+    intakeCloseType[d.id] = r.value;
+    root.querySelectorAll(".lg-ctype").forEach(l => l.classList.toggle("on", l.querySelector("input").value === r.value));
+  }));
   const cb = $("#intakeComplete");
   if (cb) cb.addEventListener("click", () => {
     if (d.procStatus === "완료") return;
+    const closeType = intakeCloseType[d.id] || "지급";
     setProcStatus(d.id, "완료");
-    showToast(`${d.id} 건이 처리완료되었습니다.`);
-  });
-  const hb = $("#intakeHold");
-  if (hb) hb.addEventListener("click", () => {
-    if (d.procStatus === "완료") return;
-    setProcStatus(d.id, "보류");
-    showToast(`${d.id} 건이 보류 처리되었습니다.`);
+    showToast(`${d.id} 건이 ${closeType} 종결되었습니다.`);
   });
 }
 

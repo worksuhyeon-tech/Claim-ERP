@@ -270,39 +270,96 @@ function resetPanel(ns) { panelState[ns].folder = IMAGE_FOLDERS[0]; panelState[n
 const IMAGE_FOLDERS = ["사고사진", "고객사진", "수리전사진", "수리완료사진", "청구관련서류", "종결", "기타"];
 const FOLDER_KIND = { "청구관련서류": "doc", "종결": "doc" }; // 그 외는 photo
 
-function mkImg(id, name, date, src) { return { id, name, date, src }; }
+// url이 있으면 실제 이미지, 없으면 아이콘 썸네일로 표시된다.
+function mkImg(id, name, date, src, url) { return { id, name, date, src, url }; }
 const CLAIM_IMAGES = {
   "CLM-2026-0001": {
     "사고사진": [mkImg("i0101","사고현장_전경.jpg","06.13 14:40","cust"), mkImg("i0102","파손_우측후면_근접.jpg","06.13 14:41","cust"), mkImg("i0103","상대차량_번호판.jpg","06.13 14:42","cust")],
     "고객사진": [mkImg("i0111","운전면허증_앞면.jpg","06.13 16:05","cust"), mkImg("i0112","차량등록증.jpg","06.13 16:06","cust")],
-    "수리전사진": [], "수리완료사진": [],
+    "수리전사진": [
+      mkImg("i0121","전면_전체.jpg","06.14 10:20","shop","assets/accident_car/repair_01.jpg"),
+      mkImg("i0122","라디에이터그릴_파손.jpg","06.14 10:21","shop","assets/accident_car/repair_02.jpg"),
+      mkImg("i0123","앞범퍼_스크래치.jpg","06.14 10:22","shop","assets/accident_car/repair_03.jpg"),
+      mkImg("i0124","헤드램프_우측.jpg","06.14 10:23","shop","assets/accident_car/repair_04.jpg"),
+      mkImg("i0125","번호판_하단.jpg","06.14 10:24","shop","assets/accident_car/repair_05.jpg"),
+      mkImg("i0126","좌측_펜더.jpg","06.14 10:25","shop","assets/accident_car/repair_06.jpg")
+    ],
+    "수리완료사진": [
+      mkImg("i0131","도장완료_전면.jpg","06.18 15:40","shop","assets/accident_car/repair_07.jpg"),
+      mkImg("i0132","조립완료_범퍼.jpg","06.18 15:41","shop","assets/accident_car/repair_08.jpg")
+    ],
     "청구관련서류": [], "종결": [],
     "기타": [mkImg("i0191","블랙박스_캡처.png","06.13 17:20","staff")]
   },
   "CLM-2026-0004": {
     "사고사진": [mkImg("i0401","사고현장.jpg","06.12 09:10","cust"), mkImg("i0402","파손부위_범퍼.jpg","06.12 09:11","cust")],
     "고객사진": [mkImg("i0411","운전면허증.jpg","06.12 10:30","cust")],
-    "수리전사진": [mkImg("i0421","입고_전체.jpg","06.13 11:00","shop"), mkImg("i0422","범퍼_탈거전.jpg","06.13 11:02","shop"), mkImg("i0423","좌측도어_손상.jpg","06.13 11:03","shop")],
-    "수리완료사진": [],
+    "수리전사진": [
+      mkImg("i0421","입고_전면.jpg","06.13 11:00","shop","assets/accident_car/repair_09.jpg"),
+      mkImg("i0422","범퍼_탈거전.jpg","06.13 11:02","shop","assets/accident_car/repair_10.jpg"),
+      mkImg("i0423","그릴_손상_근접.jpg","06.13 11:03","shop","assets/accident_car/repair_11.jpg"),
+      mkImg("i0424","헤드램프_주변.jpg","06.13 11:04","shop","assets/accident_car/repair_12.jpg"),
+      mkImg("i0425","범퍼_하단_스크래치.jpg","06.13 11:05","shop","assets/accident_car/repair_13.jpg"),
+      mkImg("i0426","번호판_탈거전.jpg","06.13 11:06","shop","assets/accident_car/repair_14.jpg")
+    ],
+    "수리완료사진": [
+      mkImg("i0427","도장완료_전면.jpg","06.19 16:20","shop","assets/accident_car/repair_15.jpg"),
+      mkImg("i0428","조립완료_그릴.jpg","06.19 16:21","shop","assets/accident_car/repair_16.jpg")
+    ],
     "청구관련서류": [mkImg("i0431","선견적서.pdf","06.13 15:40","shop")],
     "종결": [], "기타": []
   },
   "CLM-2026-0007": {
     "사고사진": [mkImg("i0701","사고현장_야간.jpg","06.10 21:30","cust"), mkImg("i0702","파손_본넷.jpg","06.10 21:31","cust")],
     "고객사진": [mkImg("i0711","운전면허증.jpg","06.11 09:00","cust")],
-    "수리전사진": [mkImg("i0721","입고사진.jpg","06.11 14:00","shop"), mkImg("i0722","본넷_탈거전.jpg","06.11 14:01","shop")],
-    "수리완료사진": [mkImg("i0731","수리완료_본넷.jpg","06.17 16:00","shop"), mkImg("i0732","도장완료.jpg","06.17 16:02","shop")],
+    "수리전사진": [
+      mkImg("i0721","입고_전면.jpg","06.11 14:00","shop","assets/accident_car/repair_17.jpg"),
+      mkImg("i0722","본넷_주변_손상.jpg","06.11 14:01","shop","assets/accident_car/repair_18.jpg")
+    ],
+    "수리완료사진": [
+      mkImg("i0731","수리완료_전면.jpg","06.17 16:00","shop","assets/accident_car/repair_19.jpg"),
+      mkImg("i0732","도장완료.jpg","06.17 16:02","shop","assets/accident_car/repair_20.jpg")
+    ],
     "청구관련서류": [mkImg("i0741","AOS청구서.pdf","06.18 10:00","shop"), mkImg("i0742","수리내역서.pdf","06.18 10:01","shop")],
     "종결": [], "기타": []
   },
   "CLM-2026-0010": {
     "사고사진": [mkImg("i1001","사고현장.jpg","06.05 13:20","cust")],
     "고객사진": [mkImg("i1011","운전면허증.jpg","06.05 14:00","cust")],
-    "수리전사진": [mkImg("i1021","입고사진.jpg","06.06 10:00","shop")],
-    "수리완료사진": [mkImg("i1031","수리완료_측면.jpg","06.12 15:00","shop")],
+    "수리전사진": [mkImg("i1021","입고_전면.jpg","06.06 10:00","shop","assets/accident_car/repair_21.jpg")],
+    "수리완료사진": [mkImg("i1031","수리완료_전면.jpg","06.12 15:00","shop","assets/accident_car/repair_22.jpg")],
     "청구관련서류": [mkImg("i1041","AOS청구서.pdf","06.13 09:00","shop"), mkImg("i1042","면책금영수증.pdf","06.13 17:00","shop")],
     "종결": [mkImg("i1051","종결보고서.pdf","06.13 18:00","staff"), mkImg("i1052","지급내역서.pdf","06.13 18:01","staff")],
     "기타": []
+  },
+  "CLM-2026-0006": {
+    "사고사진": [mkImg("i0601","사고현장.jpg","06.09 08:40","cust"), mkImg("i0602","파손_전면.jpg","06.09 08:41","cust")],
+    "고객사진": [mkImg("i0611","운전면허증.jpg","06.09 10:00","cust")],
+    "수리전사진": [
+      mkImg("i0621","입고_전면.jpg","06.10 09:30","shop","assets/accident_car/repair_01.jpg"),
+      mkImg("i0622","그릴_손상.jpg","06.10 09:31","shop","assets/accident_car/repair_03.jpg"),
+      mkImg("i0623","범퍼_스크래치.jpg","06.10 09:32","shop","assets/accident_car/repair_05.jpg"),
+      mkImg("i0624","헤드램프_주변.jpg","06.10 09:33","shop","assets/accident_car/repair_08.jpg")
+    ],
+    "수리완료사진": [
+      mkImg("i0631","도장완료_전면.jpg","06.16 15:10","shop","assets/accident_car/repair_15.jpg"),
+      mkImg("i0632","조립완료.jpg","06.16 15:11","shop","assets/accident_car/repair_20.jpg")
+    ],
+    "청구관련서류": [], "종결": [], "기타": []
+  },
+  "CLM-2026-0011": {
+    "사고사진": [mkImg("i1101","사고현장.jpg","06.04 17:20","cust")],
+    "고객사진": [mkImg("i1111","운전면허증.jpg","06.04 18:00","cust")],
+    "수리전사진": [
+      mkImg("i1121","입고_전면.jpg","06.05 11:00","shop","assets/accident_car/repair_09.jpg"),
+      mkImg("i1122","범퍼_탈거전.jpg","06.05 11:01","shop","assets/accident_car/repair_11.jpg"),
+      mkImg("i1123","번호판_하단.jpg","06.05 11:02","shop","assets/accident_car/repair_13.jpg")
+    ],
+    "수리완료사진": [
+      mkImg("i1131","도장완료_전면.jpg","06.11 14:30","shop","assets/accident_car/repair_16.jpg"),
+      mkImg("i1132","수리완료_그릴.jpg","06.11 14:31","shop","assets/accident_car/repair_19.jpg")
+    ],
+    "청구관련서류": [], "종결": [], "기타": []
   }
 };
 
@@ -409,10 +466,14 @@ const SRC_CLASS = { cust: "", shop: "shop", staff: "staff" };
 
 function thumbHtml(im, kind, selected, attr) {
   const srcCls = SRC_CLASS[im.src] || "";
+  // 실제 이미지 url이 있으면 사진을 표시하고, 없으면 기존 아이콘 플레이스홀더를 유지한다.
+  const canvasInner = im.url
+    ? `<img class="it-img" src="${escapeHtml(im.url)}" alt="${escapeHtml(im.name)}" loading="lazy" draggable="false">`
+    : (kind === "doc" ? ICON_DOC : ICON_PHOTO);
   return `
     <div class="image-thumb ${selected ? "selected" : ""}" ${attr}="${im.id}">
       <div class="it-check">${ICON_CHECK}</div>
-      <div class="it-canvas ${kind === "doc" ? "doc" : ""}">${kind === "doc" ? ICON_DOC : ICON_PHOTO}</div>
+      <div class="it-canvas ${kind === "doc" ? "doc" : ""} ${im.url ? "has-img" : ""}">${canvasInner}</div>
       <div class="it-meta">
         <div class="it-name">${escapeHtml(im.name)}</div>
         <div class="it-info">
