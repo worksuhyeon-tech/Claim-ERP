@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Smart업무관리 | CLAIM ERP</title>
+<link rel="stylesheet" href="common.css" />
+<style>
+  /* ===== Smart업무관리 — 상단 통합 검색필터 + 리스트 (포털 admin 스타일) ===== */
+  #viewClaims .page-head { margin-bottom: 14px; }
+
+  /* --- 검색 필터 카드 --- */
+  #viewClaims .cl-filter { padding: 14px 16px; margin-bottom: 14px; display: flex; flex-direction: column; gap: 12px; }
+  #viewClaims .clf-row { display: flex; align-items: center; gap: 12px 18px; flex-wrap: wrap; }
+  #viewClaims .clf-field { display: flex; align-items: center; gap: 8px; }
+  #viewClaims .clf-field > label { font-size: 12.5px; font-weight: 700; color: var(--text-sub); white-space: nowrap; }
+  #viewClaims .clf-grow { flex: 1; min-width: 260px; }
+
+  /* 단계 select */
+  #viewClaims .clf-select-wrap { position: relative; display: inline-flex; align-items: center; }
+  #viewClaims .clf-select-wrap .clf-clock { position: absolute; left: 10px; width: 15px; height: 15px; color: var(--text-dim); pointer-events: none; }
+  #viewClaims #stageSelect { appearance: none; -webkit-appearance: none; padding: 8px 30px 8px 30px; border: 1px solid var(--line-strong); border-radius: 8px; background: #fff; font-size: 13px; font-weight: 700; color: var(--text); cursor: pointer; }
+  #viewClaims .clf-select-wrap::after { content: ""; position: absolute; right: 12px; width: 7px; height: 7px; border-right: 2px solid var(--text-dim); border-bottom: 2px solid var(--text-dim); transform: rotate(45deg); margin-top: -3px; pointer-events: none; }
+
+  /* 조치유형 체크박스 */
+  #viewClaims .clf-checks { display: flex; align-items: center; gap: 7px 14px; flex-wrap: wrap; }
+  #viewClaims .clf-check { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--text-sub); cursor: pointer; user-select: none; }
+  #viewClaims .clf-check input { width: 15px; height: 15px; accent-color: var(--blue); cursor: pointer; }
+  #viewClaims .clf-check-all span { font-weight: 700; color: var(--text); }
+
+  /* 계획 버튼 그룹 */
+  #viewClaims .clf-plan { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 8px; overflow: hidden; }
+  #viewClaims .clf-plan button { display: inline-flex; align-items: center; gap: 4px; padding: 7px 13px; border: 0; border-left: 1px solid var(--line); background: #fff; font-size: 12.5px; font-weight: 700; color: var(--text-sub); cursor: pointer; }
+  #viewClaims .clf-plan button:first-child { border-left: 0; }
+  #viewClaims .clf-plan button:hover { background: #F5F8FC; }
+  #viewClaims .clf-plan button.active { background: #232B39; color: #fff; }
+  #viewClaims .clf-plan .star { font-size: 12px; }
+  #viewClaims .clf-plan .star.urgent { color: var(--red); }
+  #viewClaims .clf-plan .star.watch { color: var(--blue); }
+  #viewClaims .clf-plan button.active .star { color: #fff; }
+
+  /* 인풋 */
+  #viewClaims #shopInput, #viewClaims #searchInput { padding: 8px 12px; border: 1px solid var(--line-strong); border-radius: 8px; background: #fff; font-size: 13px; color: var(--text); }
+  #viewClaims #shopInput { width: 190px; }
+  #viewClaims .clf-search { position: relative; flex: 1; display: flex; }
+  #viewClaims .clf-search input { flex: 1; padding-right: 34px; }
+  #viewClaims .clf-search svg { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--text-dim); pointer-events: none; }
+  #viewClaims #shopInput:focus, #viewClaims #searchInput:focus, #viewClaims #stageSelect:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
+
+  /* 액션 버튼 */
+  #viewClaims .clf-actions { display: inline-flex; gap: 8px; margin-left: auto; }
+  #viewClaims .btn-reset { padding: 8px 16px; border: 1px solid var(--line-strong); border-radius: 8px; background: #fff; font-size: 13px; font-weight: 700; color: var(--text-sub); cursor: pointer; }
+  #viewClaims .btn-reset:hover { border-color: var(--text-dim); color: var(--text); }
+  #viewClaims .btn-search { padding: 8px 22px; border: 1px solid #232B39; border-radius: 8px; background: #232B39; font-size: 13px; font-weight: 700; color: #fff; cursor: pointer; }
+  #viewClaims .btn-search:hover { background: #2E3849; }
+
+  /* --- 단계 통계 카드 --- */
+  #viewClaims .cl-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 16px; }
+  #viewClaims .cl-stat { text-align: left; padding: 16px 18px; border: 1.5px solid var(--line); border-radius: var(--radius); background: var(--card); box-shadow: var(--shadow); cursor: pointer; transition: border-color .15s, transform .15s; }
+  #viewClaims .cl-stat:hover { border-color: var(--blue-line); transform: translateY(-2px); }
+  #viewClaims .cl-stat.active { border-color: var(--blue); box-shadow: 0 2px 10px rgba(37,99,235,.16); }
+  #viewClaims .cs-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  #viewClaims .cs-no { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 7px; background: #232B39; color: #fff; font-size: 12px; font-weight: 800; }
+  #viewClaims .cl-stat.active .cs-no { background: var(--blue); }
+  #viewClaims .cs-name { font-size: 13.5px; font-weight: 700; color: var(--text-sub); }
+  #viewClaims .cl-stat.active .cs-name { color: var(--blue-dark); }
+  #viewClaims .cs-count { font-size: 26px; font-weight: 800; color: var(--text); letter-spacing: -.5px; }
+  #viewClaims .cs-count small { font-size: 13px; font-weight: 700; color: var(--text-dim); margin-left: 3px; }
+
+  /* --- 요약 라인 --- */
+  #viewClaims .cl-summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 2px 10px; }
+  #viewClaims .cls-left { font-size: 13px; color: var(--text); }
+  #viewClaims .cls-left b { font-weight: 800; }
+  #viewClaims .cls-dim { color: var(--text-dim); font-weight: 500; }
+  #viewClaims #pageSizeSelect { padding: 6px 10px; border: 1px solid var(--line-strong); border-radius: 8px; background: #fff; font-size: 12.5px; color: var(--text-sub); cursor: pointer; }
+
+  /* --- 리스트 카드 --- */
+  #viewClaims .list-card { min-height: 0; padding: 4px 4px 6px; }
+  #viewClaims .list-card .rows { max-height: none; overflow: visible; }
+  #viewClaims .cl-table thead th { white-space: normal; line-height: 1.25; background: #F5F8FC; }
+  #viewClaims .cl-table .col-check input { width: 15px; height: 15px; accent-color: var(--blue); cursor: pointer; vertical-align: middle; margin: 0; }
+  #viewClaims .cl-table .cseq { color: var(--text-dim); font-variant-numeric: tabular-nums; font-weight: 700; }
+  #viewClaims .cust-badge { display: inline-flex; align-items: center; padding: 1px 9px; border-radius: 999px; font-size: 11.5px; font-weight: 700; }
+  #viewClaims .cust-badge.rent { color: var(--blue-dark); background: var(--blue-soft); }
+  #viewClaims .cust-badge.lease { color: var(--amber); background: var(--amber-soft); }
+  #viewClaims .cl-table .num.est { color: var(--text); }   /* 추산 = 검정 */
+  #viewClaims .cl-table .num.pay { color: var(--red); }     /* 지급 = 빨강 */
+  #viewClaims .cl-table tbody.row.plan-urgent td { background: #FEF2F2; }
+  #viewClaims .cl-table tbody.row.plan-watch  td { background: #EFF5FF; }
+  #viewClaims .cl-table tbody.row.plan-urgent:hover td { background: #FDE8E8; }
+  #viewClaims .cl-table tbody.row.plan-watch:hover  td { background: #E4EEFF; }
+
+  /* 별점(계획) 버튼 */
+  #viewClaims .star-btn { border: 0; background: none; cursor: pointer; font-size: 15px; line-height: 1; padding: 2px; color: var(--line-strong); transition: transform .1s; }
+  #viewClaims .star-btn.urgent { color: var(--red); }
+  #viewClaims .star-btn.watch  { color: var(--blue); }
+  #viewClaims .star-btn:hover { transform: scale(1.18); }
+
+  /* Y/N 배지 */
+  #viewClaims .yn { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 20px; padding: 0 5px; font-size: 11.5px; font-weight: 800; border-radius: 6px; line-height: 1; }
+  #viewClaims .yn-y { color: var(--green); background: var(--green-soft); }
+  #viewClaims .yn-n { color: var(--text-dim); background: #EEF1F6; }
+
+  /* 페이지네이션 */
+  #viewClaims .cl-pager { display: flex; align-items: center; justify-content: center; gap: 4px; padding: 14px 0 6px; }
+  #viewClaims .cl-pager button { min-width: 30px; height: 30px; padding: 0 8px; border: 1px solid var(--line); border-radius: 7px; background: #fff; font-size: 12.5px; font-weight: 700; color: var(--text-sub); cursor: pointer; }
+  #viewClaims .cl-pager button:hover:not(:disabled) { border-color: var(--blue-line); color: var(--blue); }
+  #viewClaims .cl-pager .pg-num.active { background: #232B39; border-color: #232B39; color: #fff; }
+  #viewClaims .cl-pager button:disabled { color: var(--line-strong); cursor: default; }
+
+  @media (max-width: 900px) {
+    #viewClaims .cl-stats { grid-template-columns: repeat(2, 1fr); }
+    #viewClaims .clf-actions { margin-left: 0; }
+  }
+
+  /* --- 기능 설명 툴팁 (버튼 hover 시 노출) --- */
+  #clTooltip {
+    position: fixed; z-index: 9999; max-width: 300px;
+    background: #1B2430; color: #fff;
+    font-size: 11.5px; font-weight: 500; line-height: 1.55;
+    padding: 8px 11px; border-radius: 9px;
+    box-shadow: 0 8px 22px rgba(16, 30, 54, .3);
+    pointer-events: none; opacity: 0; transform: translateY(4px);
+    transition: opacity .12s ease, transform .12s ease;
+    white-space: normal; word-break: keep-all;
+  }
+  #clTooltip.show { opacity: 1; transform: translateY(0); }
+  #clTooltip::after {
+    content: ""; position: absolute; left: var(--tip-arrow, 50%);
+    width: 9px; height: 9px; background: #1B2430;
+    transform: translateX(-50%) rotate(45deg);
+  }
+  #clTooltip.above::after { bottom: -4px; }
+  #clTooltip.below::after { top: -4px; }
+  /* hover 시 설명 대상임을 은근히 안내 */
+  #viewClaims [data-desc] { cursor: pointer; }
+  #viewClaims #shopInput[data-desc], #viewClaims .clf-search[data-desc] { cursor: text; }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <div class="nav-edge" id="navEdge" title="메뉴 열기" aria-hidden="true"><span class="nav-edge-grip">›</span></div>
+
+  <nav class="side-nav" aria-label="주 메뉴">
+    <div class="sn-brand">
+      <div class="brand-mark">C</div>
+      <div class="sn-brand-text">
+        <div class="brand-name">CLAIM <span>ERP</span></div>
+        <div class="sn-brand-sub">Claim 운영센터</div>
+      </div>
+      <button class="nav-pin" id="navPin" type="button" title="메뉴 고정" aria-pressed="false" aria-label="메뉴 고정">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"/><path d="M9 10.76V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v5.76l1.79 2.68A1 1 0 0 1 16.96 17H7.04a1 1 0 0 1-.83-1.56L8 12.76"/></svg>
+      </button>
+    </div>
+    <div class="sn-section">메뉴</div>
+    <div class="nav-row">
+      <button class="nav-item active" data-view="claims" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/><circle cx="4.5" cy="18" r="1.2"/></svg>
+        <span class="ni-label">Smart업무관리</span>
+      </button>
+      <button class="nav-popout" data-open-view="claims" type="button" title="Smart업무관리 새창으로 열기" aria-label="Smart업무관리 새창으로 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
+      </button>
+    </div>
+    <div class="nav-row">
+      <button class="nav-item" data-view="intake" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8a2 2 0 0 1 2 2v13a1 1 0 0 1-1.5.87L14 18.5l-2.5 1.4L9 18.5l-2.5 1.4A1 1 0 0 1 5 19V6a2 2 0 0 1 2-2Z"/><path d="M9 8h6M9 12h6"/></svg>
+        <span class="ni-label">Smart접수지</span>
+      </button>
+      <button class="nav-popout" data-open-view="intake" type="button" title="Smart접수지 새창으로 열기" aria-label="Smart접수지 새창으로 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
+      </button>
+    </div>
+    <div class="nav-row">
+      <button class="nav-item" data-view="images" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m4 17 4.5-4.5 3 3L16 11l4 4.5"/></svg>
+        <span class="ni-label">이미지시스템</span>
+      </button>
+      <button class="nav-popout" data-open-view="images" type="button" title="이미지시스템 새창으로 열기" aria-label="이미지시스템 새창으로 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
+      </button>
+    </div>
+    <div class="nav-row">
+      <button class="nav-item" data-view="closing" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        <span class="ni-label">결재 LIST</span>
+      </button>
+      <button class="nav-popout" data-open-view="closing" type="button" title="결재 LIST 새창으로 열기" aria-label="결재 LIST 새창으로 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
+      </button>
+    </div>
+    <div class="nav-row">
+      <button class="nav-item" data-view="assign" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="1.9" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.9" fill="currentColor" stroke="none"/><circle cx="7" cy="18" r="1.9" fill="currentColor" stroke="none"/></svg>
+        <span class="ni-label">전결·순환배당 관리</span>
+      </button>
+      <button class="nav-popout" data-open-view="assign" type="button" title="전결·순환배당 관리 새창으로 열기" aria-label="전결·순환배당 관리 새창으로 열기">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
+      </button>
+    </div>
+    <div class="sn-section">확장 (Pro)</div>
+    <button class="nav-item disabled" type="button" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h4l2 5 4-12 2 7h6"/></svg>
+      <span class="ni-label">통합 대시보드</span><span class="ni-pro">Pro</span>
+    </button>
+    <button class="nav-item disabled" type="button" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18M7 15h4"/></svg>
+      <span class="ni-label">정산 관리</span><span class="ni-pro">Pro</span>
+    </button>
+  </nav>
+
+  <div class="app-main">
+
+<header class="topbar">
+  <div class="tb-left">
+    <div class="brand-tag" id="viewName">Smart업무관리</div>
+  </div>
+  <div class="topbar-right">
+    <button type="button" class="btn-req" id="btnRequest" data-desc="고객 차량 수리 기간 동안 제공할 대차(렌트)·탑승 서비스를 신청합니다.">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M5 17a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h9l5 4v5a2 2 0 0 1-2 2"/><circle cx="7.5" cy="17.5" r="1.6"/><circle cx="16.5" cy="17.5" r="1.6"/></svg>
+      대차/탑승 신청
+    </button>
+    <span id="todayLabel"></span>
+    <div class="user-chip">
+      <div class="avatar">박</div>
+      <span><b>박지현</b> 매니저 · Claim운영1팀</span>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+
+  <section id="viewClaims" class="view">
+
+  <section class="page-head">
+    <h1>Smart업무관리</h1>
+  </section>
+
+  <!-- 상단 통합 검색 필터 -->
+  <section class="cl-filter card">
+    <div class="clf-row">
+      <div class="clf-field clf-stage">
+        <label for="stageSelect">단계</label>
+        <div class="clf-select-wrap" data-desc="업무 Flow 단계를 선택합니다. 선택한 단계에 속한 사고건만 목록에 표시됩니다.">
+          <svg class="clf-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          <select id="stageSelect" aria-label="단계 선택">
+            <option value="접수·선견적">접수·선견적</option>
+            <option value="수리 승인">수리 승인</option>
+            <option value="손해사정">손해사정</option>
+            <option value="지급 / 정산">지급 / 정산</option>
+          </select>
+        </div>
+      </div>
+      <div class="clf-checks" id="typeChecks"><!-- 조치유형 체크박스 (동적) --></div>
+    </div>
+    <div class="clf-row">
+      <div class="clf-field">
+        <label>계획</label>
+        <div class="clf-plan" id="planFilter">
+          <button type="button" data-plan="전체" class="active" data-desc="계획 표시(긴급·관심)와 상관없이 모든 건을 표시합니다.">전체</button>
+          <button type="button" data-plan="긴급" data-desc="목록에서 ★긴급으로 표시(별점)한 건만 모아 봅니다."><span class="star urgent">★</span>긴급</button>
+          <button type="button" data-plan="관심" data-desc="목록에서 ★관심으로 표시(별점)한 건만 모아 봅니다."><span class="star watch">★</span>관심</button>
+        </div>
+      </div>
+      <div class="clf-field">
+        <label for="shopInput">정비공장명</label>
+        <input type="text" id="shopInput" autocomplete="off" placeholder="협력업체명 like검색" data-desc="정비공장(협력업체)명 일부만 입력해도 해당 공장 건이 실시간으로 필터링됩니다." />
+      </div>
+      <div class="clf-field clf-grow">
+        <label for="searchInput">검색어</label>
+        <div class="clf-search" data-desc="접수번호·차량명·차량번호·담당자명으로 실시간 통합 검색합니다.">
+          <input type="text" id="searchInput" autocomplete="off" placeholder="접수번호, 차량명, 차량번호, 담당자 like검색" />
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>
+        </div>
+      </div>
+      <div class="clf-actions">
+        <button type="button" class="btn-reset" id="btnReset" data-desc="현재 단계를 제외한 조치유형·계획·검색어 등 모든 검색조건을 초기 상태로 되돌립니다.">초기화</button>
+        <button type="button" class="btn-search" id="btnSearch" data-desc="현재 설정한 검색조건으로 목록을 다시 조회하고 첫 페이지로 이동합니다.">조회</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- 단계별 통계 카드 -->
+  <section class="cl-stats" id="statCards"></section>
+
+  <!-- 요약 라인 -->
+  <div class="cl-summary">
+    <div class="cls-left" id="summaryLine"></div>
+    <div class="cls-right">
+      <select id="pageSizeSelect" aria-label="페이지당 표시 건수" data-desc="한 페이지에 표시할 건수(10·20·50)를 변경합니다.">
+        <option value="10">10개씩 보기</option>
+        <option value="20" selected>20개씩 보기</option>
+        <option value="50">50개씩 보기</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- 리스트 -->
+  <section class="list-card card">
+    <div class="rows" id="rows"></div>
+    <div class="cl-pager" id="pager"></div>
+  </section>
+
+  <footer class="page-foot">
+    CLAIM ERP <b>Standard</b> 데모 화면입니다 · <b>Pro / Max</b> 버전에서 자동 알림, 손해사정 자동화, 정산관리, 렌탈 ERP 연동 기능이 제공됩니다.
+  </footer>
+
+  </section><!-- /#viewClaims -->
+
+</main>
+
+  </div><!-- /.app-main -->
+</div><!-- /.app-shell -->
+
+<div class="toast-wrap" id="toastWrap"></div>
+<div class="modal-root" id="actionModalRoot" aria-hidden="true"></div>
+<div class="modal-root" id="imageViewerRoot" aria-hidden="true"></div>
+<div class="modal-root" id="assignSimRoot" aria-hidden="true"></div>
+<div class="modal-root" id="apprPwRoot" aria-hidden="true"></div>
+<div class="modal-root" id="apprDocRoot" aria-hidden="true"></div>
+
+
+<script src="common.js"></script>
+<script src="claims.js"></script>
+</body>
+</html>
