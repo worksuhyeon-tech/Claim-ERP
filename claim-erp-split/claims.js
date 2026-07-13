@@ -639,8 +639,9 @@ function renderFlow() {
   $("#statCards").innerHTML = STAGES.map((stage, i) => {
     const count = stageClaims(stage).length;
     const cls = "cl-stat" + (stage === activeStage ? " active" : "");
+    const desc = `'${stage}' 단계로 전환해 해당 단계의 사고건만 조회합니다. (현재 ${count}건)`;
     return `
-      <button class="${cls}" data-stage="${stage}" type="button">
+      <button class="${cls}" data-stage="${stage}" type="button" data-desc="${desc}">
         <div class="cs-head"><span class="cs-no">${i + 1}</span><span class="cs-name">${stage}</span></div>
         <div class="cs-count">${count}<small>건</small></div>
       </button>`;
@@ -652,12 +653,12 @@ function renderFilterChecks() {
   const types = typesForStage(activeStage);
   const allChecked = allTypes || (types.length > 0 && types.every(t => checkedTypes.has(t)));
   const boxes = types.map(t => `
-    <label class="clf-check">
+    <label class="clf-check" data-desc="조치유형이 '${t}'인 건만 골라 표시합니다. (여러 유형 동시 선택 가능)">
       <input type="checkbox" data-type="${t}" ${(allTypes || checkedTypes.has(t)) ? "checked" : ""} />
       <span>${t}</span>
     </label>`).join("");
   $("#typeChecks").innerHTML = `
-    <label class="clf-check clf-check-all">
+    <label class="clf-check clf-check-all" data-desc="이 단계의 모든 조치유형을 한 번에 선택하거나 해제합니다.">
       <input type="checkbox" id="typeAll" ${allChecked ? "checked" : ""} />
       <span>전체</span>
     </label>${boxes}`;
@@ -696,7 +697,7 @@ const LIST_COLGROUP =
 const LIST_THEAD =
   '<thead>' +
     '<tr>' +
-      '<th class="col-check"><input type="checkbox" id="selectAll" aria-label="전체선택" /></th>' +
+      '<th class="col-check" data-desc="현재 페이지의 모든 건을 한 번에 선택하거나 해제합니다."><input type="checkbox" id="selectAll" aria-label="전체선택" /></th>' +
       '<th>계획</th><th>순번</th>' +
       '<th>접수번호</th><th>정비공장명</th><th>차량명</th><th>차량번호</th>' +
       '<th>정비 상태</th><th>부품 상태</th><th>승인 상태</th>' +
@@ -709,7 +710,9 @@ const LIST_THEAD =
 function planStar(id) {
   const p = planOf(id);
   const cls = p === "긴급" ? "urgent" : p === "관심" ? "watch" : "none";
-  return `<button class="star-btn ${cls}" type="button" data-plan-toggle="${id}" title="${p || "계획 없음"}" aria-label="계획 표시">★</button>`;
+  const now = p ? `현재 '${p}'` : "현재 표시 없음";
+  const desc = `계획(중요도) 표시를 바꿉니다. 클릭할 때마다 없음 → 긴급 → 관심 순으로 순환합니다. (${now})`;
+  return `<button class="star-btn ${cls}" type="button" data-plan-toggle="${id}" data-desc="${desc}" aria-label="계획 표시">★</button>`;
 }
 
 /* 사고건 1건 = tbody.row (1행) */
@@ -722,7 +725,7 @@ function claimRowHtml(c, seq) {
   return `
     <tbody class="row${sel}${planCls}" data-id="${c.id}">
       <tr>
-        <td class="col-check"><input type="checkbox" class="row-check" data-check="${c.id}"${checked} aria-label="선택" /></td>
+        <td class="col-check" data-desc="이 사고건을 선택합니다. (일괄 처리·내보내기 대상으로 지정)"><input type="checkbox" class="row-check" data-check="${c.id}"${checked} aria-label="선택" /></td>
         <td class="col-plan">${planStar(c.id)}</td>
         <td class="cseq">${seq}</td>
         <td class="cid">${c.id}</td>
@@ -752,12 +755,12 @@ function renderPager(pageCount, page) {
   if (pageCount <= 1) { pager.innerHTML = ""; return; }
   let nums = "";
   for (let p = 1; p <= pageCount; p++) {
-    nums += `<button class="pg-num${p === page ? " active" : ""}" type="button" data-page="${p}">${p}</button>`;
+    nums += `<button class="pg-num${p === page ? " active" : ""}" type="button" data-page="${p}" data-desc="${p}페이지로 이동합니다.">${p}</button>`;
   }
   pager.innerHTML =
-    `<button class="pg-arrow" type="button" data-page="${page - 1}" ${page <= 1 ? "disabled" : ""} aria-label="이전 페이지">‹</button>` +
+    `<button class="pg-arrow" type="button" data-page="${page - 1}" ${page <= 1 ? "disabled" : ""} aria-label="이전 페이지" data-desc="이전 페이지로 이동합니다.">‹</button>` +
     nums +
-    `<button class="pg-arrow" type="button" data-page="${page + 1}" ${page >= pageCount ? "disabled" : ""} aria-label="다음 페이지">›</button>`;
+    `<button class="pg-arrow" type="button" data-page="${page + 1}" ${page >= pageCount ? "disabled" : ""} aria-label="다음 페이지" data-desc="다음 페이지로 이동합니다.">›</button>`;
 }
 
 function renderList() {
@@ -1395,6 +1398,56 @@ $("#rows").addEventListener("click", e => {
   openIntake(row.dataset.id);
 });
 
+
+/* ===================== 기능 설명 툴팁 ===================== */
+/* [data-desc] 요소에 마우스를 올리면(또는 포커스하면) 기능 설명을 말풍선으로 노출 */
+(function initDescTooltips() {
+  const tip = document.createElement("div");
+  tip.id = "clTooltip";
+  document.body.appendChild(tip);
+  let current = null;
+
+  function place(el) {
+    const text = el.getAttribute("data-desc");
+    if (!text) return;
+    current = el;
+    tip.textContent = text;
+    tip.classList.remove("above", "below");
+    tip.style.visibility = "hidden";
+    tip.classList.add("show");           // 실제 크기 측정을 위해 표시
+    const r = el.getBoundingClientRect();
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    const vw = document.documentElement.clientWidth;
+    const gap = 10;
+    let left = r.left + r.width / 2 - tw / 2;
+    left = Math.max(8, Math.min(left, vw - tw - 8));
+    let top = r.top - th - gap;
+    if (top < 8) { top = r.bottom + gap; tip.classList.add("below"); }
+    else { tip.classList.add("above"); }
+    const arrow = r.left + r.width / 2 - left;
+    tip.style.setProperty("--tip-arrow", Math.max(12, Math.min(arrow, tw - 12)) + "px");
+    tip.style.left = left + "px";
+    tip.style.top = top + "px";
+    tip.style.visibility = "visible";
+  }
+  function hide() { current = null; tip.classList.remove("show"); }
+
+  document.addEventListener("mouseover", e => {
+    const el = e.target.closest("[data-desc]");
+    if (el && el !== current) place(el);
+  });
+  document.addEventListener("mouseout", e => {
+    const el = e.target.closest("[data-desc]");
+    if (el && el === current && !el.contains(e.relatedTarget)) hide();
+  });
+  document.addEventListener("focusin", e => {
+    const el = e.target.closest("[data-desc]");
+    if (el) place(el);
+  });
+  document.addEventListener("focusout", hide);
+  window.addEventListener("scroll", hide, true);
+  document.addEventListener("click", hide, true);
+})();
 
 /* ===================== 초기화 ===================== */
 (function initClaims() {
