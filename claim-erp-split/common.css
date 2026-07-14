@@ -1693,10 +1693,28 @@
   #imgZoomRoot { z-index: 96; }
   .iz-modal { position: absolute; inset: 0; display: flex; flex-direction: column; }
   #imgZoomRoot .modal-backdrop { background: rgba(8, 11, 16, .9); }
-  .iz-stage { flex: 1; position: relative; overflow: hidden; cursor: zoom-in; touch-action: none; }
-  .iz-stage.zoomed { cursor: grab; }
-  .iz-stage.zoomed:active { cursor: grabbing; }
-  .iz-img { position: absolute; top: 0; left: 0; transform-origin: 0 0; will-change: transform; user-select: none; -webkit-user-drag: none; }
+  .iz-stage { flex: 1; position: relative; overflow: hidden; touch-action: none; }
+  .iz-stage.pan { cursor: zoom-in; }
+  .iz-stage.pan.zoomed { cursor: grab; }
+  .iz-stage.pan.zoomed:active { cursor: grabbing; }
+  .iz-stage.draw { cursor: crosshair; }
+  .iz-stage.text { cursor: text; }
+  .iz-img, .iz-canvas { position: absolute; top: 0; left: 0; transform-origin: 0 0; will-change: transform; user-select: none; -webkit-user-drag: none; }
+  .iz-canvas { pointer-events: none; }
+  /* 주석 툴바 */
+  .iz-anntools { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 3;
+    display: flex; align-items: center; gap: 6px; padding: 7px 10px; border-radius: 10px;
+    background: rgba(17,20,24,.92); box-shadow: 0 4px 16px rgba(0,0,0,.4); max-width: 92vw; flex-wrap: wrap; }
+  .iz-tool { border: 1px solid rgba(255,255,255,.2); background: rgba(255,255,255,.08); color: #fff;
+    height: 30px; padding: 0 11px; border-radius: 6px; font-size: 12.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .iz-tool:hover { background: rgba(255,255,255,.2); }
+  .iz-tool.on { background: #2F5BB7; border-color: #2F5BB7; }
+  .iz-annsep { width: 1px; height: 22px; background: rgba(255,255,255,.22); margin: 0 2px; }
+  .iz-colors { display: inline-flex; gap: 5px; }
+  .iz-swatch { width: 22px; height: 22px; border-radius: 50%; border: 2px solid rgba(255,255,255,.35); cursor: pointer; padding: 0; }
+  .iz-swatch.on { border-color: #fff; box-shadow: 0 0 0 2px #2F5BB7; }
+  .iz-textin { position: absolute; z-index: 4; background: rgba(255,255,255,.9); border: 1px dashed #2F5BB7;
+    border-radius: 3px; padding: 0 4px; font-weight: 700; font-family: 'Malgun Gothic', sans-serif; min-width: 80px; outline: none; }
   .iz-close { position: absolute; top: 14px; right: 18px; z-index: 3; width: 40px; height: 40px; border-radius: 50%;
     border: none; background: rgba(255,255,255,.12); color: #fff; font-size: 24px; line-height: 1; cursor: pointer; }
   .iz-close:hover { background: rgba(255,255,255,.24); }

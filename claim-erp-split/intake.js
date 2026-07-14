@@ -1023,25 +1023,47 @@ function bindIntakeEstimate(d) {
   bindIntakeApprForm(d);   // 결재 폼 최초 바인딩
 }
 
-/* ===================== 이미지 확대 뷰어 =====================
-   - 사진 클릭 → 확대(마우스 위치 기준), 우클릭 → 축소
-   - Ctrl+휠 아래 → 확대, 위 → 축소
-   - 확대 상태에서 드래그 → 이동(팬), 이전/다음 · ESC 지원 */
+/* ===================== 이미지 확대 뷰어 + 주석(캔버스) =====================
+   - 이동 도구: 클릭 확대 / 우클릭 축소 / Ctrl+휠 확대·축소 / 드래그 팬
+   - 주석 도구: 펜·사각형·원·텍스트·모자이크 + 색상 팔레트, 되돌리기/전체지우기
+   - 주석은 사진별 벡터 op로 저장 → 확대·이동·전환 시 캔버스에 다시 그림
+   - 이전/다음 · ESC 지원 */
+const IZ_COLORS = ["#e53935", "#fb8c00", "#fdd835", "#43a047", "#1e88e5", "#111111", "#ffffff"];
 function openImageZoom(images, startIndex) {
   if (!images || !images.length) return;
   const root = $("#imgZoomRoot");
   if (!root) return;
-  const ZOOM_STEP = 1.4, ZOOM_MAX = 8;
+  const ZOOM_STEP = 1.4, ZOOM_MAX = 8, LINE_W = 4, TEXT_PX = 26, MOSAIC_BLOCK = 12;
   let idx = Math.min(Math.max(startIndex | 0, 0), images.length - 1);
   let scale = 1, minScale = 1, tx = 0, ty = 0;      // 현재 이미지 변환 상태
   let natW = 0, natH = 0;                            // 이미지 원본 크기
+  let tool = "pan";                                 // pan|pen|rect|ellipse|text|mosaic
+  let color = IZ_COLORS[0];
+  const opsByIdx = {};                              // 사진 idx별 주석 op 배열
+  let ops = [];                                     // 현재 사진 op 배열(opsByIdx[idx] 참조)
+  let drawing = null;                               // 그리는 중인 op
 
+  const tools = [
+    ["pan", "이동"], ["pen", "펜"], ["rect", "사각형"], ["ellipse", "원"],
+    ["text", "텍스트"], ["mosaic", "모자이크"],
+  ];
   root.innerHTML = `
     <div class="modal-backdrop" data-zoom-close></div>
     <section class="iz-modal" role="dialog" aria-modal="true" aria-label="차량 사진 확대 보기">
       <button type="button" class="iz-close" aria-label="닫기" data-zoom-close>×</button>
+      <div class="iz-anntools" id="izAnnTools">
+        ${tools.map(([t, label]) => `<button type="button" class="iz-tool ${t === "pan" ? "on" : ""}" data-tool="${t}">${label}</button>`).join("")}
+        <span class="iz-annsep"></span>
+        <span class="iz-colors">${IZ_COLORS.map((c, i) => `<button type="button" class="iz-swatch ${i === 0 ? "on" : ""}" data-color="${c}" style="background:${c}" aria-label="색상 ${c}"></button>`).join("")}</span>
+        <span class="iz-annsep"></span>
+        <button type="button" class="iz-tool" data-ann="undo">되돌리기</button>
+        <button type="button" class="iz-tool" data-ann="clear">전체지우기</button>
+      </div>
       <button type="button" class="iz-nav prev" aria-label="이전 사진" data-zoom-prev>‹</button>
-      <div class="iz-stage" id="izStage"><img class="iz-img" id="izImg" alt="" draggable="false"></div>
+      <div class="iz-stage" id="izStage">
+        <img class="iz-img" id="izImg" alt="" draggable="false">
+        <canvas class="iz-canvas" id="izCanvas"></canvas>
+      </div>
       <button type="button" class="iz-nav next" aria-label="다음 사진" data-zoom-next>›</button>
       <div class="iz-toolbar">
         <span class="iz-name" id="izName"></span>
@@ -1058,12 +1080,23 @@ function openImageZoom(images, startIndex) {
 
   const stage = $("#izStage");
   const imgEl = $("#izImg");
+  const canvas = $("#izCanvas");
+  const cctx = canvas.getContext("2d");
+  const mos = document.createElement("canvas");   // 모자이크용 스크래치 캔버스
+  const mctx = mos.getContext("2d");
 
+  const setCursor = () => {
+    stage.classList.toggle("draw", tool !== "pan" && tool !== "text");
+    stage.classList.toggle("text", tool === "text");
+    stage.classList.toggle("pan", tool === "pan");
+  };
   const apply = () => {
-    imgEl.style.transform = `translate(${tx}px, ${ty}px) scale(${scale})`;
+    const tf = `translate(${tx}px, ${ty}px) scale(${scale})`;
+    imgEl.style.transform = tf;
+    canvas.style.transform = tf;
     const pct = $("#izPct");
     if (pct) pct.textContent = Math.round((scale / minScale) * 100) + "%";
-    stage.classList.toggle("zoomed", scale > minScale * 1.01);
+    stage.classList.toggle("zoomed", tool === "pan" && scale > minScale * 1.01);
   };
   const clampPan = () => {
     const sw = stage.clientWidth, sh = stage.clientHeight;
@@ -1095,51 +1128,169 @@ function openImageZoom(images, startIndex) {
     const r = stage.getBoundingClientRect();
     return [e.clientX - r.left, e.clientY - r.top];
   };
+  // 화면 좌표 → 이미지(캔버스) 원본 좌표
+  const imgCoord = (rx, ry) => [(rx - tx) / scale, (ry - ty) / scale];
+
+  // ── 주석 그리기 ─────────────────────────────
+  const norm = op => ({ x: Math.min(op.x, op.x + op.w), y: Math.min(op.y, op.y + op.h), w: Math.abs(op.w), h: Math.abs(op.h) });
+  const drawOp = op => {
+    cctx.save();
+    if (op.type === "pen") {
+      cctx.strokeStyle = op.color; cctx.lineWidth = op.size; cctx.lineCap = "round"; cctx.lineJoin = "round";
+      cctx.beginPath();
+      op.points.forEach((p, i) => i ? cctx.lineTo(p.x, p.y) : cctx.moveTo(p.x, p.y));
+      cctx.stroke();
+    } else if (op.type === "rect") {
+      const r = norm(op); cctx.strokeStyle = op.color; cctx.lineWidth = op.size;
+      cctx.strokeRect(r.x, r.y, r.w, r.h);
+    } else if (op.type === "ellipse") {
+      const r = norm(op); cctx.strokeStyle = op.color; cctx.lineWidth = op.size;
+      cctx.beginPath();
+      cctx.ellipse(r.x + r.w / 2, r.y + r.h / 2, Math.max(1, r.w / 2), Math.max(1, r.h / 2), 0, 0, Math.PI * 2);
+      cctx.stroke();
+    } else if (op.type === "text") {
+      cctx.fillStyle = op.color; cctx.textBaseline = "top";
+      cctx.font = `700 ${op.size}px 'Malgun Gothic', sans-serif`;
+      cctx.fillText(op.text, op.x, op.y);
+    } else if (op.type === "mosaic") {
+      const r = norm(op);
+      const tw = Math.max(1, Math.round(r.w / MOSAIC_BLOCK)), th = Math.max(1, Math.round(r.h / MOSAIC_BLOCK));
+      mos.width = tw; mos.height = th;
+      mctx.imageSmoothingEnabled = false;
+      mctx.drawImage(imgEl, r.x, r.y, Math.max(1, r.w), Math.max(1, r.h), 0, 0, tw, th);
+      cctx.imageSmoothingEnabled = false;
+      cctx.drawImage(mos, 0, 0, tw, th, r.x, r.y, Math.max(1, r.w), Math.max(1, r.h));
+    }
+    cctx.restore();
+  };
+  const redraw = () => {
+    cctx.clearRect(0, 0, canvas.width, canvas.height);
+    ops.forEach(drawOp);
+    if (drawing) drawOp(drawing);
+  };
+
+  // ── 텍스트 입력 ─────────────────────────────
+  const openTextInput = (rx, ry, ix, iy) => {
+    const inp = document.createElement("input");
+    inp.className = "iz-textin";
+    inp.style.left = rx + "px"; inp.style.top = ry + "px";
+    inp.style.color = color; inp.style.fontSize = (TEXT_PX * scale) + "px";
+    stage.appendChild(inp);
+    inp.focus();
+    let committed = false;
+    const commit = () => {
+      if (committed) return; committed = true;
+      const text = inp.value.trim();
+      if (text) { ops.push({ type: "text", color, size: TEXT_PX, x: ix, y: iy, text }); redraw(); }
+      inp.remove();
+    };
+    inp.addEventListener("keydown", ev => {
+      ev.stopPropagation();
+      if (ev.key === "Enter") commit();
+      else if (ev.key === "Escape") { committed = true; inp.remove(); }
+    });
+    inp.addEventListener("blur", commit);
+  };
 
   const load = () => {
     const im = images[idx];
     $("#izName").textContent = im.name + (im.folder ? ` · ${im.folder}` : "");
     $("#izCount").textContent = `${idx + 1} / ${images.length}`;
+    ops = opsByIdx[idx] || (opsByIdx[idx] = []);
+    drawing = null;
     natW = 0; natH = 0;
     imgEl.style.opacity = "0";
-    imgEl.onload = () => { natW = imgEl.naturalWidth; natH = imgEl.naturalHeight; fit(); };
+    imgEl.onload = () => {
+      natW = imgEl.naturalWidth; natH = imgEl.naturalHeight;
+      canvas.width = natW; canvas.height = natH;
+      fit();
+      redraw();
+    };
     imgEl.src = im.url;
     root.querySelector(".iz-nav.prev").style.visibility = images.length > 1 ? "" : "hidden";
     root.querySelector(".iz-nav.next").style.visibility = images.length > 1 ? "" : "hidden";
   };
   const go = step => { idx = (idx + step + images.length) % images.length; load(); };
 
-  // 드래그(팬) vs 클릭(확대) 구분
+  // ── 포인터 상호작용(도구별 분기) ─────────────
   let down = null, moved = false;
   stage.addEventListener("pointerdown", e => {
     if (e.button !== 0) return;
-    down = { x: e.clientX, y: e.clientY, tx, ty };
-    moved = false;
-    stage.setPointerCapture(e.pointerId);
+    const [rx, ry] = relPos(e);
+    if (tool === "pan") {
+      down = { x: e.clientX, y: e.clientY, tx, ty }; moved = false;
+      stage.setPointerCapture(e.pointerId);
+    } else if (tool === "text") {
+      const [ix, iy] = imgCoord(rx, ry);
+      openTextInput(rx, ry, ix, iy);
+    } else {
+      const [ix, iy] = imgCoord(rx, ry);
+      drawing = tool === "pen"
+        ? { type: "pen", color, size: LINE_W, points: [{ x: ix, y: iy }] }
+        : { type: tool, color, size: LINE_W, x: ix, y: iy, w: 0, h: 0 };
+      stage.setPointerCapture(e.pointerId);
+    }
   });
   stage.addEventListener("pointermove", e => {
-    if (!down) return;
-    const dx = e.clientX - down.x, dy = e.clientY - down.y;
-    if (!moved && Math.hypot(dx, dy) > 4) moved = true;
-    if (moved && scale > minScale * 1.01) { tx = down.tx + dx; ty = down.ty + dy; clampPan(); apply(); }
+    if (down) {                                   // 팬
+      const dx = e.clientX - down.x, dy = e.clientY - down.y;
+      if (!moved && Math.hypot(dx, dy) > 4) moved = true;
+      if (moved && scale > minScale * 1.01) { tx = down.tx + dx; ty = down.ty + dy; clampPan(); apply(); }
+    } else if (drawing) {                         // 주석 그리는 중
+      const [rx, ry] = relPos(e); const [ix, iy] = imgCoord(rx, ry);
+      if (drawing.type === "pen") drawing.points.push({ x: ix, y: iy });
+      else { drawing.w = ix - drawing.x; drawing.h = iy - drawing.y; }
+      redraw();
+    }
   });
   stage.addEventListener("pointerup", e => {
-    if (!down) return;
-    const wasClick = !moved;
-    down = null;
-    if (wasClick) { const [cx, cy] = relPos(e); zoomAt(ZOOM_STEP, cx, cy); }   // 클릭 → 확대
+    if (down) {
+      const wasClick = !moved; down = null;
+      if (wasClick) { const [cx, cy] = relPos(e); zoomAt(ZOOM_STEP, cx, cy); }   // 이동 도구 클릭 → 확대
+    } else if (drawing) {
+      const keep = drawing.type === "pen"
+        ? drawing.points.length > 1
+        : (Math.abs(drawing.w) > 2 && Math.abs(drawing.h) > 2);
+      if (keep) ops.push(drawing);
+      drawing = null; redraw();
+    }
   });
-  stage.addEventListener("contextmenu", e => {                                  // 우클릭 → 축소
+  stage.addEventListener("contextmenu", e => {
     e.preventDefault();
+    if (tool !== "pan") return;                   // 주석 모드에선 브라우저 메뉴만 차단
     const [cx, cy] = relPos(e);
-    zoomAt(1 / ZOOM_STEP, cx, cy);
+    zoomAt(1 / ZOOM_STEP, cx, cy);                // 이동 도구: 우클릭 축소
   });
-  stage.addEventListener("wheel", e => {                                        // Ctrl+휠 → 확대/축소
+  stage.addEventListener("wheel", e => {          // Ctrl+휠 → 확대/축소(모든 도구)
     if (!e.ctrlKey) return;
     e.preventDefault();
     const [cx, cy] = relPos(e);
-    zoomAt(e.deltaY > 0 ? ZOOM_STEP : 1 / ZOOM_STEP, cx, cy);                   // 아래=확대, 위=축소
+    zoomAt(e.deltaY > 0 ? ZOOM_STEP : 1 / ZOOM_STEP, cx, cy);
   }, { passive: false });
+
+  // ── 툴바 ────────────────────────────────────
+  const annTools = $("#izAnnTools");
+  annTools.addEventListener("click", e => {
+    const tbtn = e.target.closest("[data-tool]");
+    if (tbtn) {
+      tool = tbtn.dataset.tool;
+      annTools.querySelectorAll("[data-tool]").forEach(b => b.classList.toggle("on", b === tbtn));
+      setCursor(); apply();
+      return;
+    }
+    const sw = e.target.closest("[data-color]");
+    if (sw) {
+      color = sw.dataset.color;
+      annTools.querySelectorAll(".iz-swatch").forEach(b => b.classList.toggle("on", b === sw));
+      return;
+    }
+    const ann = e.target.closest("[data-ann]");
+    if (ann) {
+      if (ann.dataset.ann === "undo") ops.pop();
+      else if (ann.dataset.ann === "clear") ops.length = 0;
+      redraw();
+    }
+  });
 
   const close = () => {
     document.removeEventListener("keydown", onKey);
@@ -1155,7 +1306,7 @@ function openImageZoom(images, startIndex) {
     else if (e.key === "+" || e.key === "=") { const [cx, cy] = stageCenter(); zoomAt(ZOOM_STEP, cx, cy); }
     else if (e.key === "-") { const [cx, cy] = stageCenter(); zoomAt(1 / ZOOM_STEP, cx, cy); }
   };
-  const onResize = () => fit();
+  const onResize = () => { fit(); redraw(); };
   document.addEventListener("keydown", onKey);
   window.addEventListener("resize", onResize);
   root.querySelectorAll("[data-zoom-close]").forEach(el => el.addEventListener("click", close));
@@ -1165,6 +1316,7 @@ function openImageZoom(images, startIndex) {
   root.querySelector("[data-zoom-out]").addEventListener("click", () => { const [cx, cy] = stageCenter(); zoomAt(1 / ZOOM_STEP, cx, cy); });
   root.querySelector("[data-zoom-reset]").addEventListener("click", fit);
 
+  setCursor();
   load();
 }
 
