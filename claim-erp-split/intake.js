@@ -499,7 +499,11 @@ function lgRow2(d) {
     { k: "사고담당", v: d.accidentManager }, { k: "디지털안내", v: "-" },
     { k: "검토회신", v: d.reviewReply }, { k: "고객구분", v: d.custType },
   ]);
-  return `<div class="lg-row2 solo"><div>${left}</div></div>`;
+  // 좌: 요약(좁게) / 우: SK렌터카 연동 정보 (요약 오른쪽 빈 공간 채움)
+  return `<div class="lg-toprow">
+    <div class="lg-toprow-sum">${left}</div>
+    <div class="lg-toprow-sk">${intakeSkRentBandHtml(d)}</div>
+  </div>`;
 }
 
 /* ---- SK렌터카 연동 정보 (전체 폭 가로 밴드) ----
@@ -1423,7 +1427,6 @@ function renderIntake() {
         <div class="lg-body">
           ${lgIdBand(d)}
           ${lgRow2(d)}
-          ${intakeSkRentBandHtml(d)}
           ${intakeWorkbenchHtml(d)}
           <div class="lg-tabs">
             <button class="lg-tab ${intakeTab === "contract" ? "active" : ""}" type="button" data-itab="contract" data-desc="계약자·사고 관련자·사고/출동·계약 등 접수 기본 정보를 봅니다.">계약 사고 정보</button>

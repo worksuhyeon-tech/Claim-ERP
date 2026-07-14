@@ -6,12 +6,15 @@
 <title>Smart접수지 | CLAIM ERP</title>
 <link rel="stylesheet" href="common.css" />
 <style>
-  /* 상단 요약 행 — 좁은 좌측 단일 컬럼 (우측 여백) */
-  #viewIntake .lg-row2.solo { grid-template-columns: minmax(0, 560px) 1fr; }
-  /* SK렌터카 연동 정보 — 전체 폭 가로 1줄 표 */
-  #viewIntake .lg-sk-band { min-width: 960px; }
-  #viewIntake .lg-sk-band th { white-space: nowrap; }
-  #viewIntake .lg-sk-band td { text-align: center; }
+  /* 상단 행 — 좌: 요약(좁게) / 우: SK렌터카 연동 정보 (요약 오른쪽 빈 공간 채움) */
+  #viewIntake .lg-toprow { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 8px; }
+  #viewIntake .lg-toprow-sum { flex: 0 0 440px; max-width: 46%; }
+  #viewIntake .lg-toprow-sk { flex: 1 1 0; min-width: 0; }
+  #viewIntake .lg-toprow-sk .lg-sect { margin-top: 0; }
+  /* SK렌터카 연동 정보 — 우측 폭에 맞춘 가로 표 (헤더 2줄 허용) */
+  #viewIntake .lg-sk-band { width: 100%; min-width: 0; table-layout: fixed; }
+  #viewIntake .lg-sk-band th { white-space: normal; word-break: keep-all; font-size: 11.5px; padding: 4px; }
+  #viewIntake .lg-sk-band td { text-align: center; font-size: 11.5px; }
   #viewIntake .lg-sk-band td[data-desc],
   #viewIntake .lg-sect[data-desc] { cursor: help; }
 
@@ -52,6 +55,8 @@
 
   @media (max-width: 900px) {
     #viewIntake .lg-dmg-pair { grid-template-columns: 1fr; }
+    #viewIntake .lg-toprow { flex-direction: column; }
+    #viewIntake .lg-toprow-sum { flex-basis: auto; max-width: none; width: 100%; }
   }
 
   /* --- 기능 설명 툴팁 (버튼 hover 시 노출) --- */
