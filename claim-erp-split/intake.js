@@ -501,46 +501,57 @@ function intakeLogTableHtml(logs) {
   return `<table><thead><tr><th style="width:32px">순번</th><th style="width:78px">일시</th><th style="width:74px">구분</th><th>내용</th></tr></thead><tbody>${rows.map((r, i) => `<tr><td>${rows.length - i}</td><td>${iEsc(r.at)}</td><td>${iEsc(r.type)}</td><td class="txt">${iEsc(r.text)}</td></tr>`).join("")}</tbody></table>`;
 }
 // 미결 속성 1행 (체크박스 + 항목명 + 부가 입력필드)
+const INTAKE_ATTR_DESC = {
+  "재통화": "고객 재통화가 필요한 건으로 표시합니다. 오른쪽에 재통화 예정일을 지정할 수 있습니다.",
+  "VOC":   "고객 불만(VOC) 발생 건으로 표시합니다.",
+  "탁송":   "차량 탁송(운송)이 필요한 건으로 표시합니다. 오른쪽에 탁송 메모를 남길 수 있습니다.",
+  "렌트":   "렌트(대차) 관련 미결 건으로 표시합니다. 오른쪽에 렌트 메모를 남길 수 있습니다.",
+  "기타":   "위 분류에 없는 기타 미결 건으로 표시합니다. 오른쪽에 메모를 남길 수 있습니다.",
+};
 function intakeAttrRowHtml(a, st) {
   const checked = (st.attrs || []).includes(a.key);
   let field = "";
-  if (a.field === "date") field = `<input type="date" class="lg-attr-field" data-attr-field="${iEsc(a.key)}" value="${iEsc(st.fields[a.key] || "")}" aria-label="${iEsc(a.key)} 날짜">`;
-  else if (a.field === "text") field = `<input type="text" maxlength="20" class="lg-attr-field" data-attr-field="${iEsc(a.key)}" placeholder="${iEsc(a.ph)}" value="${iEsc(st.fields[a.key] || "")}">`;
-  return `<label class="lg-attr2"><input type="checkbox" name="intakeAttr" value="${iEsc(a.key)}" ${checked ? "checked" : ""}><span class="nm">${iEsc(a.key)}</span></label><div class="lg-attr-fw">${field}</div>`;
+  const fieldDesc = a.field === "date" ? "재통화 예정일을 지정합니다." : "메모를 입력합니다. (최대 20자)";
+  if (a.field === "date") field = `<input type="date" class="lg-attr-field" data-attr-field="${iEsc(a.key)}" value="${iEsc(st.fields[a.key] || "")}" aria-label="${iEsc(a.key)} 날짜" data-desc="${iEsc(fieldDesc)}">`;
+  else if (a.field === "text") field = `<input type="text" maxlength="20" class="lg-attr-field" data-attr-field="${iEsc(a.key)}" placeholder="${iEsc(a.ph)}" value="${iEsc(st.fields[a.key] || "")}" data-desc="${iEsc(fieldDesc)}">`;
+  return `<label class="lg-attr2" data-desc="${iEsc(INTAKE_ATTR_DESC[a.key] || `'${a.key}' 미결 속성으로 표시합니다.`)}"><input type="checkbox" name="intakeAttr" value="${iEsc(a.key)}" ${checked ? "checked" : ""}><span class="nm">${iEsc(a.key)}</span></label><div class="lg-attr-fw">${field}</div>`;
 }
 // 담당자 자유 입력 1행 (체크박스 + 입력필드)
 function intakeCustomRowHtml(row, i) {
-  return `<label class="lg-attr2"><input type="checkbox" data-custom-check="${i}" ${row.checked ? "checked" : ""}><span class="nm muted">추가${i + 1}</span></label><div class="lg-attr-fw"><input type="text" maxlength="20" class="lg-attr-field" data-custom-text="${i}" placeholder="담당자 입력 (최대 20자)" value="${iEsc(row.text)}"></div>`;
+  return `<label class="lg-attr2" data-desc="담당자가 직접 정의한 미결 속성입니다. 체크하면 이 항목이 미결로 적용됩니다."><input type="checkbox" data-custom-check="${i}" ${row.checked ? "checked" : ""}><span class="nm muted">추가${i + 1}</span></label><div class="lg-attr-fw"><input type="text" maxlength="20" class="lg-attr-field" data-custom-text="${i}" placeholder="담당자 입력 (최대 20자)" value="${iEsc(row.text)}" data-desc="담당자가 직접 미결 속성명을 입력합니다. (최대 20자)"></div>`;
 }
 function intakeWorkbenchHtml(d) {
   const prop = getIntakeProperty(d.id, d);
   const logs = getIntakeLogs(d.id);
-  const histBtns = ["메세지발송", "간편렌트"];
+  const histBtns = [
+    { label:"메세지발송", desc:"고객·관련자에게 안내 문자(진행 상황·요청 사항)를 발송합니다." },
+    { label:"간편렌트", desc:"대차(렌트) 차량을 간편 신청 절차로 바로 접수합니다." },
+  ];
   const filterOpts = ["전체", ...INTAKE_MEMO_TYPES];
   return `<div class="lg-panels">
     <div class="lg-panel">
       <div class="lg-panel-h"><span class="h">진행 이력</span><span class="lg-radio"><label><input type="radio" name="lgHistScope" disabled> MY</label><label><input type="radio" name="lgHistScope" checked disabled> 전체</label></span></div>
-      <div class="lg-mini-btns">${histBtns.map(b => `<button class="lg-mini gray" type="button">${b}</button>`).join("")}</div>
-      <div class="lg-radio lg-hist-filter" style="margin-bottom:6px">${filterOpts.map(t => `<label><input type="radio" name="lgHistFilter" value="${iEsc(t)}" ${intakeLogFilter === t ? "checked" : ""}> ${iEsc(t)}</label>`).join("")}</div>
+      <div class="lg-mini-btns">${histBtns.map(b => `<button class="lg-mini gray" type="button" data-desc="${iEsc(b.desc)}">${iEsc(b.label)}</button>`).join("")}</div>
+      <div class="lg-radio lg-hist-filter" style="margin-bottom:6px">${filterOpts.map(t => `<label data-desc="${t === "전체" ? "모든 채널의 진행 이력을 표시합니다." : `'${iEsc(t)}' 채널로 남긴 진행 이력만 골라 표시합니다.`}"><input type="radio" name="lgHistFilter" value="${iEsc(t)}" ${intakeLogFilter === t ? "checked" : ""}> ${iEsc(t)}</label>`).join("")}</div>
       <div class="lg-log" id="intakeLogBox">${intakeLogTableHtml(logs)}</div>
     </div>
     <div class="lg-panel">
       <div class="lg-panel-h"><span class="h">진행 메모</span></div>
       <div class="lg-form">
-        <div class="fr"><label class="k" for="intakeMemoType">구분</label><select class="lg-sel" id="intakeMemoType">${INTAKE_MEMO_TYPES.map(t => `<option value="${iEsc(t)}">${iEsc(t)}</option>`).join("")}</select></div>
-        <div class="fr"><label class="k" for="intakeMemoTarget">관련대상</label><input class="lg-in" id="intakeMemoTarget" type="text" value="${iEsc(d.name)}"></div>
-        <div class="fr top"><label class="k" for="intakeMemoText">주요내용</label><textarea class="lg-ta" id="intakeMemoText" placeholder="진행 내용을 입력하세요. 예: 공업사 재요청, 고객 재통화 예정"></textarea></div>
-        <div class="lg-form-foot"><span class="sp"></span><button class="lg-mini" type="button" id="intakeMemoSave">메모 저장</button></div>
+        <div class="fr"><label class="k" for="intakeMemoType">구분</label><select class="lg-sel" id="intakeMemoType" data-desc="저장할 진행 메모의 구분(채널)을 선택합니다. 진행 이력 필터와 동일한 분류입니다.">${INTAKE_MEMO_TYPES.map(t => `<option value="${iEsc(t)}">${iEsc(t)}</option>`).join("")}</select></div>
+        <div class="fr"><label class="k" for="intakeMemoTarget">관련대상</label><input class="lg-in" id="intakeMemoTarget" type="text" value="${iEsc(d.name)}" data-desc="이 메모와 연관된 대상(고객·공업사·상대방 등)을 입력합니다."></div>
+        <div class="fr top"><label class="k" for="intakeMemoText">주요내용</label><textarea class="lg-ta" id="intakeMemoText" placeholder="진행 내용을 입력하세요. 예: 공업사 재요청, 고객 재통화 예정" data-desc="진행 내용을 입력합니다. 저장하면 위 진행 이력에 새 항목으로 추가됩니다."></textarea></div>
+        <div class="lg-form-foot"><span class="sp"></span><button class="lg-mini" type="button" id="intakeMemoSave" data-desc="입력한 진행 메모를 진행 이력에 추가 저장합니다.">메모 저장</button></div>
       </div>
     </div>
     <div class="lg-panel">
-      <div class="lg-panel-h"><span class="h">미결 속성</span><button class="lg-mini" type="button" id="intakeAttrSave">저장</button></div>
+      <div class="lg-panel-h"><span class="h">미결 속성</span><button class="lg-mini" type="button" id="intakeAttrSave" data-desc="체크한 미결 속성과 메모를 저장해 Smart업무관리 목록에 반영합니다.">저장</button></div>
       <div class="lg-attrs2">
         ${INTAKE_ATTRS.map(a => intakeAttrRowHtml(a, prop)).join("")}
         <div class="lg-attr-div"></div>
         ${prop.custom.map((row, i) => intakeCustomRowHtml(row, i)).join("")}
       </div>
-      <textarea class="lg-ta" id="intakeAttrNote" placeholder="미결 속성 메모 (Smart업무관리에 반영)">${iEsc(prop.note)}</textarea>
+      <textarea class="lg-ta" id="intakeAttrNote" placeholder="미결 속성 메모 (Smart업무관리에 반영)" data-desc="미결 사유·특이사항을 메모합니다. 저장 시 Smart업무관리 조치 설명에 반영됩니다.">${iEsc(prop.note)}</textarea>
     </div>
   </div>`;
 }
@@ -615,7 +626,7 @@ function intakeContractTab(d) {
 function dmgPartsHtml(checkedSet, interactive) {
   return PART_LIST.map(p => {
     const on = checkedSet.has(p);
-    const attr = interactive ? ` data-staff-part="${iEsc(p)}"` : "";
+    const attr = interactive ? ` data-staff-part="${iEsc(p)}" data-desc="'${iEsc(p)}'을(를) 담당자가 확인한 실제 파손부위로 지정/해제합니다. (정비공장 청구 부위와 대조)"` : "";
     const cls = interactive ? "lg-dmg-item staff-part" : "lg-dmg-item";
     return `<div class="${cls}${on ? " on" : ""}"${attr}><span class="b"></span>${p}</div>`;
   }).join("");
@@ -777,27 +788,31 @@ function srApprComponentHtml(d) {
     const s = assignStaffById(id);
     return s ? `<option value="${s.id}" ${s.id === currentApproverId ? "selected" : ""}>${iEsc(s.name)} · ${iEsc(s.position || "결재자")}</option>` : "";
   }).join("");
+  const APPR_TYPE_DESC = {
+    "추산":       "손해액 추산 결재입니다. (현재 준비중이라 선택할 수 없습니다.)",
+    "지급(종결)": "손해사정으로 확정된 지급액에 대한 지급 결재입니다. 비밀번호 인증이 필요합니다.",
+  };
   const radios = SR_APPR_FORM_TYPES.map(t =>
-    `<label class="rd${t.disabled ? " off" : ""}"><input type="radio" name="apprFormType" value="${iEsc(t.value)}" ${t.value === SR_APPR_DEFAULT_TYPE.value ? "checked" : ""} ${t.disabled ? "disabled" : ""}> ${iEsc(t.label)}${t.disabled ? ` <span class="rd-note">(준비중)</span>` : ""}</label>`).join("");
+    `<label class="rd${t.disabled ? " off" : ""}" data-desc="${iEsc(APPR_TYPE_DESC[t.value] || `'${t.value}' 결재로 상신합니다.`)}"><input type="radio" name="apprFormType" value="${iEsc(t.value)}" ${t.value === SR_APPR_DEFAULT_TYPE.value ? "checked" : ""} ${t.disabled ? "disabled" : ""}> ${iEsc(t.label)}${t.disabled ? ` <span class="rd-note">(준비중)</span>` : ""}</label>`).join("");
   const defPay = SR_APPR_DEFAULT_TYPE.pay;
   const form = `<div class="lg-appr-form">
     <div class="row">
       <label class="k">결재구분</label>
       ${radios}
       <label class="k" style="margin-left:14px">다음결재자</label>
-      <select class="lg-sel" id="apprFormApprover">${approverOpts}</select>
+      <select class="lg-sel" id="apprFormApprover" data-desc="이 결재를 처리할 다음 결재자를 지정합니다. (Speed결재 기본 결재자로도 반영)">${approverOpts}</select>
     </div>
     <div class="row top">
       <label class="k">결재의견</label>
-      <textarea class="lg-ta" id="apprFormComment" placeholder="상신 의견을 입력하세요."></textarea>
+      <textarea class="lg-ta" id="apprFormComment" placeholder="상신 의견을 입력하세요." data-desc="상신 사유·검토 의견을 입력합니다. 결재 이력에 함께 기록됩니다."></textarea>
     </div>
     <div class="row">
       <label class="k">비밀번호</label>
-      <input type="password" class="lg-in" id="apprFormPw" style="max-width:170px" placeholder="지급 결재 비밀번호" autocomplete="off" ${defPay ? "" : "disabled"}>
+      <input type="password" class="lg-in" id="apprFormPw" style="max-width:170px" placeholder="지급 결재 비밀번호" autocomplete="off" ${defPay ? "" : "disabled"} data-desc="지급 결재 승인용 비밀번호를 입력합니다. (지급 결재에만 필요)">
       <span class="lg-appr-pwhint${defPay ? " on" : ""}" id="apprFormPwHint">${defPay ? "지급 결재는 비밀번호 인증이 필요합니다." : "추산은 비밀번호가 필요 없습니다."}</span>
       <span class="grow"></span>
-      <button class="lg-abtn" type="button" id="apprFormCancel" style="display:none">상신취소</button>
-      <button class="lg-abtn primary" type="button" id="apprFormSubmit" ${noDoc ? "disabled" : ""}>결재</button>
+      <button class="lg-abtn" type="button" id="apprFormCancel" style="display:none" data-desc="상신중인 결재를 취소합니다. 취소 후 같은 종류로 다시 상신할 수 있습니다.">상신취소</button>
+      <button class="lg-abtn primary" type="button" id="apprFormSubmit" ${noDoc ? "disabled" : ""} data-desc="선택한 결재구분으로 지정한 결재자에게 결재를 상신합니다.">결재</button>
     </div>
     ${noDoc ? `<div class="lg-appr-note">※ 견적 정보 등록 후 결재를 상신할 수 있습니다.</div>` : ""}
   </div>`;
@@ -904,7 +919,7 @@ function intakeEstimatePhotoStrip(d) {
   const imgs = estimateStripImages(d);
   const inner = imgs.length
     ? imgs.map((im, i) => `
-        <button type="button" class="es-photo" data-estphoto="${i}" title="${iEsc(im.name)}">
+        <button type="button" class="es-photo" data-estphoto="${i}" title="${iEsc(im.name)}" data-desc="차량 사진을 확대 뷰어로 엽니다. (클릭 확대 / 우클릭 축소 / Ctrl+휠 확대·축소)">
           <img src="${iEsc(im.url)}" alt="${iEsc(im.name)}" loading="lazy" draggable="false">
           <span class="es-photo-tag">${iEsc(im.folder)}</span>
           <span class="es-photo-name">${iEsc(im.name)}</span>
@@ -947,8 +962,8 @@ function intakeEstimateTab(d) {
   // 견적서 전환 토글
   const toggle = `<div class="lg-est-toggle" role="tablist">
     <span class="tl">견적서 전환</span>
-    <button type="button" class="be-tgl ${isPre ? "on" : ""}" data-estdoc="pre">선견적</button>
-    <button type="button" class="be-tgl ${!isPre ? "on" : ""}" data-estdoc="claim">청구서</button>
+    <button type="button" class="be-tgl ${isPre ? "on" : ""}" data-estdoc="pre" data-desc="입고 전 개략 견적인 '선견적' 내역으로 표를 전환합니다.">선견적</button>
+    <button type="button" class="be-tgl ${!isPre ? "on" : ""}" data-estdoc="claim" data-desc="공업사가 정식 청구한 '청구서' 내역으로 표를 전환합니다.">청구서</button>
   </div>`;
 
   const baseSum = estSum(rows, "base");
@@ -1356,34 +1371,34 @@ function renderIntake() {
   const unresolvedText = (d.unresolved && d.unresolved.length) ? d.unresolved.join(", ") : "없음";
   const queryType = INTAKE_QUERY_TYPES.includes(intakeQueryType) ? intakeQueryType : INTAKE_QUERY_TYPES[0];
   root.innerHTML = `
-    <button class="lg-back" type="button" id="intakeBack">← 목록으로</button>
+    <button class="lg-back" type="button" id="intakeBack" data-desc="Smart업무관리 목록 화면으로 돌아갑니다.">← 목록으로</button>
     <div class="lg">
       <div class="lg-window">
         <div class="lg-titlebar"><span class="t">Smart접수지</span><span class="r"><span class="lg-x">✕</span></span></div>
         <div class="lg-search">
           <span class="lk">조회구분</span>
-          <select class="lg-select" id="intakeQueryType">${INTAKE_QUERY_TYPES.map(t => `<option value="${iEsc(t)}" ${t === queryType ? "selected" : ""}>${iEsc(t)}</option>`).join("")}</select>
-          <span id="intakeSearchFields" class="lg-search-fields">${intakeSearchFieldsHtml(queryType, d)}</span>
+          <select class="lg-select" id="intakeQueryType" data-desc="조회 기준(사고번호·차량번호·휴대폰 등)을 선택합니다. 선택한 기준에 맞춰 아래 입력칸이 바뀝니다.">${INTAKE_QUERY_TYPES.map(t => `<option value="${iEsc(t)}" ${t === queryType ? "selected" : ""}>${iEsc(t)}</option>`).join("")}</select>
+          <span id="intakeSearchFields" class="lg-search-fields" data-desc="선택한 조회구분에 맞는 값을 입력해 사고건을 조회합니다. (입력 후 Enter로도 조회)">${intakeSearchFieldsHtml(queryType, d)}</span>
           <span class="grow"></span>
-          <div class="lg-search-btns"><button class="lg-sbtn" type="button" id="intakeSearchBtn">🔍 검색</button><button class="lg-sbtn gray" type="button" id="intakeResetBtn">↻ 재설정</button></div>
+          <div class="lg-search-btns"><button class="lg-sbtn" type="button" id="intakeSearchBtn" data-desc="입력한 조건으로 사고건을 조회해 접수지에 불러옵니다.">🔍 검색</button><button class="lg-sbtn gray" type="button" id="intakeResetBtn" data-desc="조회구분과 입력값을 처음 상태로 되돌립니다.">↻ 재설정</button></div>
         </div>
         <div class="lg-body">
           ${lgIdBand(d)}
           ${lgRow2(d)}
           ${intakeWorkbenchHtml(d)}
           <div class="lg-tabs">
-            <button class="lg-tab ${intakeTab === "contract" ? "active" : ""}" type="button" data-itab="contract">계약 사고 정보</button>
-            <button class="lg-tab ${intakeTab === "damage" ? "active" : ""}" type="button" data-itab="damage">피해 진행 정보</button>
-            <button class="lg-tab ${intakeTab === "estimate" ? "active" : ""}" type="button" data-itab="estimate">청구 견적 정보</button>
+            <button class="lg-tab ${intakeTab === "contract" ? "active" : ""}" type="button" data-itab="contract" data-desc="계약자·사고 관련자·사고/출동·계약 등 접수 기본 정보를 봅니다.">계약 사고 정보</button>
+            <button class="lg-tab ${intakeTab === "damage" ? "active" : ""}" type="button" data-itab="damage" data-desc="피해물·공업사 수리 정보와 차량 파손부위(정비공장 청구 ↔ 담당자 확인)를 대조합니다.">피해 진행 정보</button>
+            <button class="lg-tab ${intakeTab === "estimate" ? "active" : ""}" type="button" data-itab="estimate" data-desc="선견적·청구서 견적 내역과 손해사정 비교, 추산·지급 결재를 처리합니다.">청구 견적 정보</button>
           </div>
           <div class="lg-tabbody" id="intakeBody">${renderIntakeTab(intakeTab, d)}</div>
           <div class="lg-actionbar">
-            <span class="lg-std">미결 태그: ${iEsc(unresolvedText)}</span>
+            <span class="lg-std" data-desc="현재 이 사고건에 남아 있는 미결 속성(재통화·VOC 등) 태그입니다.">미결 태그: ${iEsc(unresolvedText)}</span>
             <span class="sp"></span>
             <div class="lg-close-type" role="radiogroup" aria-label="종결 구분">
-              ${["면책", "지급"].map(t => `<label class="lg-ctype ${closeType === t ? "on" : ""}"><input type="radio" name="intakeCloseType" value="${t}" ${closeType === t ? "checked" : ""} ${done ? "disabled" : ""}>${t}</label>`).join("")}
+              ${["면책", "지급"].map(t => `<label class="lg-ctype ${closeType === t ? "on" : ""}" data-desc="이 사고건을 '${t}'(으)로 종결 처리할 구분으로 지정합니다."><input type="radio" name="intakeCloseType" value="${t}" ${closeType === t ? "checked" : ""} ${done ? "disabled" : ""}>${t}</label>`).join("")}
             </div>
-            <button class="lg-abtn primary" type="button" id="intakeComplete" ${done ? "disabled" : ""}>${done ? "종결됨" : "종결"}</button>
+            <button class="lg-abtn primary" type="button" id="intakeComplete" ${done ? "disabled" : ""} data-desc="선택한 종결 구분(면책/지급)으로 이 사고건을 종결 처리합니다.">${done ? "종결됨" : "종결"}</button>
           </div>
         </div>
       </div>
@@ -1427,6 +1442,56 @@ function renderIntake() {
   });
 }
 
+
+/* ===================== 기능 설명 툴팁 ===================== */
+/* [data-desc] 요소에 마우스를 올리면(또는 포커스하면) 기능 설명을 말풍선으로 노출 */
+(function initDescTooltips() {
+  const tip = document.createElement("div");
+  tip.id = "clTooltip";
+  document.body.appendChild(tip);
+  let current = null;
+
+  function place(el) {
+    const text = el.getAttribute("data-desc");
+    if (!text) return;
+    current = el;
+    tip.textContent = text;
+    tip.classList.remove("above", "below");
+    tip.style.visibility = "hidden";
+    tip.classList.add("show");           // 실제 크기 측정을 위해 표시
+    const r = el.getBoundingClientRect();
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    const vw = document.documentElement.clientWidth;
+    const gap = 10;
+    let left = r.left + r.width / 2 - tw / 2;
+    left = Math.max(8, Math.min(left, vw - tw - 8));
+    let top = r.top - th - gap;
+    if (top < 8) { top = r.bottom + gap; tip.classList.add("below"); }
+    else { tip.classList.add("above"); }
+    const arrow = r.left + r.width / 2 - left;
+    tip.style.setProperty("--tip-arrow", Math.max(12, Math.min(arrow, tw - 12)) + "px");
+    tip.style.left = left + "px";
+    tip.style.top = top + "px";
+    tip.style.visibility = "visible";
+  }
+  function hide() { current = null; tip.classList.remove("show"); }
+
+  document.addEventListener("mouseover", e => {
+    const el = e.target.closest("[data-desc]");
+    if (el && el !== current) place(el);
+  });
+  document.addEventListener("mouseout", e => {
+    const el = e.target.closest("[data-desc]");
+    if (el && el === current && !el.contains(e.relatedTarget)) hide();
+  });
+  document.addEventListener("focusin", e => {
+    const el = e.target.closest("[data-desc]");
+    if (el) place(el);
+  });
+  document.addEventListener("focusout", hide);
+  window.addEventListener("scroll", hide, true);
+  document.addEventListener("click", hide, true);
+})();
 
 /* ===================== 초기화 ===================== */
 (function initIntake() {
