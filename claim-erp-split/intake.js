@@ -374,6 +374,18 @@ function defaultDetail(c, w) {
       assignDate: inDate !== "-" ? inDate : accDate, receiptDate: accDate,
     }] : [],
     parts:{ checked: genDamageParts(p) },
+    // SK렌터카 연동 수신 항목 (실제 운영 시 SK렌터카 시스템에서 수신)
+    skRent:{
+      deductAgreed: won(p.pick([300000, 400000, 500000, 700000])),
+      deductSurcharge: won(p.pick([0, 0, 0, 50000, 100000])),
+      maintProduct: p.pick(["기본정비", "표준정비", "케어플러스"]),
+      bizType: p.pick(["Direct", "제휴", "법인"]),
+      visitCheck: p.pick(["-", "포함", "미포함"]),
+      pickupMaint: p.pick(["N", "Y"]),
+      accidentSub: p.pick(["N(미포함)", "Y(포함)"]),
+      deductBilling: p.pick(["개별 정액", "통합 청구", "개별 실비"]),
+      personalSub: p.pick(["불포함", "포함"]),
+    },
     estimateDoc: est,
   };
 }
@@ -408,7 +420,7 @@ function getIntakeData(claimId) {
     unresolved: ov.unresolved || base.unresolved,
     guideCols: ov.guideCols || base.guideCols, guideRows: ov.guideRows || base.guideRows,
   };
-  ["accident","dispatch","liability","ownDamage","insuredCar","contract","damage","repair","handlers"]
+  ["accident","dispatch","liability","ownDamage","insuredCar","contract","damage","repair","handlers","skRent"]
     .forEach(s => { d[s] = Object.assign({}, base[s], ov[s] || {}); });
   const op = ov.parties || {};
   d.parties = {
@@ -487,7 +499,36 @@ function lgRow2(d) {
     { k: "사고담당", v: d.accidentManager }, { k: "디지털안내", v: "-" },
     { k: "검토회신", v: d.reviewReply }, { k: "고객구분", v: d.custType },
   ]);
-  return `<div class="lg-row2 solo"><div>${left}</div></div>`;
+  return `<div class="lg-row2 solo"><div>${left}</div><div>${intakeSkRentHtml(d)}</div></div>`;
+}
+
+/* ---- SK렌터카 연동 정보 (상단 우측) ----
+   면책·정비·대차 관련 값은 SK렌터카 시스템과 연동하여 받아와야 하는 항목이다. */
+const SK_RENT_FIELDS = [
+  { k: "면책약정금액",   key: "deductAgreed" },
+  { k: "면책금할증금액", key: "deductSurcharge" },
+  { k: "정비상품",       key: "maintProduct" },
+  { k: "업무구분",       key: "bizType" },
+  { k: "방문점검",       key: "visitCheck" },
+  { k: "픽업정비",       key: "pickupMaint" },
+  { k: "사고/정비대차",  key: "accidentSub" },
+  { k: "면책금통합청구", key: "deductBilling" },
+  { k: "개인대차",       key: "personalSub" },
+];
+function intakeSkRentHtml(d) {
+  const sk = d.skRent || {};
+  const cellDesc = "SK렌터카 시스템과 연동해 받아오는 값입니다. (연동 전에는 예시·미수신 상태)";
+  const cells = SK_RENT_FIELDS.map(f => {
+    const v = iEsc(sk[f.key]);
+    return `<th>${f.k}</th><td class="${v ? "" : "ph"}" data-desc="${iEsc(cellDesc)}">${v || "미수신"}</td>`;
+  });
+  let rows = "";
+  for (let i = 0; i < cells.length; i += 2) {
+    rows += `<tr>${cells[i]}${cells[i + 1] || `<th></th><td></td>`}</tr>`;
+  }
+  const secDesc = "SK렌터카와 연동이 필요한 정보입니다. 이 항목들은 SK렌터카 시스템에서 받아와야 하는 값으로, 연동 시 실제 계약 데이터로 자동 채워집니다.";
+  return `<div class="lg-sect" data-desc="${iEsc(secDesc)}">SK렌터카 연동 정보<span class="note">※ SK렌터카 시스템 연동 수신 항목</span></div>`
+    + `<table class="lg-tbl lg-sk-tbl"><colgroup><col style="width:26%"><col style="width:24%"><col style="width:26%"><col style="width:24%"></colgroup>${rows}</table>`;
 }
 
 /* ---- 진행 이력 / 진행 메모 / 미결 속성 ---- */
