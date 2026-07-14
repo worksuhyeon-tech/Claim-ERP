@@ -540,19 +540,19 @@ function intakeListHtml() {
   let rows = "";
   for (let i = 0; i < INTAKE_LIST_SIZE; i++) {
     const id = pageIds[i];
-    if (!id) { rows += `<tr class="lg-lrow empty"><td colspan="7">&nbsp;</td></tr>`; continue; }
+    if (!id) { rows += `<tr class="lg-lrow empty"><td colspan="8">&nbsp;</td></tr>`; continue; }
     const c = CLAIMS.find(x => x.id === id) || {};
     const dd = getIntakeData(id) || {};
     const sel = id === intakeClaimId ? " on" : "";
-    const seq = start + i + 1;
     const procCls = (typeof PROC_CLASS !== "undefined" && PROC_CLASS[c.procStatus]) || "";
     rows += `<tr class="lg-lrow${sel}" data-listid="${iEsc(id)}" data-desc="이 사고건을 선택해 아래 상세를 표시합니다.">
-      <td class="c-seq">${seq}</td>
       <td class="c-id">${iEsc(id)}</td>
+      <td>${iEsc(c.repairShop) || "-"}</td>
+      <td>${iEsc(c.car)}</td>
+      <td>${iEsc(c.carModel)}</td>
+      <td>${iEsc(dd.fault)}</td>
       <td>${iEsc(c.flowStage)}</td>
       <td><span class="lg-lstat ${procCls}">${iEsc(c.procStatus)}</span></td>
-      <td>${iEsc(dd.fault)}</td>
-      <td>${iEsc(joinDot([c.carModel, c.car]))}</td>
       <td>${iEsc(c.manager)}</td>
     </tr>`;
   }
@@ -567,8 +567,8 @@ function intakeListHtml() {
   const listDesc = "차량번호·휴대폰으로 조회하면 동일 차량의 사고 접수건을 최대 3줄씩 표시합니다. 행을 클릭하면 아래 상세가 전환되고, 3건을 넘으면 페이지 번호로 과거건을 조회합니다.";
   return `<div class="lg-list" data-desc="${iEsc(listDesc)}">
     <div class="lg-list-head"><span class="h">사고 접수 목록</span><span class="cnt">${ids.length}건</span></div>
-    <table class="lg-list-tbl"><colgroup><col style="width:40px"><col style="width:136px"><col style="width:96px"><col style="width:72px"><col style="width:140px"><col><col style="width:82px"></colgroup>
-      <thead><tr><th>순번</th><th>접수번호</th><th>단계</th><th>상태</th><th>과실</th><th>차량명·번호</th><th>담당</th></tr></thead>
+    <table class="lg-list-tbl"><colgroup><col style="width:128px"><col><col style="width:92px"><col style="width:84px"><col style="width:132px"><col style="width:92px"><col style="width:70px"><col style="width:78px"></colgroup>
+      <thead><tr><th>접수번호</th><th>정비공장명</th><th>차량번호</th><th>차량명</th><th>과실</th><th>단계</th><th>상태</th><th>담당자</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>${pager}
   </div>`;
