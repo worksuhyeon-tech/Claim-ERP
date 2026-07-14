@@ -22,6 +22,50 @@ let intakeLogFilter = "전체";   // 진행 이력 채널(구분) 필터
 const INTAKE_QUERY_TYPES = ["사고번호", "차량번호", "피해차량번호", "피보험자 휴대폰", "통보자 휴대폰", "피해자 휴대폰", "운전자 휴대폰", "소유자 휴대폰"];
 let intakeQueryType = INTAKE_QUERY_TYPES[0];
 
+// 사고 접수 목록 상태 (차량번호·휴대폰 조회 시 동일 차량의 여러 접수건 표시)
+let intakeResults = null;   // 조회된 사고 접수건 id 배열
+let intakeListPage = 0;     // 목록 페이지 (3줄/페이지)
+const INTAKE_LIST_SIZE = 3;
+
+/* 동일 차량 다건 접수 데모 — 이 화면(접수지)에서만 사용.
+   · 6번(23허6789): 부모 포함 2건 모두 진행중
+   · 11번(22하9900): 부모 포함 서로 다른 접수번호 5건 (과거건 포함) */
+(function seedIntakeSiblings() {
+  if (typeof CLAIMS === "undefined") return;
+  const addSiblings = (parentId, extras) => {
+    const parent = CLAIMS.find(c => c.id === parentId);
+    if (!parent) return;
+    extras.forEach(ex => {
+      if (CLAIMS.some(c => c.id === ex.id)) return;
+      const sib = Object.assign({}, parent, ex);  // car·carModel·name·custType 등 동일 차량 승계
+      delete sib.work; delete sib.reviewState; delete sib.submitState; // 단계에 맞게 재도출
+      CLAIMS.push(sib);
+    });
+  };
+  addSiblings("CLM-2026-0006", [
+    { id:"CLM-2026-0043", flowStage:"손해사정", procStatus:"처리중", urgency:"주의",
+      actionType:"업체 미회신", status:"AOS 청구 수신 대기", elapsed:"4시간 10분", manager:"유나래",
+      actionDesc:"동일 차량 별건 사고 — 공업사 청구서 수신 대기 중",
+      nextAction:"공업사에 청구 등록을 요청하세요." },
+  ]);
+  addSiblings("CLM-2026-0011", [
+    { id:"CLM-2026-0044", flowStage:"지급 / 정산", procStatus:"완료", urgency:"정상",
+      actionType:"정산 완료", status:"정산 종결", elapsed:"종결", manager:"유나래",
+      actionDesc:"과거 사고건 — 정산 종결 완료", nextAction:"-" },
+    { id:"CLM-2026-0045", flowStage:"손해사정", procStatus:"완료", urgency:"정상",
+      actionType:"계약 조사", status:"손해사정 종결", elapsed:"종결", manager:"최도윤",
+      actionDesc:"과거 사고건 — 손해사정 종결", nextAction:"-" },
+    { id:"CLM-2026-0046", flowStage:"수리 승인", procStatus:"처리중", urgency:"정상",
+      actionType:"업체 미회신", status:"공업사 수리 오더 대기", elapsed:"6시간", manager:"유나래",
+      actionDesc:"동일 차량 별건 사고 — 수리 진행 중",
+      nextAction:"공업사에 수리 오더 확인을 요청하세요." },
+    { id:"CLM-2026-0047", flowStage:"접수·선견적", procStatus:"미처리", urgency:"주의",
+      actionType:"고객 미응답", status:"사고정보 확인", elapsed:"1시간 30분", manager:"박지현",
+      actionDesc:"동일 차량 신규 접수 — 사고경위 확인 요청 후 미응답",
+      nextAction:"고객 전화로 사고경위를 확인하세요." },
+  ]);
+})();
+
 const intakeProgressLogs = {
   "CLM-2026-0004": [
     { at:"06.18 09:12", type:"피보/운전", text:"운전자 통화 완료. 사고 경위와 입고 희망 공업사 확인." },
@@ -483,6 +527,51 @@ function lgTable(entries) {
 }
 function lgSect(title, note) {
   return `<div class="lg-sect">${title}${note ? `<span class="note">${note}</span>` : ""}</div>`;
+}
+
+/* ---- 사고 접수 목록 (조회구분 ↔ 상세 사이, 항상 3줄 표시) ---- */
+function intakeListHtml() {
+  const ids = intakeResults || [];
+  const pageCount = Math.max(1, Math.ceil(ids.length / INTAKE_LIST_SIZE));
+  if (intakeListPage >= pageCount) intakeListPage = pageCount - 1;
+  if (intakeListPage < 0) intakeListPage = 0;
+  const start = intakeListPage * INTAKE_LIST_SIZE;
+  const pageIds = ids.slice(start, start + INTAKE_LIST_SIZE);
+  let rows = "";
+  for (let i = 0; i < INTAKE_LIST_SIZE; i++) {
+    const id = pageIds[i];
+    if (!id) { rows += `<tr class="lg-lrow empty"><td colspan="7">&nbsp;</td></tr>`; continue; }
+    const c = CLAIMS.find(x => x.id === id) || {};
+    const dd = getIntakeData(id) || {};
+    const sel = id === intakeClaimId ? " on" : "";
+    const seq = start + i + 1;
+    const procCls = (typeof PROC_CLASS !== "undefined" && PROC_CLASS[c.procStatus]) || "";
+    rows += `<tr class="lg-lrow${sel}" data-listid="${iEsc(id)}" data-desc="이 사고건을 선택해 아래 상세를 표시합니다.">
+      <td class="c-seq">${seq}</td>
+      <td class="c-id">${iEsc(id)}</td>
+      <td>${iEsc(c.flowStage)}</td>
+      <td><span class="lg-lstat ${procCls}">${iEsc(c.procStatus)}</span></td>
+      <td>${iEsc(dd.fault)}</td>
+      <td>${iEsc(joinDot([c.carModel, c.car]))}</td>
+      <td>${iEsc(c.manager)}</td>
+    </tr>`;
+  }
+  let pager = "";
+  if (pageCount > 1) {
+    let nums = "";
+    for (let pg = 0; pg < pageCount; pg++) {
+      nums += `<button type="button" class="lg-lpg${pg === intakeListPage ? " on" : ""}" data-listpage="${pg}" data-desc="${pg + 1}페이지의 접수건(과거건 포함)을 표시합니다.">${pg + 1}</button>`;
+    }
+    pager = `<div class="lg-list-pager">${nums}</div>`;
+  }
+  const listDesc = "차량번호·휴대폰으로 조회하면 동일 차량의 사고 접수건을 최대 3줄씩 표시합니다. 행을 클릭하면 아래 상세가 전환되고, 3건을 넘으면 페이지 번호로 과거건을 조회합니다.";
+  return `<div class="lg-list" data-desc="${iEsc(listDesc)}">
+    <div class="lg-list-head"><span class="h">사고 접수 목록</span><span class="cnt">${ids.length}건</span></div>
+    <table class="lg-list-tbl"><colgroup><col style="width:40px"><col style="width:136px"><col style="width:96px"><col style="width:72px"><col style="width:140px"><col><col style="width:82px"></colgroup>
+      <thead><tr><th>순번</th><th>접수번호</th><th>단계</th><th>상태</th><th>과실</th><th>차량명·번호</th><th>담당</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>${pager}
+  </div>`;
 }
 
 function lgIdBand(d) {
@@ -1364,15 +1453,19 @@ function runIntakeSearch() {
     showToast("조회할 값을 입력하세요.");
     return;
   }
-  const hit = CLAIMS.find(c => intakeClaimMatches(c, intakeQueryType, value));
-  if (!hit) {
+  const matches = CLAIMS.filter(c => intakeClaimMatches(c, intakeQueryType, value));
+  if (!matches.length) {
     showToast("조회 조건에 해당하는 사고건이 없습니다.");
     return;
   }
-  intakeClaimId = hit.id;
-  selectedId = hit.id;
+  intakeResults = matches.map(c => c.id);
+  intakeListPage = 0;
+  intakeClaimId = matches[0].id;
+  selectedId = matches[0].id;
   renderIntake();
-  showToast(`${hit.id} 건을 조회했습니다.`);
+  showToast(matches.length > 1
+    ? `${matches.length}건이 조회되었습니다. 목록에서 사고건을 선택하세요.`
+    : `${matches[0].id} 건을 조회했습니다.`);
 }
 
 function bindIntakeSearchInputs() {
@@ -1405,6 +1498,8 @@ function renderIntake() {
   if (typeof seedApprovals === "function" && !apprSeeded) { seedApprovals(); apprSeeded = true; }
   const id = intakeClaimId || selectedId || (CLAIMS[0] && CLAIMS[0].id);
   intakeClaimId = id;
+  // 조회 결과 목록: 없거나 현재 선택이 목록에 없으면 단건으로 초기화
+  if (!intakeResults || !intakeResults.includes(id)) { intakeResults = [id]; intakeListPage = 0; }
   const d = getIntakeData(id);
   const root = $("#intakeRoot");
   if (!d) { root.innerHTML = `<div style="padding:40px;text-align:center;color:#8a90a0">표시할 사고건이 없습니다.</div>`; return; }
@@ -1425,6 +1520,7 @@ function renderIntake() {
           <div class="lg-search-btns"><button class="lg-sbtn" type="button" id="intakeSearchBtn" data-desc="입력한 조건으로 사고건을 조회해 접수지에 불러옵니다.">🔍 검색</button><button class="lg-sbtn gray" type="button" id="intakeResetBtn" data-desc="조회구분과 입력값을 처음 상태로 되돌립니다.">↻ 재설정</button></div>
         </div>
         <div class="lg-body">
+          ${intakeListHtml()}
           ${lgIdBand(d)}
           ${lgRow2(d)}
           ${intakeWorkbenchHtml(d)}
@@ -1447,6 +1543,17 @@ function renderIntake() {
     </div>`;
 
   $("#intakeBack").addEventListener("click", () => { window.location.href = VIEW_FILES.claims; });
+  // 사고 접수 목록 — 행 클릭 시 상세 전환, 페이지 번호로 과거건 이동
+  root.querySelectorAll(".lg-lrow[data-listid]").forEach(r => r.addEventListener("click", () => {
+    const rid = r.dataset.listid;
+    if (rid === intakeClaimId) return;
+    intakeClaimId = rid; selectedId = rid;
+    renderIntake();
+  }));
+  root.querySelectorAll("[data-listpage]").forEach(b => b.addEventListener("click", () => {
+    intakeListPage = parseInt(b.dataset.listpage, 10) || 0;
+    renderIntake();
+  }));
   root.querySelectorAll("[data-itab]").forEach(b => b.addEventListener("click", () => {
     intakeTab = b.dataset.itab;
     renderIntake();
@@ -1466,6 +1573,7 @@ function renderIntake() {
   const rb = $("#intakeResetBtn");
   if (rb) rb.addEventListener("click", () => {
     intakeQueryType = INTAKE_QUERY_TYPES[0];
+    intakeResults = null; intakeListPage = 0;   // 목록 단건으로 초기화
     renderIntake();
   });
   bindIntakeSearchInputs();

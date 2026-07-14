@@ -6,6 +6,29 @@
 <title>Smart접수지 | CLAIM ERP</title>
 <link rel="stylesheet" href="common.css" />
 <style>
+  /* 사고 접수 목록 (조회구분 ↔ 상세 사이, 항상 3줄) */
+  #viewIntake .lg-list { border: 1px solid var(--lg-line2, #C9D3E4); border-radius: 5px; background: #fff; margin-bottom: 8px; overflow: hidden; }
+  #viewIntake .lg-list-head { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #F4F7FC; border-bottom: 1px solid var(--lg-line, #D9E0EC); font-size: 12px; font-weight: 800; color: #2B3140; }
+  #viewIntake .lg-list-head .cnt { color: #2F5FBF; font-weight: 700; }
+  #viewIntake .lg-list-tbl { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  #viewIntake .lg-list-tbl th, #viewIntake .lg-list-tbl td { border-bottom: 1px solid var(--lg-line, #EEF1F6); padding: 5px 8px; font-size: 11.5px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #viewIntake .lg-list-tbl th { background: var(--lg-label, #EEF2F8); color: #3A3F4E; font-weight: 700; }
+  #viewIntake .lg-list-tbl td.c-id { color: #2F5FBF; font-weight: 700; }
+  #viewIntake .lg-lrow { cursor: pointer; }
+  #viewIntake .lg-lrow:hover { background: #F1F6FF; }
+  #viewIntake .lg-lrow.on { background: #E7F0FF; }
+  #viewIntake .lg-lrow.on td { font-weight: 700; }
+  #viewIntake .lg-lrow.empty, #viewIntake .lg-lrow.empty:hover { cursor: default; background: transparent; }
+  #viewIntake .lg-lrow.empty td { color: transparent; }
+  #viewIntake .lg-lstat { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 10.5px; font-weight: 700; background: #EEF1F6; color: #5B6273; }
+  #viewIntake .lg-lstat.s-todo { background: #FDECEC; color: #D14343; }
+  #viewIntake .lg-lstat.s-doing { background: #E7F0FF; color: #2F5FBF; }
+  #viewIntake .lg-lstat.s-done { background: #E7F7EE; color: #1E8E5A; }
+  #viewIntake .lg-lstat.s-hold { background: #FFF4E5; color: #B4690E; }
+  #viewIntake .lg-list-pager { display: flex; gap: 4px; justify-content: center; padding: 6px; background: #FAFBFD; border-top: 1px solid var(--lg-line, #EEF1F6); }
+  #viewIntake .lg-lpg { min-width: 24px; height: 24px; border: 1px solid var(--lg-line2, #C9D3E4); background: #fff; border-radius: 4px; font-size: 11.5px; font-weight: 700; color: #3C4050; cursor: pointer; }
+  #viewIntake .lg-lpg.on { background: #2F5FBF; color: #fff; border-color: #2F5FBF; }
+
   /* 상단 행 — 좌: 요약(좁게) / 우: SK렌터카 연동 정보 (요약 오른쪽 빈 공간 채움) */
   #viewIntake .lg-toprow { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 8px; }
   #viewIntake .lg-toprow-sum { flex: 0 0 440px; max-width: 46%; }
