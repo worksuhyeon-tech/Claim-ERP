@@ -499,10 +499,10 @@ function lgRow2(d) {
     { k: "사고담당", v: d.accidentManager }, { k: "디지털안내", v: "-" },
     { k: "검토회신", v: d.reviewReply }, { k: "고객구분", v: d.custType },
   ]);
-  return `<div class="lg-row2 solo"><div>${left}</div><div>${intakeSkRentHtml(d)}</div></div>`;
+  return `<div class="lg-row2 solo"><div>${left}</div></div>`;
 }
 
-/* ---- SK렌터카 연동 정보 (상단 우측) ----
+/* ---- SK렌터카 연동 정보 (전체 폭 가로 밴드) ----
    면책·정비·대차 관련 값은 SK렌터카 시스템과 연동하여 받아와야 하는 항목이다. */
 const SK_RENT_FIELDS = [
   { k: "면책약정금액",   key: "deductAgreed" },
@@ -515,20 +515,17 @@ const SK_RENT_FIELDS = [
   { k: "면책금통합청구", key: "deductBilling" },
   { k: "개인대차",       key: "personalSub" },
 ];
-function intakeSkRentHtml(d) {
+function intakeSkRentBandHtml(d) {
   const sk = d.skRent || {};
   const cellDesc = "SK렌터카 시스템과 연동해 받아오는 값입니다. (연동 전에는 예시·미수신 상태)";
-  const cells = SK_RENT_FIELDS.map(f => {
+  const heads = SK_RENT_FIELDS.map(f => `<th>${f.k}</th>`).join("");
+  const vals = SK_RENT_FIELDS.map(f => {
     const v = iEsc(sk[f.key]);
-    return `<th>${f.k}</th><td class="${v ? "" : "ph"}" data-desc="${iEsc(cellDesc)}">${v || "미수신"}</td>`;
-  });
-  let rows = "";
-  for (let i = 0; i < cells.length; i += 2) {
-    rows += `<tr>${cells[i]}${cells[i + 1] || `<th></th><td></td>`}</tr>`;
-  }
+    return `<td class="${v ? "" : "ph"}" data-desc="${iEsc(cellDesc)}">${v || "미수신"}</td>`;
+  }).join("");
   const secDesc = "SK렌터카와 연동이 필요한 정보입니다. 이 항목들은 SK렌터카 시스템에서 받아와야 하는 값으로, 연동 시 실제 계약 데이터로 자동 채워집니다.";
   return `<div class="lg-sect" data-desc="${iEsc(secDesc)}">SK렌터카 연동 정보<span class="note">※ SK렌터카 시스템 연동 수신 항목</span></div>`
-    + `<table class="lg-tbl lg-sk-tbl"><colgroup><col style="width:26%"><col style="width:24%"><col style="width:26%"><col style="width:24%"></colgroup>${rows}</table>`;
+    + `<div class="lg-scroll"><table class="lg-tbl lg-sk-band"><thead><tr>${heads}</tr></thead><tbody><tr>${vals}</tr></tbody></table></div>`;
 }
 
 /* ---- 진행 이력 / 진행 메모 / 미결 속성 ---- */
@@ -1426,6 +1423,7 @@ function renderIntake() {
         <div class="lg-body">
           ${lgIdBand(d)}
           ${lgRow2(d)}
+          ${intakeSkRentBandHtml(d)}
           ${intakeWorkbenchHtml(d)}
           <div class="lg-tabs">
             <button class="lg-tab ${intakeTab === "contract" ? "active" : ""}" type="button" data-itab="contract" data-desc="계약자·사고 관련자·사고/출동·계약 등 접수 기본 정보를 봅니다.">계약 사고 정보</button>

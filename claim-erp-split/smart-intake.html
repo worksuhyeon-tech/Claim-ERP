@@ -6,12 +6,13 @@
 <title>Smart접수지 | CLAIM ERP</title>
 <link rel="stylesheet" href="common.css" />
 <style>
-  /* 상단 정보 행 — 좌: 요약(좁게) / 우: SK렌터카 연동 정보 */
-  #viewIntake .lg-row2.solo { grid-template-columns: 0.8fr 1.2fr; }
-  #viewIntake .lg-row2.solo > div:first-child .lg-tbl { table-layout: fixed; }
-  /* SK렌터카 연동 정보 표 */
-  #viewIntake .lg-sk-tbl th { white-space: nowrap; }
-  #viewIntake .lg-sk-tbl td[data-desc],
+  /* 상단 요약 행 — 좁은 좌측 단일 컬럼 (우측 여백) */
+  #viewIntake .lg-row2.solo { grid-template-columns: minmax(0, 560px) 1fr; }
+  /* SK렌터카 연동 정보 — 전체 폭 가로 1줄 표 */
+  #viewIntake .lg-sk-band { min-width: 960px; }
+  #viewIntake .lg-sk-band th { white-space: nowrap; }
+  #viewIntake .lg-sk-band td { text-align: center; }
+  #viewIntake .lg-sk-band td[data-desc],
   #viewIntake .lg-sect[data-desc] { cursor: help; }
 
   /* 차량 부위 손상 — 정비공장 입력 ↔ 담당자 입력 2단 대조 */
