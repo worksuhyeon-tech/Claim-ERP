@@ -306,7 +306,7 @@ AI_REVIEWS.forEach(r => {
 const aiState = {
   cardFilter: null,        // null | "target" | "approval" | "adjust" | "hold"
   filters: { stage: "전체", decision: "전체", scoreBand: "전체", confBand: "전체", q: "" },
-  drawerId: null,
+  sideId: null,
   detailId: null,
   criteriaTpl: null
 };
@@ -440,13 +440,25 @@ function donutSvg(idPrefix, score, decision, big) {
     </div>
   </div>`;
 }
+// 점수 → 원 채움 비율 (12시 시작·반시계 기준): 9시(30점) 6시(50점) 3시(75점) 12시(100점)
+function scoreToFrac(score) {
+  const pts = [[0, 0], [30, 0.25], [50, 0.5], [75, 0.75], [100, 1]];
+  score = Math.max(0, Math.min(100, score));
+  for (let i = 1; i < pts.length; i++) {
+    if (score <= pts[i][0]) {
+      const a = pts[i - 1], b = pts[i];
+      return a[1] + (b[1] - a[1]) * (score - a[0]) / (b[0] - a[0]);
+    }
+  }
+  return 1;
+}
 function animateDonut(el, score) {
   if (!el) return;
   const prog = el.querySelector(".donut-prog");
   const num = el.querySelector(".donut-num");
   if (score == null) { if (num) num.textContent = "–"; return; }
   const C = parseFloat(prog.getAttribute("data-circ"));
-  const target = C * (1 - score / 100);
+  const target = C * (1 - scoreToFrac(score));   // 반시계 채움은 CSS transform이 담당
   if (REDUCED_MOTION) {
     prog.style.strokeDashoffset = target;
     num.textContent = score;
@@ -466,34 +478,47 @@ function animateDonut(el, score) {
 }
 
 /* ------------------------------------------------------------------ *
- * 7. 우측 요약패널 (Drawer, Plan 12)
+ * 7. 우측 요약패널 (인라인 분리 컴포넌트, Plan 12)
+ *    - 목록 우측에 도킹되어 함께 보이는 형태 (오버레이 아님)
+ *    - 담당자 처리 버튼은 스크롤해도 고정되는 스티키 푸터
  * ------------------------------------------------------------------ */
-function drawerActions(r) {
+function qbtn(act, label, cls) { return `<button class="side-btn ${cls || ""}" data-act="${act}">${label}</button>`; }
+function sideFooterActions(r) {
   const btns = [];
   if (r.decision === "자료대기") {
-    if (!r.hasPhoto) btns.push(`<button class="ai-qbtn" data-act="reqPhoto">사진요청</button>`);
-    if (!r.hasEstimate) btns.push(`<button class="ai-qbtn" data-act="reqEstimate">견적요청</button>`);
-    btns.push(`<button class="ai-qbtn" data-act="confirmData">자료 확인 완료</button>`);
+    if (!r.hasPhoto) btns.push(qbtn("reqPhoto", "사진요청"));
+    if (!r.hasEstimate) btns.push(qbtn("reqEstimate", "견적요청"));
+    btns.push(qbtn("confirmData", "자료 확인 완료", "primary"));
   } else if (r.decision === "청구서대기") {
-    btns.push(`<button class="ai-qbtn" data-act="reqEstimate">청구서요청</button>`);
-    btns.push(`<button class="ai-qbtn" data-act="confirmData">자료 확인 완료</button>`);
+    btns.push(qbtn("reqEstimate", "청구서요청"));
+    btns.push(qbtn("confirmData", "자료 확인 완료", "primary"));
   } else if (r.decision === "분석실패") {
-    btns.push(`<button class="ai-qbtn" data-act="reanalyze">AI 재분석</button>`);
-    btns.push(`<button class="ai-qbtn" data-act="toManual">직접검토 전환</button>`);
-  } else if (r.decision !== "AI 분석중" && r.stage !== "완료") {
-    btns.push(`<button class="ai-qbtn" data-act="supplement">자료보완 요청</button>`);
-    btns.push(`<button class="ai-qbtn" data-act="toManual">직접검토 전환</button>`);
+    btns.push(qbtn("toManual", "직접검토 전환"));
+    btns.push(qbtn("reanalyze", "AI 재분석", "primary"));
+  } else if (r.decision === "AI 분석중") {
+    btns.push(`<span class="side-note">AI가 분석 중입니다…</span>`);
+  } else if (r.stage === "완료") {
+    btns.push(`<span class="side-note done">✓ 처리 완료 · ${escapeHtml(r.handledBy || "담당자")}</span>`);
+  } else if (r.stage === "손해사정") {
+    btns.push(qbtn("supplement", "자료보완 요청"));
+    btns.push(qbtn("toManual", "직접검토 전환"));
+    btns.push(qbtn("editConfirm", "수정 후 확정", "edit"));
+    btns.push(qbtn("confirm", "AI 결과 확정", "primary"));
+  } else { // 수리승인
+    btns.push(qbtn("supplement", "자료보완 요청"));
+    btns.push(qbtn("toManual", "직접검토 전환"));
+    btns.push(qbtn("editApprove", "수정 후 승인", "edit"));
+    btns.push(qbtn("approve", "AI 결과 승인", "primary"));
   }
-  btns.push(`<button class="ai-qbtn primary" data-act="detail">상세 분석 보기</button>`);
   return btns.join("");
 }
-function renderDrawer(r) {
+function renderSide(r) {
   const reasons = (r.reasons || []).slice(0, 3);
   const hold = (r.forcedHold || []).length
     ? `<div class="dw-hold">강제 보류: ${r.forcedHold.map(escapeHtml).join(" · ")}</div>` : "";
   const missing = (r.missing || []).length
     ? `<div class="dw-row"><span class="dw-k">부족자료</span><span class="dw-v warn">${r.missing.map(escapeHtml).join(", ")}</span></div>` : "";
-  $("#aiDrawer").innerHTML = `
+  $("#aiSide").innerHTML = `
     <div class="dw-head">
       <div>
         <div class="dw-id">${r.claimId} ${r.needsReanalyze ? '<span class="ai-flag">재분석 필요</span>' : ""}</div>
@@ -515,22 +540,22 @@ function renderDrawer(r) {
       ${(r.recommend || []).length ? `<div class="dw-block"><div class="dw-bt">AI 권장조치</div><ul class="dw-list rec">${r.recommend.map(x => `<li>${escapeHtml(x)}</li>`).join("")}</ul></div>` : ""}
       ${missing}
       <div class="dw-meta">분석일시 ${escapeHtml(r.analyzedAt)} · ${r.round}차 분석</div>
-      <div class="dw-actions">${drawerActions(r)}</div>
-    </div>`;
-  const donut = $("#aiDrawer").querySelector(".donut");
-  animateDonut(donut, r.score);
+      <button class="side-detail" type="button" data-act="detail">상세 분석 보기 →</button>
+    </div>
+    <div class="side-foot">${sideFooterActions(r)}</div>`;
+  animateDonut($("#aiSide").querySelector(".donut"), r.score);
 }
-function openDrawer(id) {
+function openSide(id) {
   const r = getReview(id); if (!r) return;
-  aiState.drawerId = id;
-  renderDrawer(r);
-  $("#aiDrawer").classList.add("open");
-  $("#aiDrawerBackdrop").classList.add("show");
+  aiState.sideId = id;
+  renderSide(r);
+  $("#aiSide").classList.remove("hidden");
+  $("#aiWork").classList.add("has-side");
 }
-function closeDrawer() {
-  aiState.drawerId = null;
-  $("#aiDrawer").classList.remove("open");
-  $("#aiDrawerBackdrop").classList.remove("show");
+function closeSide() {
+  aiState.sideId = null;
+  $("#aiSide").classList.add("hidden");
+  $("#aiWork").classList.remove("has-side");
 }
 
 /* ------------------------------------------------------------------ *
@@ -696,7 +721,7 @@ function renderDetail(r) {
 function openDetail(id) {
   const r = getReview(id); if (!r) return;
   aiState.detailId = id;
-  closeDrawer();
+  closeSide();
   renderDetail(r);
   $("#viewAi").classList.add("hidden");
   $("#viewAiDetail").classList.remove("hidden");
@@ -708,6 +733,11 @@ function backToList() {
   $("#viewAi").classList.remove("hidden");
   renderAiSummary();
   renderAiList();
+}
+// 승인/확정 완료 후: 상세화면이면 목록 복귀, 인라인 패널이면 패널 닫고 갱신
+function afterCommit() {
+  if (aiState.detailId) { backToList(); }
+  else { closeSide(); renderAiSummary(); renderAiList(); }
 }
 
 /* ------------------------------------------------------------------ *
@@ -759,7 +789,7 @@ function commitApprove(r, edited) {
   }
   r.stage = "완료"; r.handledBy = r.manager; r.handledAt = formatNowStamp();
   showToast(`${r.claimId} 수리승인을 완료했습니다.`);
-  backToList();
+  afterCommit();
 }
 function commitConfirm(r, edited) {
   readReply(r);
@@ -777,14 +807,14 @@ function commitConfirm(r, edited) {
   }
   r.stage = "완료"; r.handledBy = r.manager; r.handledAt = formatNowStamp();
   showToast(`${r.claimId} 손해사정을 확정했습니다.`);
-  backToList();
+  afterCommit();
 }
 // 사진/견적/청구서 요청 — 발송화면 호출 인터페이스 스텁 (실제 발송 연동 제외, Plan 3.2)
 function openSendStub(r, kind) {
   const claim = (typeof CLAIMS !== "undefined") && CLAIMS.find(c => c.id === r.claimId);
   pushHistory(r, `${kind}요청`, `알림톡/SMS ${kind}요청 발송`);
   showToast(`${r.claimId} ${kind} 요청을 알림톡·SMS 발송화면으로 전달했습니다. (발송 연동은 별도 화면)`);
-  if (aiState.drawerId === r.claimId) renderDrawer(r);
+  if (aiState.sideId === r.claimId) renderSide(r);
 }
 // 자료 확인 완료 → 재검증 후 재분석 (TC-04 / TC-05)
 function confirmData(r) {
@@ -822,7 +852,7 @@ function runReanalyze(r) {
     showToast(`${r.claimId} 재분석 완료 — ${r.score}점 · ${r.decision}`);
     refreshAll();
     if (aiState.detailId === r.claimId) renderDetail(r);
-    else openDrawer(r.claimId);
+    else openSide(r.claimId);
   };
   if (REDUCED_MOTION) finish();
   else setTimeout(finish, 1600);
@@ -830,7 +860,7 @@ function runReanalyze(r) {
 function refreshAll() {
   renderAiSummary();
   renderAiList();
-  if (aiState.drawerId) { const r = getReview(aiState.drawerId); if (r) renderDrawer(r); }
+  if (aiState.sideId) { const r = getReview(aiState.sideId); if (r) renderSide(r); }
 }
 
 /* ------------------------------------------------------------------ *
@@ -965,7 +995,7 @@ function finishAnalysis(r) {
     </div>`);
   const foot = document.querySelector(".ai-modal .modal-foot");
   if (foot) foot.innerHTML = `<button class="btn-modal primary" type="button" id="areqDone">결과 확인</button>`;
-  const done = () => { closeAiModal(); refreshAll(); openDrawer(r.claimId); };
+  const done = () => { closeAiModal(); refreshAll(); openSide(r.claimId); };
   const btn = $("#areqDone");
   if (btn) btn.addEventListener("click", done);
   if (REDUCED_MOTION) done();
@@ -1005,25 +1035,24 @@ function initAiDashboard() {
     renderAiSummary(); renderAiList();
   });
 
-  // 목록 클릭 (이동 / 접수번호)
+  // 목록 클릭 (이동 / 접수번호) → 우측 인라인 요약패널
   $("#aiRows").addEventListener("click", e => {
-    const mv = e.target.closest("[data-move]"); if (mv) { openDrawer(mv.dataset.move); return; }
-    const dt = e.target.closest("[data-detail]"); if (dt) { openDrawer(dt.dataset.detail); return; }
+    const mv = e.target.closest("[data-move]"); if (mv) { openSide(mv.dataset.move); return; }
+    const dt = e.target.closest("[data-detail]"); if (dt) { openSide(dt.dataset.detail); return; }
   });
 
   // 검토요청 버튼
   $("#btnAiRequest").addEventListener("click", openRequestModal);
 
-  // Drawer 액션
-  $("#aiDrawer").addEventListener("click", e => {
+  // 인라인 요약패널 액션
+  $("#aiSide").addEventListener("click", e => {
     const b = e.target.closest("[data-act]"); if (!b) return;
     const act = b.dataset.act;
-    if (act === "close") { closeDrawer(); return; }
-    const r = getReview(aiState.drawerId); if (!r) return;
+    if (act === "close") { closeSide(); return; }
+    const r = getReview(aiState.sideId); if (!r) return;
     if (act === "detail") { openDetail(r.claimId); return; }
     handleAction(r, act);
   });
-  $("#aiDrawerBackdrop").addEventListener("click", closeDrawer);
 
   // Detail 액션 (이벤트 위임)
   $("#viewAiDetail").addEventListener("click", e => {
@@ -1038,11 +1067,11 @@ function initAiDashboard() {
     if (cri) cri.classList.toggle("open");
   });
 
-  // ESC 로 drawer/detail 닫기
+  // ESC 로 모달/요약패널 닫기
   document.addEventListener("keydown", e => {
     if (e.key !== "Escape") return;
     if ($("#aiModalRoot").classList.contains("open")) { closeAiModal(); return; }
-    if (aiState.drawerId) { closeDrawer(); return; }
+    if (aiState.sideId) { closeSide(); return; }
   });
 }
 
