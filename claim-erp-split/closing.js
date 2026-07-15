@@ -2,7 +2,7 @@
 const activeView = "closing";
 
 const APPR_TYPES = ["추산", "지급(종결)", "면책종결", "추가지급", "VOC"];
-const APPR_STATUS_CLASS = { "상신중": "appr-ing", "결재완료": "appr-done", "반려": "appr-reject" };
+const APPR_STATUS_CLASS = { "상신중": "appr-ing", "결재완료": "appr-done", "반려": "appr-reject", "상신취소": "appr-cancel" };
 const APPR_TYPE_COLOR = { "추산": "#2563EB", "지급(종결)": "#15803D", "면책종결": "#7C3AED", "추가지급": "#0891B2", "VOC": "#DC2626" };
 const APPR_ACT_CLASS = { "상신": "", "승인": "h-approve", "반려": "h-reject" };
 
@@ -43,6 +43,7 @@ function apprFilteredBase() {
 
 function renderClosingView() {
   if (!apprSeeded) { seedApprovals(); apprSeeded = true; }
+  if (typeof loadClaimResolutionState === "function") loadClaimResolutionState();
   bindApprToolbar();
   const base = apprFilteredBase();
   renderApprSummary(base);
@@ -77,7 +78,7 @@ function apprRowHtml(a) {
     <td class="sa-name">${a.requesterName}</td>
     <td>${a.approvalType}</td>
     <td>${a.claimNo}</td>
-    <td class="ta-c">${a.resolutionNo}</td>
+    <td class="ta-c">${a.approvalSeq || a.resolutionNo}${(a.includedResolutionSeqs && a.includedResolutionSeqs.length) ? `<div class="appr-incl">결의 ${a.includedResolutionSeqs.join(", ")}</div>` : ""}</td>
     <td>${a.damagedObjectName}</td>
     <td>${a.damageInfo}</td>
     <td>${a.repairShopName}</td>
@@ -99,7 +100,7 @@ function renderApprList(base) {
   $("#apprRows").innerHTML = `
     <table class="sa-table appr-table">
       <thead><tr>
-        <th class="ta-c">선택</th><th>상신자</th><th>결재종류</th><th>사고번호</th><th class="ta-c">결의순번</th>
+        <th class="ta-c">선택</th><th>상신자</th><th>결재종류</th><th>사고번호</th><th class="ta-c">결재순번</th>
         <th>피해물명</th><th>피해정보</th><th>수리업체명</th><th class="num">결재금액</th>
         <th class="ta-c">결재상태</th><th>상신일</th><th>결재완료일</th>
       </tr></thead>
@@ -292,6 +293,11 @@ function apprFinalizeApprove(item, approver) {
   item.approverId = approver.id;
   item.approverName = approver.name;
   pushApprHistory(item, "승인", approver, item.approverComment, before, "결재완료");
+  // 연결 지급결의 상태 동기화(설계문서 §11) — 결재완료 시 결의도 영구 잠금
+  if (typeof syncResolutionStatusFromApproval === "function" && item.resolutionIds) {
+    syncResolutionStatusFromApproval(item, "결재완료");
+    if (typeof persistExtraApprovals === "function") persistExtraApprovals();
+  }
   renderClosingView();
   showToast("결재완료 처리되었습니다.");
 }
@@ -316,6 +322,11 @@ function apprReject(id) {
   item.approverId = approver.id;
   item.approverName = approver.name;
   pushApprHistory(item, "반려", approver, reason, before, "반려");
+  // 연결 지급결의 상태 동기화(설계문서 §11) — 반려 시 결의 잠금 해제(수정·재상신 가능)
+  if (typeof syncResolutionStatusFromApproval === "function" && item.resolutionIds) {
+    syncResolutionStatusFromApproval(item, "반려");
+    if (typeof persistExtraApprovals === "function") persistExtraApprovals();
+  }
   renderClosingView();
   showToast("반려 처리되었습니다.");
 }

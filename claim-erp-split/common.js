@@ -1158,3 +1158,177 @@ function srCurrentStaff(claim) {                  // 저장자·상신자 신원
     || assignStaffById("EMP004")
     || { id:"", name:(claim && claim.manager) || "담당자", employeeNo:"" };
 }
+
+
+/* ===================== 지급결의(PAYMENT_RESOLUTIONS) 공용 기반 =====================
+   AI-OCR 부품청구서 등으로 확정한 '지급결의'를 화면 간 공유하는 공용 배열.
+   - 청구서 1개 = 지급결의 1건. 동일 사고건에 여러 건 저장 가능.
+   - 여러 지급결의를 선택·합산해 지급결재(APPROVALS) 1건으로 상신.
+   - 결의순번(resolutionSeq)과 결재순번(approvalSeq)은 서로 다른 번호 체계.
+   프로토타입은 localStorage로 화면 간 유지(백엔드 DB 대체). */
+let PAYMENT_RESOLUTIONS = [];
+const RESOLUTION_LS_KEY = "claimResolutions";     // 지급결의 저장 키
+const APPROVAL_LS_KEY = "claimApprovalsExtra";    // 결의 기반 신규 결재 저장 키
+let resolutionsSeeded = false;                    // 결의/결재 복원·시드 1회 가드
+
+// 상태별 권한 매트릭스 (설계문서 §8) — 선택·수정·삭제·결재상신 가능 여부
+const RESOLUTION_PERMS = {
+  "결재 전":     { select:true,  edit:true,  remove:true,  submit:true  },
+  "상신중":      { select:false, edit:false, remove:false, submit:false },
+  "반려":        { select:true,  edit:true,  remove:true,  submit:true  },
+  "상신취소":    { select:true,  edit:true,  remove:true,  submit:true  },
+  "결재완료":    { select:false, edit:false, remove:false, submit:false },
+  "재확인 필요": { select:false, edit:true,  remove:true,  submit:false }, // 재확정 후 select/submit 가능
+};
+function resolutionCan(res, action) {
+  const p = res && RESOLUTION_PERMS[res.status];
+  return !!(p && p[action]);
+}
+function resolutionsFor(claimNo) { return PAYMENT_RESOLUTIONS.filter(r => r.claimNo === claimNo); }
+function getResolution(id) { return PAYMENT_RESOLUTIONS.find(r => r.id === id) || null; }
+
+// 결의순번 — 사고번호 기준 1씩 증가(청구유형 무관). 삭제분은 최대값 기준이라 재사용 안 함.
+function nextResolutionSeq(claimNo) {
+  const max = PAYMENT_RESOLUTIONS
+    .filter(r => r.claimNo === claimNo)
+    .reduce((m, r) => Math.max(m, parseInt(r.resolutionSeq, 10) || 0), 0);
+  return String(max + 1).padStart(3, "0");
+}
+// 결재순번 — 사고번호 기준 실제 결재상신 시 1씩 증가.
+function nextApprovalSeq(claimNo) {
+  const max = APPROVALS
+    .filter(a => a.claimNo === claimNo && a.approvalSeq)
+    .reduce((m, a) => Math.max(m, parseInt(a.approvalSeq, 10) || 0), 0);
+  return String(max + 1).padStart(3, "0");
+}
+// 지급결의 고유 ID (RES-####)
+function nextResolutionId() {
+  const n = PAYMENT_RESOLUTIONS.reduce((m, r) => Math.max(m, parseInt(String(r.id).replace(/\D/g, ""), 10) || 0), 0) + 1;
+  return "RES-" + String(n).padStart(4, "0");
+}
+
+// 과실률 문자열 파싱 — "자차 20% (확정)" → { pct:20, confirmed:true }
+function parseFaultInfo(faultText) {
+  const s = String(faultText || "");
+  const m = s.match(/(\d+)\s*%/);
+  const pct = m ? parseInt(m[1], 10) : 0;
+  const confirmed = /확정/.test(s) && !/미확정/.test(s);
+  return { pct, confirmed };
+}
+
+// 결의 금액 재계산 — 과실상계는 손해사정금액에만 적용(청구금액 불변).
+function recalcResolutionAmounts(res, faultPct) {
+  const claim = res.rows.reduce((s, r) => s + Number(r.claimAmount || 0), 0);
+  const assessed = res.rows.reduce((s, r) => s + (r.denied ? 0 : Number(r.assessedAmount || 0)), 0);
+  const offset = Math.round(assessed * (Number(faultPct || 0) / 100));
+  res.claimAmount = claim;
+  res.assessedAmountBeforeFault = assessed;
+  res.faultOffsetAmount = offset;
+  res.finalAssessedAmount = assessed - offset;
+  return res;
+}
+
+// 결재 상신/처리 시 연결 결의 상태 동기화 (설계문서 §11)
+function syncResolutionStatusFromApproval(approval, newStatus) {
+  (approval.resolutionIds || []).forEach(rid => {
+    const r = getResolution(rid);
+    if (!r) return;
+    r.status = newStatus;
+    if (newStatus === "상신중") {
+      r.currentApprovalId = approval.id;
+    } else {
+      if (r.currentApprovalId && r.approvalHistoryIds.indexOf(r.currentApprovalId) < 0) {
+        r.approvalHistoryIds.push(r.currentApprovalId);
+      }
+      if (newStatus !== "결재완료") r.currentApprovalId = null;
+    }
+    r.updatedAt = apprNow();
+  });
+  persistResolutions();
+  persistExtraApprovals();
+}
+
+// 과실률 변경 반영 (설계문서 §6.2) — 미결재 결의는 '재확인 필요'로 전환 후 최신 과실률로 재계산.
+// 실제 운영에서는 과실률 확정 IF 수신 시점에 호출. 프로토타입은 window.__setFaultRate 훅으로 시연.
+function applyFaultRateChange(claimNo, newPct) {
+  let changed = 0;
+  resolutionsFor(claimNo).forEach(r => {
+    if (r.status === "결재완료" || r.status === "상신중") return; // 완료·상신중은 자동 변경 안 함
+    if (Number(r.faultRateAtConfirmed) === Number(newPct)) return;
+    if (r.status === "결재 전" || r.status === "반려" || r.status === "상신취소" || r.status === "재확인 필요") {
+      r.status = "재확인 필요";
+      r.faultRateAtReview = Number(newPct);
+      recalcResolutionAmounts(r, newPct);
+      r.updatedAt = apprNow();
+      changed++;
+    }
+  });
+  persistResolutions();
+  return changed;
+}
+
+// ---- localStorage 동기화 (프로토타입: 화면 간 유지). 실제 운영은 백엔드 DB로 대체 ----
+function persistResolutions() {
+  try { localStorage.setItem(RESOLUTION_LS_KEY, JSON.stringify(PAYMENT_RESOLUTIONS)); } catch (e) {}
+}
+function persistExtraApprovals() {
+  try {
+    const extra = APPROVALS.filter(a => a.resolutionIds && a.resolutionIds.length);
+    localStorage.setItem(APPROVAL_LS_KEY, JSON.stringify(extra));
+  } catch (e) {}
+}
+// 결의·결재 상태 복원. seedApprovals() 이후 1회 호출 → 결의 기반 신규 결재를 APPROVALS에 병합.
+function loadClaimResolutionState() {
+  if (resolutionsSeeded) return;
+  resolutionsSeeded = true;
+  // 1) 지급결의 복원 or 최초 시드
+  let stored = null;
+  try { stored = JSON.parse(localStorage.getItem(RESOLUTION_LS_KEY) || "null"); } catch (e) {}
+  if (Array.isArray(stored)) {
+    PAYMENT_RESOLUTIONS = stored;
+  } else {
+    seedResolutions();
+    persistResolutions();
+  }
+  // 2) 결의 기반 신규 결재 복원 → APPROVALS 병합(중복 id 제거)
+  let extra = null;
+  try { extra = JSON.parse(localStorage.getItem(APPROVAL_LS_KEY) || "null"); } catch (e) {}
+  if (Array.isArray(extra)) {
+    extra.forEach(a => { if (!APPROVALS.some(x => x.id === a.id)) APPROVALS.unshift(a); });
+  }
+}
+
+// 데모 시드 — 기본 사고건에 정비청구서 결의 001을 저장해 두어 다중 결의·전체선택 결재를 시연.
+function seedResolutions() {
+  const c = (typeof CLAIMS !== "undefined" && CLAIMS[0]) ? CLAIMS[0] : null;
+  if (!c) return;
+  const staff = srCurrentStaff(c);
+  const claim = 1500000, assessed = 1400000, faultPct = 20;
+  const offset = Math.round(assessed * faultPct / 100);
+  PAYMENT_RESOLUTIONS.push({
+    id: nextResolutionId(),
+    claimNo: c.id,
+    resolutionSeq: nextResolutionSeq(c.id),
+    resolutionType: "정비",
+    sourceType: "수기입력",
+    sourceFileName: "정비청구서_" + c.id + ".pdf",
+    documentType: "claim",
+    status: "결재 전",
+    faultRateAtConfirmed: faultPct,
+    claimAmount: claim,
+    assessedAmountBeforeFault: assessed,
+    faultOffsetAmount: offset,
+    finalAssessedAmount: assessed - offset,
+    rows: [
+      { rowId:"ROW-S1", seq:1, partName:"판금 도장 공임", partNumber:"-", partCategory:"공임", quantity:1, denied:false, claimAmount:900000, assessedAmount:850000, ocrOriginal:null },
+      { rowId:"ROW-S2", seq:2, partName:"소모품 일체", partNumber:"-", partCategory:"교환", quantity:1, denied:false, claimAmount:600000, assessedAmount:550000, ocrOriginal:null },
+    ],
+    editHistory: [],
+    currentApprovalId: null,
+    approvalHistoryIds: [],
+    confirmedBy: staff.id,
+    confirmedByName: staff.name,
+    confirmedAt: apprNow(),
+    updatedAt: apprNow(),
+  });
+}

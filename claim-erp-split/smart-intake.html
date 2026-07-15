@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Smart접수지 | CLAIM ERP</title>
 <link rel="stylesheet" href="common.css" />
+<link rel="stylesheet" href="intake-ocr.css" />
 <style>
   /* 사고 접수 목록 (조회구분 ↔ 상세 사이, 항상 3줄) */
   #viewIntake .lg-list { border: 1px solid var(--lg-line2, #C9D3E4); border-radius: 5px; background: #fff; margin-bottom: 8px; overflow: hidden; }
@@ -224,9 +225,11 @@
 <div class="modal-root" id="assignSimRoot" aria-hidden="true"></div>
 <div class="modal-root" id="apprPwRoot" aria-hidden="true"></div>
 <div class="modal-root" id="apprDocRoot" aria-hidden="true"></div>
+<div class="modal-root" id="ocrModalRoot" aria-hidden="true"></div>
 
 
 <script src="common.js"></script>
 <script src="intake.js"></script>
+<script src="intake-ocr.js"></script>
 </body>
 </html>
