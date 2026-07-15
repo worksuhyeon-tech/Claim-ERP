@@ -585,14 +585,24 @@ function lgIdBand(d) {
   return `<div class="lg-idband">
     <span class="tag">${iEsc(d.procStatus) || "대기"}</span>
     <span class="id">${iEsc(d.id)}</span>
+    <span class="seg shop">${iEsc(d.repairShop) || "미입고"}</span>
     <span class="seg fault">${iEsc(d.fault) || "자차 0% (미확정)"}</span>
     <span class="seg car">${joinDot([d.carModel, d.car]) || "-"}</span>
   </div>`;
 }
 
+// 수리승인 여부 — 수리 승인 단계 이후면 승인, 단계 내 검토/대기면 미승인
+function repairApprovalOf(d) {
+  const idx = STAGES.indexOf(d.flowStage);
+  const appIdx = STAGES.indexOf("수리 승인");
+  if (idx < 0 || appIdx < 0) return "미승인";
+  if (idx > appIdx) return "승인";
+  if (idx === appIdx) return /수리 승인 대기|관리자|검토/.test(d.status || "") ? "미승인" : "승인";
+  return "미승인";
+}
 function lgRow2(d) {
   const left = lgTable([
-    { k: "사고담당", v: d.accidentManager }, { k: "디지털안내", v: "-" },
+    { k: "사고담당", v: d.accidentManager }, { k: "수리승인", v: repairApprovalOf(d) },
     { k: "검토회신", v: d.reviewReply }, { k: "고객구분", v: d.custType },
   ]);
   // 좌: 요약(좁게) / 우: SK렌터카 연동 정보 (요약 오른쪽 빈 공간 채움)
@@ -989,7 +999,7 @@ function srApprComponentHtml(d) {
     ${lgSect("결재", "추산·지급 결재 상신")}
     ${form}
     ${apprHist}
-    ${lgSect("추산이력")}
+    ${lgSect("결재이력")}
     ${estHist}
   </div>`;
 }
