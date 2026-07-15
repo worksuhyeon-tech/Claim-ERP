@@ -989,7 +989,7 @@ function srApprComponentHtml(d) {
     ${lgSect("결재", "추산·지급 결재 상신")}
     ${form}
     ${apprHist}
-    ${lgSect("추산이력")}
+    ${lgSect("결재이력")}
     ${estHist}
   </div>`;
 }
