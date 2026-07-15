@@ -1357,7 +1357,7 @@ function intakeEstimateTab(d) {
     ${toggle}
     ${band}
     ${table}
-    ${ocrStageBarHtml(d)}
+    ${!isPre ? ocrStageBarHtml(d) : ""}
   </div>${srApprComponentHtml(d)}`;
 }
 
@@ -1380,17 +1380,25 @@ function ocrClaimExtraRows(d) {
   if (staged) staged.rows.forEach(row => out.push(ocrRowToEst(row, "미저장", true)));
   return out;
 }
-// 미저장 부품 청구내역 저장 바 (확정 → 청구내역 반영 후 '저장'으로 부품 지급결의 확정)
+// 청구내역 결의 저장 바 — 현재 청구내역(정비 견적/부품)을 지급결의로 저장한다.
+//  · 정비 견적 미저장 → 정비결의  · 부품(OCR) 반영분 → 부품결의  · 둘 다면 함께 저장
 function ocrStageBarHtml(d) {
   const staged = (typeof ocrGetStaged === "function") ? ocrGetStaged(d.id) : null;
-  if (!staged) return "";
+  const hasMech = (typeof resolutionsFor === "function") && resolutionsFor(d.id).some(r => r.resolutionType === "정비");
+  const mechRows = (d.estimateDoc && d.estimateDoc.claim) ? d.estimateDoc.claim : [];
+  const mechSaveable = !hasMech && mechRows.length > 0;
+  if (!staged && !mechSaveable) return "";
   const fault = parseFaultInfo(d.ownDamage && d.ownDamage.faultRate);
-  return `<div class="ocr-savebar">
-    <span class="ocr-savebar-note">📄 미저장 부품청구서 <b>${iEsc(staged.fileName)}</b> · ${staged.rows.length}개 항목이 청구내역에 반영되었습니다.</span>
+  let note, btn;
+  if (mechSaveable && staged) { note = `정비 견적 + 부품청구서 <b>${iEsc(staged.fileName)}</b>를 지급결의로 함께 저장합니다.`; btn = "청구서 결의 저장 (정비+부품)"; }
+  else if (mechSaveable) { note = "정비 견적(청구서)을 정비 지급결의로 저장합니다."; btn = "정비 지급결의 저장"; }
+  else { note = `부품청구서 <b>${iEsc(staged.fileName)}</b> · ${staged.rows.length}개 항목을 부품 지급결의로 저장합니다.`; btn = "부품 지급결의 저장"; }
+  return `<div class="ocr-savebar${staged ? " unsaved" : ""}">
+    <span class="ocr-savebar-note">💾 ${note}</span>
     <span class="grow"></span>
     ${fault.confirmed ? "" : `<span class="ocr-fault-warn">과실율 확정 후 결의입력하세요</span>`}
-    <button type="button" class="lg-abtn" id="ocrStageCancel" data-desc="반영한 미저장 부품 내역을 취소합니다.">취소</button>
-    <button type="button" class="lg-abtn primary" id="ocrStageSave" ${fault.confirmed ? "" : "disabled"} data-desc="청구내역에 반영된 부품을 부품 지급결의로 저장합니다.">저장 (부품 지급결의)</button>
+    ${staged ? `<button type="button" class="lg-abtn" id="ocrStageCancel" data-desc="반영한 미저장 부품 내역을 취소합니다.">부품 취소</button>` : ""}
+    <button type="button" class="lg-abtn primary" id="ocrStageSave" ${fault.confirmed ? "" : "disabled"} data-desc="현재 청구내역(정비 견적/부품)을 지급결의로 저장합니다.">${btn}</button>
   </div>`;
 }
 function bindIntakeEstimate(d) {
@@ -1417,7 +1425,7 @@ function bindIntakeEstimate(d) {
   if (ocrBtn && typeof openOcrUpload === "function") ocrBtn.addEventListener("click", () => openOcrUpload(d));
   // 미저장 부품 저장/취소 바
   const stageSave = $("#ocrStageSave");
-  if (stageSave && typeof saveStagedResolution === "function") stageSave.addEventListener("click", () => saveStagedResolution(d));
+  if (stageSave && typeof saveClaimResolutions === "function") stageSave.addEventListener("click", () => saveClaimResolutions(d));
   const stageCancel = $("#ocrStageCancel");
   if (stageCancel && typeof cancelStagedOcr === "function") stageCancel.addEventListener("click", () => cancelStagedOcr(d));
   bindIntakeApprForm(d);   // 결재 폼 최초 바인딩
