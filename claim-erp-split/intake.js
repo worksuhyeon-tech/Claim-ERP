@@ -956,7 +956,7 @@ function getDamageState(id, d) {
       inDate: pdM ? pdM[1] : "", outPlanDate: pdM ? pdM[2] : "",
       outChg1Date: "", outChg1Reason: "", outChg2Date: "", outChg2Reason: "",
       repairStartDate: "", repairEndDate: "", outDoneDate: "",
-      cost: { detach: "320000", panel: "180000", paint: "260000", partSub: "540000" },
+      estimate: "1,300,000",
       deductible: "300,000",
     };
   }
@@ -978,21 +978,11 @@ function dmShopFieldHtml(s) {
     <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.4-7-11a7 7 0 0 1 14 0c0 4.6-7 11-7 11Z"/><circle cx="12" cy="10" r="2.4"/></svg>
   </button></span>`;
 }
-function dmCostTableHtml(s) {
-  const c = s.cost, g = k => dmNumOf(c[k]);
-  const labor = g("detach") + g("panel") + g("paint");
-  const total = labor + g("partSub");
-  const vat = Math.round(total * 1.1);
-  const row = (k, raw) => `<tr><th>${k}</th><td>${raw}</td></tr>`;
-  return `<table class="lg-tbl lg-costtbl"><colgroup><col style="width:34%"><col style="width:66%"></colgroup>
-    ${row("탈착교환", dmNum("cost.detach", c.detach))}
-    ${row("판금", dmNum("cost.panel", c.panel))}
-    ${row("도장", dmNum("cost.paint", c.paint))}
-    ${row("공임소계", `<span class="lg-costsum" id="dmLaborSub">${won(labor)}</span> 원`)}
-    ${row("부품소계", dmNum("cost.partSub", c.partSub))}
-    ${row("계 (VAT 별도)", `<b class="lg-costsum" id="dmTotal">${won(total)}</b> 원`)}
-    ${row("VAT 포함", `<b class="lg-costsum vat" id="dmVatIncl">${won(vat)}</b> 원`)}
-  </table>`;
+// 예상수리비: 금액(VAT 별도) 입력 + VAT 포함액 자동 표시
+function dmEstimateHtml(s) {
+  const base = dmNumOf(s.estimate);
+  const vat = Math.round(base * 1.1);
+  return `<span class="lg-estwrap">${dmNum("estimate", s.estimate)}<span class="lg-estunit">원</span><span class="lg-estvat">(VAT 포함 <b id="dmEstVat">${won(vat)}</b>원)</span></span>`;
 }
 function intakeDamageTab(d) {
   const s = getDamageState(d.id, d);
@@ -1022,9 +1012,11 @@ function intakeDamageTab(d) {
       { k: "수리개시일", raw: dmDate("repairStartDate", s.repairStartDate) }, { k: "수리완료일", raw: dmDate("repairEndDate", s.repairEndDate) },
       { k: "출고완료일", raw: dmDate("outDoneDate", s.outDoneDate), full: true },
     ])
-    + `<div class="lg-sect">예상수리비<span class="note">※ VAT 별도 · 선견적/AOS 연동</span></div>`
-    + dmCostTableHtml(s)
-    + lgTable([{ k: "면책금", raw: dmNum("deductible", s.deductible), full: true }]);
+    + lgSect("수리비 · 면책금", "※ VAT 별도 입력 · 선견적/AOS 연동")
+    + lgTable([
+      { k: "예상수리비", raw: dmEstimateHtml(s), full: true },
+      { k: "면책금", raw: dmNum("deductible", s.deductible), full: true },
+    ]);
 
   // 차량 부위 손상 — 정비공장 입력(좌, 읽기전용) ↔ 담당자 입력(우, 클릭 선택) 대조
   const shopChecked = new Set(d.parts.checked || []);
@@ -2024,12 +2016,9 @@ function dmSetField(s, path, val) {
   if (path.indexOf(".") >= 0) { const [a, b] = path.split("."); (s[a] = s[a] || {})[b] = val; }
   else s[path] = val;
 }
-function dmRecalcCost(body, s) {
-  const g = k => dmNumOf(s.cost[k]);
-  const labor = g("detach") + g("panel") + g("paint");
-  const total = labor + g("partSub");
-  const set = (id, v) => { const el = body.querySelector("#" + id); if (el) el.textContent = won(v); };
-  set("dmLaborSub", labor); set("dmTotal", total); set("dmVatIncl", Math.round(total * 1.1));
+function dmRecalcEstimate(body, s) {
+  const vat = body.querySelector("#dmEstVat");
+  if (vat) vat.textContent = won(Math.round(dmNumOf(s.estimate) * 1.1));
 }
 function bindIntakeDamage(d) {
   // 담당자 확인 파손부위 선택
@@ -2056,7 +2045,7 @@ function bindIntakeDamage(d) {
         const rep = body.querySelector("#dmRepaired");
         if (rep) rep.disabled = (el.value !== "분손");
       }
-      if (el.dataset.dm.indexOf("cost.") === 0) dmRecalcCost(body, s);
+      if (el.dataset.dm === "estimate") dmRecalcEstimate(body, s);
     });
   });
   body.querySelectorAll("[data-dmlost]").forEach(cb => cb.addEventListener("change", () => {
