@@ -1843,6 +1843,9 @@
   #viewClosing .panel-body { flex: 1; overflow-y: auto; }
   .appr-cards6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .badge.appr-reject { background: var(--red-soft); color: var(--red); }
+  .badge.appr-cancel { background: #EEF0F4; color: var(--text-sub); }
+  /* 결재 LIST 결재순번 셀의 포함 결의 표시 */
+  .appr-incl { font-size: 10px; color: var(--text-dim); margin-top: 2px; white-space: nowrap; }
 
   /* 결재 리스트 표 (회색 헤더 .sa-table 재사용) */
   .appr-table td.num, .appr-table th.num { text-align: right; font-variant-numeric: tabular-nums; }

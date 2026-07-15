@@ -930,130 +930,310 @@ const SR_APPR_FORM_TYPES = [
   { value:"지급(종결)", label:"지급", pay:true,  disabled:false },
 ];
 const SR_APPR_DEFAULT_TYPE = SR_APPR_FORM_TYPES.find(t => !t.disabled) || SR_APPR_FORM_TYPES[0];
+/* ===================== 지급결의 · 지급결재 (2열 레이아웃) =====================
+   OCR로 확정한 지급결의 목록(좌) + 결재순번 이력(우) + 결재상신 바(하).
+   기존 결재자·의견·비밀번호 상신 흐름을 재사용. 함수명은 기존 호출부 호환 유지. */
+const RES_STATUS_CLASS = {
+  "결재 전": "payres-st-ready", "상신중": "appr-ing", "반려": "appr-reject",
+  "상신취소": "payres-st-cancel", "결재완료": "appr-done", "재확인 필요": "payres-st-review",
+};
+let payresClaimId = null;
+let payresSel = new Set();
+
+function payresSyncSelection(d) {
+  if (payresClaimId !== d.id) { payresClaimId = d.id; payresSel = new Set(); }
+  // 더 이상 선택 불가한 결의는 선택 해제
+  [...payresSel].forEach(id => {
+    const r = getResolution(id);
+    if (!r || !resolutionCan(r, "select")) payresSel.delete(id);
+  });
+}
+
+// 함수명 유지(호출부 호환): 견적 탭 하단 결재 컴포넌트 = 지급결의·결재 2열
 function srApprComponentHtml(d) {
-  const noDoc = !d.estimateDoc;
+  payresSyncSelection(d);
+  const fault = parseFaultInfo(d.ownDamage && d.ownDamage.faultRate);
+  return `<div class="payres">
+    ${lgSect("지급결의 · 지급결재", "AI-OCR 확정 결의 관리 및 결재 상신")}
+    ${fault.confirmed ? "" : `<div class="payres-fault-banner">⚠ 과실율 확정 후 결의입력하세요 — 과실률 미확정 상태에서는 결의확정·결재상신이 제한됩니다.</div>`}
+    <div class="payres-cols">
+      ${payresLeftHtml(d, fault)}
+      ${payresRightHtml(d)}
+    </div>
+    ${payresBarHtml(d, fault)}
+  </div>`;
+}
+
+function payresLeftHtml(d, fault) {
+  const disableSel = !fault.confirmed;
+  const list = resolutionsFor(d.id).slice().sort((a, b) => (a.resolutionSeq || "").localeCompare(b.resolutionSeq || ""));
+  const selectable = list.filter(r => resolutionCan(r, "select"));
+  const allChecked = selectable.length && selectable.every(r => payresSel.has(r.id));
+  const rows = list.length ? list.map(r => {
+    const canSel = resolutionCan(r, "select") && !disableSel;
+    const stCls = RES_STATUS_CLASS[r.status] || "";
+    const reviewNote = r.status === "재확인 필요"
+      ? `<div class="payres-review">확정 과실률 ${r.faultRateAtConfirmed}% → 현재 ${fault.pct}% · <button type="button" class="payres-mini" data-reconfirm="${r.id}">재확정</button></div>` : "";
+    return `<tr class="${payresSel.has(r.id) ? "sel" : ""}">
+      <td class="ta-c"><input type="checkbox" class="payres-chk" data-res="${r.id}" ${payresSel.has(r.id) ? "checked" : ""} ${canSel ? "" : "disabled"}></td>
+      <td class="ta-c">${iEsc(r.resolutionSeq)}</td>
+      <td>${iEsc(r.resolutionType)}<div class="payres-src">${iEsc(r.sourceType)}</div></td>
+      <td class="payres-file">${iEsc(r.sourceFileName)}${reviewNote}</td>
+      <td class="num">${won(r.claimAmount)}</td>
+      <td class="num">${won(r.assessedAmountBeforeFault)}</td>
+      <td class="num neg">-${won(r.faultOffsetAmount)}</td>
+      <td class="num strong">${won(r.finalAssessedAmount)}</td>
+      <td class="ta-c"><span class="badge ${stCls}">${iEsc(r.status)}</span></td>
+      <td class="payres-dt">${iEsc((r.updatedAt || "").slice(5, 16))}</td>
+      <td>${iEsc(r.confirmedByName || r.confirmedBy || "")}</td>
+      <td class="ta-c"><button type="button" class="payres-mini" data-detail="${r.id}" data-desc="이 지급결의의 부품 내역과 OCR 수정이력을 봅니다.">상세</button></td>
+    </tr>`;
+  }).join("") : `<tr><td colspan="12" class="ph">저장된 지급결의가 없습니다. AI-OCR로 부품청구서를 등록하세요.</td></tr>`;
+  return `<div class="payres-col left">
+    <div class="payres-col-head">지급결의 저장내역 <span class="cnt">${list.length}건</span></div>
+    <div class="payres-scroll"><table class="payres-tbl">
+      <thead><tr>
+        <th class="ta-c"><input type="checkbox" id="payresAll" ${allChecked ? "checked" : ""} ${disableSel || !selectable.length ? "disabled" : ""}></th>
+        <th class="ta-c">결의</th><th>종류</th><th>원본/출처</th>
+        <th class="num">청구금액</th><th class="num">손해사정</th><th class="num">과실상계</th><th class="num">최종지급</th>
+        <th class="ta-c">상태</th><th>저장일시</th><th>입력자</th><th></th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+    <div class="payres-col-foot">
+      <button type="button" class="lg-abtn" id="payresEdit" ${disableSel ? "disabled" : ""} data-desc="선택한 지급결의 1건을 다시 편집합니다.">수정</button>
+      <button type="button" class="lg-abtn danger" id="payresDelete" ${disableSel ? "disabled" : ""} data-desc="선택한 삭제 가능한 지급결의를 삭제합니다. (상신중·결재완료 제외)">선택삭제</button>
+    </div>
+  </div>`;
+}
+
+function payresRightHtml(d) {
+  const apprs = APPROVALS.filter(a => a.claimNo === d.id && a.resolutionIds && a.resolutionIds.length)
+    .slice().sort((a, b) => (b.approvalSeq || "").localeCompare(a.approvalSeq || ""));
+  const cards = apprs.length ? apprs.map(a => {
+    const stCls = RES_STATUS_CLASS[a.approvalStatus] || "appr-ing";
+    const canCancel = a.approvalStatus === "상신중";
+    return `<div class="payres-card">
+      <div class="payres-card-top">
+        <span class="payres-seq">결재 ${iEsc(a.approvalSeq)}</span>
+        <span class="badge ${stCls}">${iEsc(a.approvalStatus)}</span>
+      </div>
+      <div class="payres-card-row">포함결의 ${(a.includedResolutionSeqs || []).join(", ") || "-"}</div>
+      <div class="payres-card-row">결재금액 <b>${won(a.approvalAmount)}원</b></div>
+      <div class="payres-card-row dim">상신 ${iEsc(a.requestedAt || "")} · ${iEsc(a.requesterName || "")}</div>
+      ${a.approverName ? `<div class="payres-card-row dim">결재 ${iEsc(a.completedAt || "")} · ${iEsc(a.approverName)}</div>` : ""}
+      ${a.approverComment ? `<div class="payres-card-cmt">${iEsc(a.approverComment)}</div>` : ""}
+      ${canCancel ? `<div class="payres-card-foot"><button type="button" class="payres-mini danger" data-cancel="${a.id}" data-desc="상신중인 결재를 취소합니다. 연결 결의는 다시 수정·재상신할 수 있습니다.">상신취소</button></div>` : ""}
+    </div>`;
+  }).join("") : `<div class="payres-empty">상신된 지급결재가 없습니다.</div>`;
+  return `<div class="payres-col right">
+    <div class="payres-col-head">결재순번 / 결재이력</div>
+    <div class="payres-cards">${cards}</div>
+  </div>`;
+}
+
+function payresBarHtml(d, fault) {
+  const sel = [...payresSel].map(getResolution).filter(Boolean);
+  const sum = sel.reduce((s, r) => s + Number(r.finalAssessedAmount || 0), 0);
   const approverOpts = APPR_APPROVERS.map(id => {
     const s = assignStaffById(id);
     return s ? `<option value="${s.id}" ${s.id === currentApproverId ? "selected" : ""}>${iEsc(s.name)} · ${iEsc(s.position || "결재자")}</option>` : "";
   }).join("");
-  const APPR_TYPE_DESC = {
-    "추산":       "손해액 추산 결재입니다. (현재 준비중이라 선택할 수 없습니다.)",
-    "지급(종결)": "손해사정으로 확정된 지급액에 대한 지급 결재입니다. 비밀번호 인증이 필요합니다.",
-  };
-  const radios = SR_APPR_FORM_TYPES.map(t =>
-    `<label class="rd${t.disabled ? " off" : ""}" data-desc="${iEsc(APPR_TYPE_DESC[t.value] || `'${t.value}' 결재로 상신합니다.`)}"><input type="radio" name="apprFormType" value="${iEsc(t.value)}" ${t.value === SR_APPR_DEFAULT_TYPE.value ? "checked" : ""} ${t.disabled ? "disabled" : ""}> ${iEsc(t.label)}${t.disabled ? ` <span class="rd-note">(준비중)</span>` : ""}</label>`).join("");
-  const defPay = SR_APPR_DEFAULT_TYPE.pay;
-  const form = `<div class="lg-appr-form">
-    <div class="row">
-      <label class="k">결재구분</label>
-      ${radios}
-      <label class="k" style="margin-left:14px">다음결재자</label>
-      <select class="lg-sel" id="apprFormApprover" data-desc="이 결재를 처리할 다음 결재자를 지정합니다. (Speed결재 기본 결재자로도 반영)">${approverOpts}</select>
+  const disabled = !sel.length || !fault.confirmed;
+  return `<div class="payres-bar ${disabled ? "off" : ""}">
+    <div class="payres-bar-info">
+      <span>선택 결의 <b>${sel.length}건</b></span>
+      <span class="payres-bar-amt">결재금액 <b>${won(sum)}원</b></span>
     </div>
-    <div class="row top">
-      <label class="k">결재의견</label>
-      <textarea class="lg-ta" id="apprFormComment" placeholder="상신 의견을 입력하세요." data-desc="상신 사유·검토 의견을 입력합니다. 결재 이력에 함께 기록됩니다."></textarea>
+    <div class="payres-bar-form">
+      <label>다음결재자</label>
+      <select class="lg-sel" id="payresApprover" data-desc="이 지급결재를 처리할 다음 결재자를 지정합니다. (Speed결재 기본 결재자로도 반영)">${approverOpts}</select>
+      <input type="text" class="lg-in" id="payresComment" placeholder="결재의견" data-desc="상신 사유·검토 의견을 입력합니다. 결재 이력에 함께 기록됩니다.">
+      <input type="password" class="lg-in" id="payresPw" placeholder="비밀번호" style="max-width:130px" autocomplete="off" data-desc="지급 결재 승인용 비밀번호를 입력합니다.">
+      <button type="button" class="lg-abtn primary" id="payresSubmit" ${disabled ? "disabled" : ""} data-desc="선택한 지급결의를 합산해 지급결재 1건으로 상신합니다.">지급결재 상신</button>
     </div>
-    <div class="row">
-      <label class="k">비밀번호</label>
-      <input type="password" class="lg-in" id="apprFormPw" style="max-width:170px" placeholder="지급 결재 비밀번호" autocomplete="off" ${defPay ? "" : "disabled"} data-desc="지급 결재 승인용 비밀번호를 입력합니다. (지급 결재에만 필요)">
-      <span class="lg-appr-pwhint${defPay ? " on" : ""}" id="apprFormPwHint">${defPay ? "지급 결재는 비밀번호 인증이 필요합니다." : "추산은 비밀번호가 필요 없습니다."}</span>
-      <span class="grow"></span>
-      <button class="lg-abtn" type="button" id="apprFormCancel" style="display:none" data-desc="상신중인 결재를 취소합니다. 취소 후 같은 종류로 다시 상신할 수 있습니다.">상신취소</button>
-      <button class="lg-abtn primary" type="button" id="apprFormSubmit" ${noDoc ? "disabled" : ""} data-desc="선택한 결재구분으로 지정한 결재자에게 결재를 상신합니다.">결재</button>
-    </div>
-    ${noDoc ? `<div class="lg-appr-note">※ 견적 정보 등록 후 결재를 상신할 수 있습니다.</div>` : ""}
-  </div>`;
-  // 결재자 이력 (상신/최종결재/반려)
-  const hrows = srFlattenHistories(d.id);
-  const apprHist = `<table class="lg-appr-tbl">
-    <thead><tr><th style="width:130px">결재자</th><th style="width:88px">결재</th><th style="width:150px">완료일시</th><th>결재의견</th></tr></thead>
-    <tbody>${hrows.length
-      ? hrows.map(h => `<tr><td>${iEsc(h.actorName)}</td><td><span class="badge-act ${SR_ACT_BADGE[h.actionType] || ""}">${iEsc(SR_ACT_LABEL[h.actionType] || h.actionType)}</span></td><td>${iEsc(h.actedAt)}</td><td class="cmt">${iEsc(h.comment) || "-"}</td></tr>`).join("")
-      : `<tr><td colspan="4" class="ph">결재 이력이 없습니다.</td></tr>`}</tbody>
-  </table>`;
-  // 추산이력 (추산 결재 순번별 적립)
-  const ests = srApprovalsFor(d.id).filter(a => a.approvalType === "추산")
-    .slice().sort((a, b) => (b.resolutionNo || "").localeCompare(a.resolutionNo || ""));
-  const estBody = ests.length ? ests.map(a => {
-    const s = assignStaffById(a.requesterId);
-    const emp = s ? `${s.employeeNo} ${s.name}` : (a.requesterName || "-");
-    const amt = Number(a.approvalAmount || 0);
-    const isFirst = parseInt(a.resolutionNo, 10) === 1;
-    return `<tr>
-      <td class="seq">${iEsc(a.resolutionNo)}</td>
-      <td>${isFirst ? "표준" : ""}</td>
-      <td class="num amt">${won(amt)}</td>
-      <td class="num">0</td>
-      <td class="num">0</td>
-      <td class="num amt">${won(amt)}</td>
-      <td>${iEsc((a.requestedAt || "").slice(0, 10))}</td>
-      <td>${iEsc(emp)}</td>
-    </tr>`;
-  }).join("") : `<tr><td colspan="8" class="ph">추산 이력이 없습니다.</td></tr>`;
-  const estHist = `<div class="lg-scroll"><table class="lg-appr-tbl">
-    <thead><tr><th style="width:52px">순번</th><th style="width:92px">추산적립이력</th><th>손해액</th><th>비용</th><th>특약</th><th>추산합계</th><th style="width:96px">입력일자</th><th style="width:140px">입력사원</th></tr></thead>
-    <tbody>${estBody}</tbody>
-  </table></div>`;
-  return `<div class="lg-appr">
-    ${lgSect("결재", "추산·지급 결재 상신")}
-    ${form}
-    ${apprHist}
-    ${lgSect("결재이력")}
-    ${estHist}
   </div>`;
 }
+
+// 선택 변경 시 .payres 부분 재렌더 (의견·비밀번호 입력값 보존)
+function rerenderPayres(d) {
+  const cur = document.querySelector(".payres");
+  if (!cur) { renderIntake(); return; }
+  const comment = ($("#payresComment") || {}).value || "";
+  const pw = ($("#payresPw") || {}).value || "";
+  const wrap = document.createElement("div");
+  wrap.innerHTML = srApprComponentHtml(d);
+  cur.replaceWith(wrap.firstElementChild);
+  const c = $("#payresComment"); if (c) c.value = comment;
+  const p = $("#payresPw"); if (p) p.value = pw;
+  bindIntakeApprForm(d);
+}
+
+// 함수명 유지(호출부 호환): 지급결의·결재 2열 컴포넌트 바인딩
 function bindIntakeApprForm(d) {
-  const submitBtn = $("#apprFormSubmit");
-  if (!submitBtn) return;
-  const cancelBtn = $("#apprFormCancel");
-  const pw = $("#apprFormPw");
-  const pwHint = $("#apprFormPwHint");
-  const radios = document.querySelectorAll('input[name="apprFormType"]');
-  const noDoc = !d.estimateDoc;
-  const obj = srPrimaryObject(d);
-  const selectedType = () => {
-    const r = document.querySelector('input[name="apprFormType"]:checked');
-    return r ? r.value : "추산";
-  };
-  const pendingOf = type => srApprovalsFor(d.id)
-    .find(a => a.damagedObjectName === obj && a.approvalType === type && a.approvalStatus === "상신중");
-  // 결재구분에 따라 비밀번호 활성/비활성 + 상신중 재상신 차단 + 상신취소 노출 갱신
-  function refresh() {
-    const type = selectedType();
-    const isPay = apprIsPayType(type);
-    pw.disabled = !isPay;
-    if (!isPay) pw.value = "";
-    if (pwHint) {
-      pwHint.textContent = isPay ? "지급 결재는 비밀번호 인증이 필요합니다." : "추산은 비밀번호가 필요 없습니다.";
-      pwHint.classList.toggle("on", isPay);
-    }
-    const pend = pendingOf(type);
-    if (noDoc) {
-      submitBtn.disabled = true; submitBtn.title = "견적 정보 등록 후 결재 가능"; cancelBtn.style.display = "none";
-    } else if (pend) {
-      submitBtn.disabled = true; submitBtn.title = "상신중인 건이 있습니다. 상신취소 후 재상신하세요.";
-      cancelBtn.style.display = ""; cancelBtn.dataset.apprId = pend.id;
-    } else {
-      submitBtn.disabled = false; submitBtn.title = ""; cancelBtn.style.display = "none";
-    }
-  }
-  radios.forEach(r => r.addEventListener("change", refresh));
-  refresh();
-  submitBtn.addEventListener("click", () => {
-    if (submitBtn.disabled) return;
-    const type = selectedType();
-    if (pendingOf(type)) { showToast("상신중인 건이 있습니다. 상신취소 후 재상신하세요."); return; }
-    const comment = ($("#apprFormComment").value || "").trim();
-    if (!comment) { showToast("결재의견을 입력해 주세요."); const c = $("#apprFormComment"); if (c) c.focus(); return; }
-    if (apprIsPayType(type)) {   // 지급성 → 인라인 비밀번호 검증
-      if ((pw.value || "") !== APPR_PASSWORD) { showToast("비밀번호가 불일치합니다."); pw.focus(); return; }
-    }
-    const approverId = $("#apprFormApprover").value;
-    if (approverId) currentApproverId = approverId;   // 다음결재자를 Speed결재 기본 결재자로
-    finalizeIntakeSubmit(d.id, type, comment);
+  const root = $("#intakeRoot");
+  if (!root || !root.querySelector(".payres")) return;
+  root.querySelectorAll(".payres-chk").forEach(chk => chk.addEventListener("change", () => {
+    if (chk.checked) payresSel.add(chk.dataset.res); else payresSel.delete(chk.dataset.res);
+    rerenderPayres(d);
+  }));
+  const all = $("#payresAll");
+  if (all) all.addEventListener("change", () => {
+    const selectable = resolutionsFor(d.id).filter(r => resolutionCan(r, "select"));
+    if (all.checked) selectable.forEach(r => payresSel.add(r.id)); else selectable.forEach(r => payresSel.delete(r.id));
+    rerenderPayres(d);
   });
-  cancelBtn.addEventListener("click", () => { if (cancelBtn.dataset.apprId) cancelIntakeApproval(cancelBtn.dataset.apprId); });
+  root.querySelectorAll("[data-reconfirm]").forEach(b => b.addEventListener("click", () => payresReconfirm(d, b.dataset.reconfirm)));
+  root.querySelectorAll("[data-detail]").forEach(b => b.addEventListener("click", () => openPayresDetail(d, b.dataset.detail)));
+  root.querySelectorAll("[data-cancel]").forEach(b => b.addEventListener("click", () => cancelPayresApproval(d, b.dataset.cancel)));
+  const edit = $("#payresEdit");
+  if (edit) edit.addEventListener("click", () => payresEditSelected(d));
+  const del = $("#payresDelete");
+  if (del) del.addEventListener("click", () => payresDeleteSelected(d));
+  const submit = $("#payresSubmit");
+  if (submit) submit.addEventListener("click", () => submitPayresApproval(d));
+}
+
+// 재확정 — 재확인 필요 결의를 최신 과실률로 재확정하여 다시 선택 가능하게 함(설계문서 §6.2)
+function payresReconfirm(d, resId) {
+  const r = getResolution(resId);
+  if (!r) return;
+  const fault = parseFaultInfo(d.ownDamage && d.ownDamage.faultRate);
+  r.faultRateAtConfirmed = fault.pct;
+  recalcResolutionAmounts(r, fault.pct);
+  r.status = "결재 전";
+  r.faultRateAtReview = null;
+  r.updatedAt = apprNow();
+  persistResolutions();
+  showToast(`지급결의 ${r.resolutionSeq}가 최신 과실률(${fault.pct}%)로 재확정되었습니다.`);
+  rerenderPayres(d);
+}
+
+// 수정 — 선택된 편집 가능 결의 1건을 OCR 편집기로 재편집
+function payresEditSelected(d) {
+  const editable = [...payresSel].map(getResolution).filter(r => r && resolutionCan(r, "edit"));
+  if (editable.length !== 1) { showToast("수정할 지급결의 1건을 선택하세요."); return; }
+  if (typeof openOcrEditor === "function") openOcrEditor(d, editable[0]);
+}
+
+// 선택삭제 — 삭제 가능한 결의만 제거(설계문서 §8)
+function payresDeleteSelected(d) {
+  const deletable = [...payresSel].map(getResolution).filter(r => r && resolutionCan(r, "remove"));
+  if (!deletable.length) { showToast("삭제할 수 있는 지급결의를 선택하세요."); return; }
+  if (!window.confirm(`선택한 지급결의 ${deletable.length}건을 삭제하시겠습니까?\n삭제한 지급결의와 수정이력은 복구할 수 없습니다.`)) return;
+  const ids = new Set(deletable.map(r => r.id));
+  PAYMENT_RESOLUTIONS = PAYMENT_RESOLUTIONS.filter(r => !ids.has(r.id));
+  ids.forEach(id => payresSel.delete(id));
+  persistResolutions();
+  showToast(`지급결의 ${deletable.length}건을 삭제했습니다.`);
+  rerenderPayres(d);
+}
+
+// 지급결재 상신 — 선택 결의 합산 → 지급결재 1건 생성(결재순번), 연결 결의 상신중 잠금(설계문서 §11)
+function submitPayresApproval(d) {
+  const fault = parseFaultInfo(d.ownDamage && d.ownDamage.faultRate);
+  if (!fault.confirmed) { showToast("과실율 확정 후 결의입력하세요"); return; }
+  const sel = [...payresSel].map(getResolution).filter(Boolean);
+  if (!sel.length) { showToast("결재할 지급결의를 선택하세요."); return; }
+  if (sel.some(r => !resolutionCan(r, "submit"))) {
+    showToast("선택한 지급결의 중 현재 결재할 수 없는 내역이 있습니다.\n목록을 새로 확인하세요.");
+    rerenderPayres(d); return;
+  }
+  if (sel.some(r => Number(r.faultRateAtConfirmed) !== fault.pct)) {
+    showToast("과실률이 변경되어 지급결의 재확인이 필요합니다.\n최신 과실률로 금액을 확인한 후 다시 확정하세요.");
+    return;
+  }
+  const comment = ($("#payresComment").value || "").trim();
+  if (!comment) { showToast("결재의견을 입력해 주세요."); const c = $("#payresComment"); if (c) c.focus(); return; }
+  if (($("#payresPw").value || "") !== APPR_PASSWORD) { showToast("비밀번호가 불일치합니다."); $("#payresPw").focus(); return; }
+  const approverId = $("#payresApprover").value;
+  if (approverId) currentApproverId = approverId;
+
+  const c = CLAIMS.find(x => x.id === d.id);
+  const staff = srCurrentStaff(c);
+  const obj = srPrimaryObject(d);
+  const approvalSeq = nextApprovalSeq(d.id);
+  const sum = sel.reduce((s, r) => s + Number(r.finalAssessedAmount || 0), 0);
+  const item = {
+    id: srNextApprId(),
+    claimNo: d.id,
+    resolutionNo: approvalSeq,          // 문서번호/시드 호환용(표시는 approvalSeq)
+    approvalSeq: approvalSeq,
+    approvalType: "지급(종결)",
+    resolutionIds: sel.map(r => r.id),
+    includedResolutionSeqs: sel.map(r => r.resolutionSeq),
+    requesterId: staff.id, requesterName: staff.name,
+    damagedObjectName: obj,
+    damageInfo: `${c.carModel || d.carModel || "-"} / ${c.car || "-"}`,
+    repairShopName: c.repairShop || (d.repair && d.repair.shop) || "-",
+    approvalAmount: sum,
+    approvalStatus: "상신중",
+    requestedAt: apprNow(), completedAt: null,
+    requesterComment: comment, approverId: null, approverName: "", approverComment: "",
+  };
+  item.coreInfo = apprBuildCoreInfo(item);
+  item.histories = [{
+    id: 1, claimNo: item.claimNo, resolutionNo: item.resolutionNo, approvalType: item.approvalType,
+    actionType: "상신", actorId: staff.id, actorName: staff.name, actorEmployeeNo: staff.employeeNo,
+    actedAt: item.requestedAt, status: "상신중", comment: comment, statusBefore: "작성중", statusAfter: "상신중"
+  }];
+  APPROVALS.unshift(item);
+  syncResolutionStatusFromApproval(item, "상신중");
+  persistExtraApprovals();
+  payresSel = new Set();
+  showToast(`${d.id} 지급결재 ${approvalSeq} 상신 완료 (포함결의 ${item.includedResolutionSeqs.join(", ")} · ${won(sum)}원)`);
+  renderIntake();
+}
+
+// 상신취소 — 상신중 결재 취소 → 연결 결의 잠금 해제(설계문서 §11)
+function cancelPayresApproval(d, apprId) {
+  const a = APPROVALS.find(x => x.id === apprId);
+  if (!a || a.approvalStatus !== "상신중") return;
+  if (!window.confirm(`결재 ${a.approvalSeq} 상신을 취소하시겠습니까?`)) return;
+  const staff = srCurrentStaff(CLAIMS.find(x => x.id === a.claimNo));
+  const before = a.approvalStatus;
+  a.approvalStatus = "상신취소";
+  a.completedAt = apprNow();
+  if (a.histories) pushApprHistory(a, "상신취소", staff, "상신자 상신취소", before, "상신취소");
+  syncResolutionStatusFromApproval(a, "상신취소");
+  persistExtraApprovals();
+  showToast(`결재 ${a.approvalSeq} 상신이 취소되었습니다.`);
+  renderIntake();
+}
+
+// 지급결의 상세 — 부품 내역 + OCR 수정이력(읽기전용)
+function fmtPayresHist(v) { if (v === true) return "불인"; if (v === false) return "인정"; if (v === null || v === undefined) return "-"; return String(v); }
+function openPayresDetail(d, resId) {
+  const r = getResolution(resId);
+  if (!r) return;
+  const root = $("#ocrModalRoot");
+  if (!root) return;
+  const rowsHtml = r.rows.map(row => `<tr>
+    <td class="ta-c">${row.seq}</td><td>${iEsc(row.partName)}</td><td>${iEsc(row.partNumber)}</td>
+    <td>${iEsc(row.partCategory)}</td><td class="ta-c">${row.quantity}</td>
+    <td class="ta-c">${row.denied ? "불인" : ""}</td><td class="num">${won(row.claimAmount)}</td>
+    <td class="num">${won(row.assessedAmount)}</td></tr>`).join("");
+  const hist = r.editHistory || [];
+  const histHtml = hist.length ? hist.map(h => `<tr>
+    <td class="ta-c">${h.rowSeq}</td><td>${iEsc(h.fieldLabel)}</td>
+    <td>${iEsc(fmtPayresHist(h.before))}</td><td>${iEsc(fmtPayresHist(h.after))}</td>
+    <td>${iEsc(h.changeType)}</td></tr>`).join("") : `<tr><td colspan="5" class="ph">수정 이력이 없습니다.</td></tr>`;
+  root.innerHTML = `<div class="modal-backdrop" data-ocr-close></div>
+    <section class="action-modal ocr-modal ocr-editor" role="dialog" aria-modal="true">
+      <div class="modal-head"><div>
+        <div class="modal-eyebrow">지급결의 상세</div>
+        <div class="modal-title">결의 ${iEsc(r.resolutionSeq)} · ${iEsc(r.resolutionType)}</div>
+        <div class="modal-sub">${iEsc(r.sourceFileName)} · ${iEsc(r.sourceType)} · 상태 ${iEsc(r.status)}</div>
+      </div><button class="modal-close" type="button" data-ocr-close aria-label="닫기">×</button></div>
+      <div class="modal-body">
+        <div class="ocr-tblwrap"><table class="ocr-tbl"><thead><tr><th>순번</th><th>부품명</th><th>부품번호</th><th>부품항목</th><th>수량</th><th>불인</th><th class="num">청구금액</th><th class="num">손해사정금액</th></tr></thead><tbody>${rowsHtml}</tbody></table></div>
+        <div class="payres-detail-sub">OCR 수정이력</div>
+        <div class="ocr-tblwrap"><table class="ocr-tbl"><thead><tr><th>행</th><th>항목</th><th>변경전</th><th>변경후</th><th>유형</th></tr></thead><tbody>${histHtml}</tbody></table></div>
+      </div>
+      <div class="modal-foot"><button class="btn-modal primary" type="button" data-ocr-close>닫기</button></div>
+    </section>`;
+  root.classList.add("open"); root.setAttribute("aria-hidden", "false");
+  root.querySelectorAll("[data-ocr-close]").forEach(b => b.addEventListener("click", closeOcrModal));
 }
 // 견적 탭 가로 사진 뷰어에 표시할 실제 차량 사진 목록 (수리전 → 수리완료 → 사고 → 기타 순)
 function estimateStripImages(d) {
@@ -1082,10 +1262,56 @@ function intakeEstimatePhotoStrip(d) {
     <div class="es-strip" id="estPhotoStrip">${inner}</div>
   </div>`;
 }
+// 견적 테이블 1행 렌더 (기본 견적 행 + AI-OCR 추가부품 행 공용)
+function lgEstRowHtml(r) {
+  const denied = r.adjust.denied;
+  const cls = r.ocr ? ` class="ocr-extra-row${r.unsaved ? " unsaved" : ""}"` : "";
+  const grp = r.ocr ? `${iEsc(r.g)} <span class="ocr-rowbadge${r.unsaved ? " unsaved" : ""}">${iEsc(r.badge)}</span>` : iEsc(r.g);
+  return `<tr${cls}>
+    <td class="grp">${grp}</td>
+    <td class="nm">${iEsc(r.n)}</td>
+    <td class="it">${iEsc(r.it)}</td>
+    <td class="num">${r.base.unit}</td>
+    <td class="num amt">${won(r.base.amount)}</td>
+    <td class="ck"><input type="checkbox" ${denied ? "checked" : ""} disabled></td>
+    <td class="num${denied ? " off" : ""}">${denied ? "-" : r.adjust.unit}</td>
+    <td class="num amt${denied ? " off" : ""}">${denied ? "0" : won(r.adjust.amount)}</td>
+  </tr>`;
+}
+function lgEstTableHtml(allRows, baseLabel, sumLabel) {
+  const baseSum = estSum(allRows, "base");
+  const adjSum = estSum(allRows, "adjust");
+  return `<div class="lg-scroll"><table class="lg-est-tbl">
+    <colgroup><col style="width:74px"><col><col style="width:96px"><col style="width:52px"><col style="width:88px"><col style="width:40px"><col style="width:52px"><col style="width:88px"></colgroup>
+    <thead>
+      <tr>
+        <th rowspan="2">작업구분</th><th rowspan="2">작업내용</th><th rowspan="2">작업항목</th>
+        <th colspan="2" class="grp-claim">${baseLabel}</th>
+        <th colspan="3" class="grp-adjust">손해사정</th>
+      </tr>
+      <tr><th>단위</th><th>금액</th><th>불인</th><th>단위</th><th>금액</th></tr>
+    </thead>
+    <tbody>${allRows.map(lgEstRowHtml).join("")}</tbody>
+    <tfoot>
+      <tr>
+        <th colspan="3">${sumLabel}</th>
+        <td class="num"></td><td class="num amt">${won(baseSum)}</td>
+        <td class="ck"></td><td class="num"></td><td class="num amt">${won(adjSum)}</td>
+      </tr>
+    </tfoot>
+  </table></div>`;
+}
 function intakeEstimateTab(d) {
   const doc = d.estimateDoc;
   if (!doc) {
-    return `<div class="lg-est-empty">등록된 청구 견적 정보가 없습니다.</div>${srApprComponentHtml(d)}`;
+    // 견적 문서가 없어도 AI-OCR 부품청구서 등록·부품 지급결의는 가능(설계문서 §5.1)
+    const extra = ocrClaimExtraRows(d);
+    const partsTable = extra.length ? lgEstTableHtml(extra, "청구 내역", "부품 청구 합계") : "";
+    const note = extra.length ? "정비 견적(청구서)은 아직 없습니다. 아래는 AI-OCR로 등록한 부품 내역입니다." : "등록된 청구 견적 정보가 없습니다.";
+    return `<div class="lg-est-emptybar">
+      <div class="lg-est-empty">${note}</div>
+      <button type="button" class="ocr-pro-btn" id="ocrProBtn" data-desc="부품청구서를 업로드해 AI-OCR로 전산화하고 부품 지급결의를 생성합니다. (Pro 기능)"><span class="ai">🤖</span> AI-OCR <span class="tag">Pro</span></button>
+    </div>${partsTable}${ocrStageBarHtml(d)}${srApprComponentHtml(d)}`;
   }
   const rows = estimateDocType === "pre" ? doc.pre : doc.claim;
   const isPre = estimateDocType === "pre";
@@ -1107,51 +1333,20 @@ function intakeEstimateTab(d) {
     ${ESTIMATE_STAGES.map((s, i) => `${i ? '<span class="arw">›</span>' : ""}<span class="be-step ${s.doc === estimateDocType ? "on" : ""}">${s.label}</span>`).join("")}
   </div>`;
 
-  // 견적서 전환 토글
+  // 견적서 전환 토글 + AI-OCR Pro 버튼 (우측)
   const toggle = `<div class="lg-est-toggle" role="tablist">
     <span class="tl">견적서 전환</span>
     <button type="button" class="be-tgl ${isPre ? "on" : ""}" data-estdoc="pre" data-desc="입고 전 개략 견적인 '선견적' 내역으로 표를 전환합니다.">선견적</button>
     <button type="button" class="be-tgl ${!isPre ? "on" : ""}" data-estdoc="claim" data-desc="공업사가 정식 청구한 '청구서' 내역으로 표를 전환합니다.">청구서</button>
+    <span class="grow"></span>
+    <button type="button" class="ocr-pro-btn" id="ocrProBtn" data-desc="부품청구서를 업로드해 AI-OCR로 전산화하고 부품 지급결의를 생성합니다. (Pro 기능)"><span class="ai">🤖</span> AI-OCR <span class="tag">Pro</span></button>
   </div>`;
 
-  const baseSum = estSum(rows, "base");
-  const adjSum = estSum(rows, "adjust");
-  const body = rows.map(r => {
-    const denied = r.adjust.denied;
-    return `<tr>
-      <td class="grp">${iEsc(r.g)}</td>
-      <td class="nm">${iEsc(r.n)}</td>
-      <td class="it">${iEsc(r.it)}</td>
-      <td class="num">${r.base.unit}</td>
-      <td class="num amt">${won(r.base.amount)}</td>
-      <td class="ck"><input type="checkbox" ${denied ? "checked" : ""} disabled></td>
-      <td class="num${denied ? " off" : ""}">${denied ? "-" : r.adjust.unit}</td>
-      <td class="num amt${denied ? " off" : ""}">${denied ? "0" : won(r.adjust.amount)}</td>
-    </tr>`;
-  }).join("");
-
-  const table = `<div class="lg-scroll"><table class="lg-est-tbl">
-    <colgroup><col style="width:74px"><col><col style="width:96px"><col style="width:52px"><col style="width:88px"><col style="width:40px"><col style="width:52px"><col style="width:88px"></colgroup>
-    <thead>
-      <tr>
-        <th rowspan="2">작업구분</th><th rowspan="2">작업내용</th><th rowspan="2">작업항목</th>
-        <th colspan="2" class="grp-claim">${baseLabel}</th>
-        <th colspan="3" class="grp-adjust">손해사정</th>
-      </tr>
-      <tr>
-        <th>단위</th><th>금액</th>
-        <th>불인</th><th>단위</th><th>금액</th>
-      </tr>
-    </thead>
-    <tbody>${body}</tbody>
-    <tfoot>
-      <tr>
-        <th colspan="3">${docLabel} 합계</th>
-        <td class="num"></td><td class="num amt">${won(baseSum)}</td>
-        <td class="ck"></td><td class="num"></td><td class="num amt">${won(adjSum)}</td>
-      </tr>
-    </tfoot>
-  </table></div>`;
+  // AI-OCR 부품 행: 청구서 보기에서만 정비 견적과 함께 표시(추가부품). 저장된 부품결의 + 미저장 스테이징.
+  const extra = !isPre ? ocrClaimExtraRows(d) : [];
+  const allRows = rows.concat(extra);
+  const sumLabel = extra.length ? `${docLabel} 합계 (정비+부품)` : `${docLabel} 합계`;
+  const table = lgEstTableHtml(allRows, baseLabel, sumLabel);
 
   return `<div class="lg-est">
     <div class="lg-est-head">
@@ -1162,7 +1357,41 @@ function intakeEstimateTab(d) {
     ${toggle}
     ${band}
     ${table}
+    ${ocrStageBarHtml(d)}
   </div>${srApprComponentHtml(d)}`;
+}
+
+// 청구서 테이블에 함께 표시할 AI-OCR 부품 행(추가부품) — 저장된 부품결의 + 미저장 스테이징
+function ocrRowToEst(row, badge, unsaved) {
+  return {
+    g: "추가부품", n: row.partName, it: row.partNumber || row.partCategory,
+    base: { unit: row.quantity, amount: Number(row.claimAmount || 0) },
+    adjust: { denied: !!row.denied, unit: row.quantity, amount: row.denied ? 0 : Number(row.assessedAmount || 0) },
+    ocr: true, badge: badge, unsaved: !!unsaved,
+  };
+}
+function ocrClaimExtraRows(d) {
+  const out = [];
+  (typeof resolutionsFor === "function" ? resolutionsFor(d.id) : []).forEach(res => {
+    if (res.resolutionType !== "부품") return;
+    res.rows.forEach(row => out.push(ocrRowToEst(row, "결의 " + res.resolutionSeq, false)));
+  });
+  const staged = (typeof ocrGetStaged === "function") ? ocrGetStaged(d.id) : null;
+  if (staged) staged.rows.forEach(row => out.push(ocrRowToEst(row, "미저장", true)));
+  return out;
+}
+// 미저장 부품 청구내역 저장 바 (확정 → 청구내역 반영 후 '저장'으로 부품 지급결의 확정)
+function ocrStageBarHtml(d) {
+  const staged = (typeof ocrGetStaged === "function") ? ocrGetStaged(d.id) : null;
+  if (!staged) return "";
+  const fault = parseFaultInfo(d.ownDamage && d.ownDamage.faultRate);
+  return `<div class="ocr-savebar">
+    <span class="ocr-savebar-note">📄 미저장 부품청구서 <b>${iEsc(staged.fileName)}</b> · ${staged.rows.length}개 항목이 청구내역에 반영되었습니다.</span>
+    <span class="grow"></span>
+    ${fault.confirmed ? "" : `<span class="ocr-fault-warn">과실율 확정 후 결의입력하세요</span>`}
+    <button type="button" class="lg-abtn" id="ocrStageCancel" data-desc="반영한 미저장 부품 내역을 취소합니다.">취소</button>
+    <button type="button" class="lg-abtn primary" id="ocrStageSave" ${fault.confirmed ? "" : "disabled"} data-desc="청구내역에 반영된 부품을 부품 지급결의로 저장합니다.">저장 (부품 지급결의)</button>
+  </div>`;
 }
 function bindIntakeEstimate(d) {
   document.querySelectorAll("[data-estdoc]").forEach(b => b.addEventListener("click", () => {
@@ -1183,6 +1412,14 @@ function bindIntakeEstimate(d) {
       openImageZoom(imgs, parseInt(btn.dataset.estphoto, 10) || 0);
     }));
   }
+  // AI-OCR Pro 버튼 — 과실률 확정 여부와 무관하게 활성(설계문서 §5.1)
+  const ocrBtn = $("#ocrProBtn");
+  if (ocrBtn && typeof openOcrUpload === "function") ocrBtn.addEventListener("click", () => openOcrUpload(d));
+  // 미저장 부품 저장/취소 바
+  const stageSave = $("#ocrStageSave");
+  if (stageSave && typeof saveStagedResolution === "function") stageSave.addEventListener("click", () => saveStagedResolution(d));
+  const stageCancel = $("#ocrStageCancel");
+  if (stageCancel && typeof cancelStagedOcr === "function") stageCancel.addEventListener("click", () => cancelStagedOcr(d));
   bindIntakeApprForm(d);   // 결재 폼 최초 바인딩
 }
 
@@ -1667,6 +1904,7 @@ function intakeSearchFieldsHtml(type, d) {
 function renderIntake() {
   // 결재 이력/추산이력 표시를 위해 공용 APPROVALS 시드 1회 주입 (common.js)
   if (typeof seedApprovals === "function" && !apprSeeded) { seedApprovals(); apprSeeded = true; }
+  if (typeof loadClaimResolutionState === "function") loadClaimResolutionState();
   const id = intakeClaimId || selectedId || (CLAIMS[0] && CLAIMS[0].id);
   intakeClaimId = id;
   // 조회 결과 목록: 없거나 현재 선택이 목록에 없으면 단건으로 초기화
@@ -1813,6 +2051,22 @@ function renderIntake() {
   window.addEventListener("scroll", hide, true);
   document.addEventListener("click", hide, true);
 })();
+
+/* 과실률 변경 시연 훅 (설계문서 §6.2) — 실제 운영에서는 과실률 확정 IF 수신 지점으로 대체.
+   예) window.__setFaultRate("CLM-2026-0001", 50) → 미결재 결의 '재확인 필요' 전환 */
+window.__setFaultRate = function (claimId, pct, confirmed) {
+  const conf = confirmed === false ? "미확정" : "확정";
+  const text = `자차 ${pct}% (${conf})`;
+  const prev = INTAKE_DETAIL[claimId] || {};
+  INTAKE_DETAIL[claimId] = Object.assign({}, prev, {
+    fault: text,
+    ownDamage: Object.assign({}, prev.ownDamage, { faultRate: text }),
+  });
+  const changed = (conf === "확정" && typeof applyFaultRateChange === "function") ? applyFaultRateChange(claimId, pct) : 0;
+  if (intakeClaimId === claimId) renderIntake();
+  showToast(`[개발용] ${claimId} 자차 과실률 ${pct}% (${conf}) 반영${changed ? ` · 결의 ${changed}건 재확인 필요` : ""}`);
+  return changed;
+};
 
 /* ===================== 초기화 ===================== */
 (function initIntake() {
