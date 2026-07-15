@@ -530,6 +530,11 @@ function lgSect(title, note) {
 }
 
 /* ---- 사고 접수 목록 (조회구분 ↔ 상세 사이, 항상 3줄 표시) ---- */
+// 정렬 키: 사고일시(YYYY-MM-DD HH:MM) — 없으면 접수번호로 대체
+function intakeSortDate(id) {
+  const dd = getIntakeData(id);
+  return (dd && dd.accident && dd.accident.datetime) || id;
+}
 function intakeListHtml() {
   const ids = intakeResults || [];
   const pageCount = Math.max(1, Math.ceil(ids.length / INTAKE_LIST_SIZE));
@@ -540,12 +545,14 @@ function intakeListHtml() {
   let rows = "";
   for (let i = 0; i < INTAKE_LIST_SIZE; i++) {
     const id = pageIds[i];
-    if (!id) { rows += `<tr class="lg-lrow empty"><td colspan="8">&nbsp;</td></tr>`; continue; }
+    if (!id) { rows += `<tr class="lg-lrow empty"><td colspan="9">&nbsp;</td></tr>`; continue; }
     const c = CLAIMS.find(x => x.id === id) || {};
     const dd = getIntakeData(id) || {};
     const sel = id === intakeClaimId ? " on" : "";
+    const seq = start + i + 1;
     const procCls = (typeof PROC_CLASS !== "undefined" && PROC_CLASS[c.procStatus]) || "";
     rows += `<tr class="lg-lrow${sel}" data-listid="${iEsc(id)}" data-desc="이 사고건을 선택해 아래 상세를 표시합니다.">
+      <td class="c-seq">${seq}</td>
       <td class="c-id">${iEsc(id)}</td>
       <td>${iEsc(c.repairShop) || "-"}</td>
       <td>${iEsc(c.car)}</td>
@@ -567,8 +574,8 @@ function intakeListHtml() {
   const listDesc = "차량번호·휴대폰으로 조회하면 동일 차량의 사고 접수건을 최대 3줄씩 표시합니다. 행을 클릭하면 아래 상세가 전환되고, 3건을 넘으면 페이지 번호로 과거건을 조회합니다.";
   return `<div class="lg-list" data-desc="${iEsc(listDesc)}">
     <div class="lg-list-head"><span class="h">사고 접수 목록</span><span class="cnt">${ids.length}건</span></div>
-    <table class="lg-list-tbl"><colgroup><col style="width:128px"><col><col style="width:92px"><col style="width:84px"><col style="width:132px"><col style="width:92px"><col style="width:70px"><col style="width:78px"></colgroup>
-      <thead><tr><th>접수번호</th><th>정비공장명</th><th>차량번호</th><th>차량명</th><th>과실</th><th>단계</th><th>상태</th><th>담당자</th></tr></thead>
+    <table class="lg-list-tbl"><colgroup><col style="width:40px"><col style="width:128px"><col><col style="width:92px"><col style="width:84px"><col style="width:132px"><col style="width:92px"><col style="width:70px"><col style="width:78px"></colgroup>
+      <thead><tr><th>순번</th><th>접수번호</th><th>정비공장명</th><th>차량번호</th><th>차량명</th><th>과실</th><th>단계</th><th>상태</th><th>담당자</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>${pager}
   </div>`;
@@ -1458,6 +1465,8 @@ function runIntakeSearch() {
     showToast("조회 조건에 해당하는 사고건이 없습니다.");
     return;
   }
+  // 사고일자 기준 내림차순 정렬 (가장 최근 접수건이 먼저)
+  matches.sort((a, b) => intakeSortDate(b.id).localeCompare(intakeSortDate(a.id)));
   intakeResults = matches.map(c => c.id);
   intakeListPage = 0;
   intakeClaimId = matches[0].id;
