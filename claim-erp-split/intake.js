@@ -928,22 +928,103 @@ function dmgPartsHtml(checkedSet, interactive) {
     return `<div class="${cls}${on ? " on" : ""}"${attr}><span class="b"></span>${p}</div>`;
   }).join("");
 }
+/* ---- 탭2: 피해 진행 정보 — 담당자 편집 상태/헬퍼 ---- */
+const DM_OWN_STATES = ["분손", "전손", "도난"];
+const DM_PROC_OPTS = { "분손": ["수리", "미수리"], "전손": ["폐차", "매각"], "도난": ["미회수", "회수"] };
+const DM_LOST_OPTS = ["차키", "앞번호판", "뒷번호판"];
+const intakeDamageState = {};
+function dmNumOf(v) { return parseInt(String(v || "").replace(/[^\d]/g, ""), 10) || 0; }
+function getDamageState(id, d) {
+  if (!intakeDamageState[id]) {
+    const ic = d.insuredCar || {}, rp = d.repair || {}, dg = d.damage || {};
+    const pm = String(ic.priceAB || "").match(/([\d,]+)[^\d]+([\d,]+)/);
+    const buy = pm ? pm[1] : (String(ic.priceAB || "").match(/[\d,]+/) || [""])[0];
+    const accVal = pm ? pm[2] : "";
+    const book = accVal ? won(Math.round(dmNumOf(accVal) * 0.72)) : "";
+    const shopM = String(rp.shop || "").match(/\]\s*(.+?)\s*(\d[\d-]+\d)/);
+    const period = String(rp.period || "");
+    const pdM = period.match(/입고\s*([\d-]+)\s*~\s*출고\s*([\d-]+)/);
+    intakeDamageState[id] = {
+      plate: ic.no || "", objectName: ic.name || "",
+      firstRegDate: "", owner: "(주)에스케이렌터카",
+      ownState: "분손", procState: "수리", repaired: "예",
+      maintSub: (dg.rentClaim === "청구") ? "이용" : "미이용",
+      lost: [],
+      buyPrice: buy, accidentValue: accVal, bookValue: book,
+      shopName: shopM ? shopM[1] : "", shopPhone: shopM ? shopM[2] : "",
+      repairPeriod: (period.match(/\((\d+일)\)/) || ["", ""])[1] || (period === "-" ? "" : period),
+      inDate: pdM ? pdM[1] : "", outPlanDate: pdM ? pdM[2] : "",
+      outChg1Date: "", outChg1Reason: "", outChg2Date: "", outChg2Reason: "",
+      repairStartDate: "", repairEndDate: "", outDoneDate: "",
+      cost: { detach: "320000", panel: "180000", paint: "260000", partSub: "540000" },
+      deductible: "300,000",
+    };
+  }
+  return intakeDamageState[id];
+}
+function dmText(f, v, ph) { return `<input type="text" class="lg-cin" data-dm="${iEsc(f)}" value="${iEsc(v)}" placeholder="${iEsc(ph || "")}" data-desc="담당자가 직접 수정·저장하는 항목입니다.">`; }
+function dmDate(f, v) { return `<input type="date" class="lg-cin" data-dm="${iEsc(f)}" value="${iEsc(v)}" data-desc="날짜를 선택합니다.">`; }
+function dmNum(f, v) { return `<input type="text" inputmode="numeric" class="lg-cin ta-r" data-dm="${iEsc(f)}" value="${iEsc(v)}" data-desc="금액(원)을 입력합니다.">`; }
+function dmSel(f, v, opts) { return `<select class="lg-csel" data-dm="${iEsc(f)}">${opts.map(o => `<option ${o === v ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>`; }
+function dmSkVal(v) { return `<span class="lg-skval">${iEsc(v) || "미수신"}<span class="lg-sktag">SK</span></span>`; }
+function dmLostHtml(s) {
+  return `<div class="lg-ctchecks">` + DM_LOST_OPTS.map(x =>
+    `<label class="lg-ctchk" data-desc="분실 대상 '${iEsc(x)}'을(를) 표시합니다."><input type="checkbox" data-dmlost="${iEsc(x)}" ${s.lost.includes(x) ? "checked" : ""}><span>${iEsc(x)}</span></label>`
+  ).join("") + `</div>`;
+}
+function dmShopFieldHtml(s) {
+  const val = s.shopName ? `${iEsc(s.shopName)} <span class="lg-shopph">(${iEsc(s.shopPhone)})</span>` : `<span class="ph">미지정 — 검색하여 지정</span>`;
+  return `<span class="lg-shopfield">${val}<button type="button" class="lg-shopbtn" id="dmShopSearch" data-desc="공업사를 검색해 지정합니다. (AOS/SK 연동 시 자동 세팅)" aria-label="공업사 검색">
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.4-7-11a7 7 0 0 1 14 0c0 4.6-7 11-7 11Z"/><circle cx="12" cy="10" r="2.4"/></svg>
+  </button></span>`;
+}
+function dmCostTableHtml(s) {
+  const c = s.cost, g = k => dmNumOf(c[k]);
+  const labor = g("detach") + g("panel") + g("paint");
+  const total = labor + g("partSub");
+  const vat = Math.round(total * 1.1);
+  const row = (k, raw) => `<tr><th>${k}</th><td>${raw}</td></tr>`;
+  return `<table class="lg-tbl lg-costtbl"><colgroup><col style="width:34%"><col style="width:66%"></colgroup>
+    ${row("탈착교환", dmNum("cost.detach", c.detach))}
+    ${row("판금", dmNum("cost.panel", c.panel))}
+    ${row("도장", dmNum("cost.paint", c.paint))}
+    ${row("공임소계", `<span class="lg-costsum" id="dmLaborSub">${won(labor)}</span> 원`)}
+    ${row("부품소계", dmNum("cost.partSub", c.partSub))}
+    ${row("계 (VAT 별도)", `<b class="lg-costsum" id="dmTotal">${won(total)}</b> 원`)}
+    ${row("VAT 포함", `<b class="lg-costsum vat" id="dmVatIncl">${won(vat)}</b> 원`)}
+  </table>`;
+}
 function intakeDamageTab(d) {
-  const left = lgSect("피해 진행")
+  const s = getDamageState(d.id, d);
+  const procOpts = DM_PROC_OPTS[s.ownState] || [];
+  const left = lgSect("피해 진행", "※ 담당자 수정 가능 · SK 연동 항목 표시")
     + lgTable([
-      { k: "피해물", v: d.damage.object, full: true },
-      { k: "소유자", v: d.damage.owner }, { k: "정보사항", v: d.damage.info },
-      { k: "교통비청구", v: d.damage.transport }, { k: "렌트청구", v: d.damage.rentClaim },
-      { k: "부가세대상", v: d.damage.vatTarget }, { k: "고객정보", v: d.damage.custInfo },
+      { k: "차량번호", raw: dmText("plate", s.plate, "12가3456") },
+      { k: "피해물명", raw: dmText("objectName", s.objectName, "차량명") },
+      { k: "최초등록일", raw: dmDate("firstRegDate", s.firstRegDate) },
+      { k: "소유자", raw: dmText("owner", s.owner, "소유자(법인명)") },
+      { k: "자차상태", raw: dmSel("ownState", s.ownState, DM_OWN_STATES) },
+      { k: "처리상태", raw: `<select class="lg-csel" id="dmProcState" data-dm="procState">${procOpts.map(o => `<option ${o === s.procState ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>` },
+      { k: "수리여부", raw: `<select class="lg-csel" id="dmRepaired" data-dm="repaired" ${s.ownState !== "분손" ? "disabled" : ""}>${["예", "아니요"].map(o => `<option ${o === s.repaired ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>` },
+      { k: "정비대차", raw: dmSel("maintSub", s.maintSub, ["이용", "미이용"]) },
+      { k: "분실대상", raw: dmLostHtml(s), full: true },
+      { k: "차량구입액", raw: dmSkVal(s.buyPrice) },
+      { k: "사고시가액", raw: dmSkVal(s.accidentValue) },
+      { k: "예상잔존가", raw: `${dmSkVal(s.bookValue)} <span class="lg-cinhint">장부가액</span>`, full: true },
     ]);
-  const right = lgSect("공업사 · 수리")
+  const right = lgSect("공업사 · 수리", "※ AOS 연동 우선 · 미연동 시 SK 수신")
     + lgTable([
-      { k: "공업사", v: d.repair.shop, full: true },
-      { k: "수리기간", v: d.repair.period, full: true },
-      { k: "사고가액", v: d.repair.accAmount, full: true },
-      { k: "지급특약", v: d.repair.paySpecial }, { k: "추산/지급", v: d.repair.estimatePay },
-      { k: "지급재원", v: d.repair.payResource }, { k: "종결일자", v: d.repair.closeDate },
-    ]);
+      { k: "공업사", raw: dmShopFieldHtml(s), full: true },
+      { k: "수리기간", raw: dmText("repairPeriod", s.repairPeriod, "예: 7일 (AOS 선견적)"), full: true },
+      { k: "입고일", raw: dmDate("inDate", s.inDate) }, { k: "출고예정일", raw: dmDate("outPlanDate", s.outPlanDate) },
+      { k: "출고예정 변경1", raw: dmDate("outChg1Date", s.outChg1Date) }, { k: "변경1 사유", raw: dmText("outChg1Reason", s.outChg1Reason, "변경 사유") },
+      { k: "출고예정 변경2", raw: dmDate("outChg2Date", s.outChg2Date) }, { k: "변경2 사유", raw: dmText("outChg2Reason", s.outChg2Reason, "변경 사유") },
+      { k: "수리개시일", raw: dmDate("repairStartDate", s.repairStartDate) }, { k: "수리완료일", raw: dmDate("repairEndDate", s.repairEndDate) },
+      { k: "출고완료일", raw: dmDate("outDoneDate", s.outDoneDate), full: true },
+    ])
+    + `<div class="lg-sect">예상수리비<span class="note">※ VAT 별도 · 선견적/AOS 연동</span></div>`
+    + dmCostTableHtml(s)
+    + lgTable([{ k: "면책금", raw: dmNum("deductible", s.deductible), full: true }]);
 
   // 차량 부위 손상 — 정비공장 입력(좌, 읽기전용) ↔ 담당자 입력(우, 클릭 선택) 대조
   const shopChecked = new Set(d.parts.checked || []);
@@ -1939,7 +2020,19 @@ function bindIntakeWorkbench(d) {
 }
 
 // 담당자 입력 파손부위 클릭 토글 (차량 부위 손상 · 우측 도식)
+function dmSetField(s, path, val) {
+  if (path.indexOf(".") >= 0) { const [a, b] = path.split("."); (s[a] = s[a] || {})[b] = val; }
+  else s[path] = val;
+}
+function dmRecalcCost(body, s) {
+  const g = k => dmNumOf(s.cost[k]);
+  const labor = g("detach") + g("panel") + g("paint");
+  const total = labor + g("partSub");
+  const set = (id, v) => { const el = body.querySelector("#" + id); if (el) el.textContent = won(v); };
+  set("dmLaborSub", labor); set("dmTotal", total); set("dmVatIncl", Math.round(total * 1.1));
+}
 function bindIntakeDamage(d) {
+  // 담당자 확인 파손부위 선택
   const set = intakeStaffParts[d.id] || (intakeStaffParts[d.id] = new Set());
   document.querySelectorAll("[data-staff-part]").forEach(el => {
     el.addEventListener("click", () => {
@@ -1948,6 +2041,65 @@ function bindIntakeDamage(d) {
       else { set.add(part); el.classList.add("on"); }
     });
   });
+  // 피해 진행 / 공업사·수리 편집 컨트롤
+  const body = $("#intakeBody"); if (!body) return;
+  const s = getDamageState(d.id, d);
+  body.querySelectorAll("[data-dm]").forEach(el => {
+    const ev = el.tagName === "SELECT" ? "change" : "input";
+    el.addEventListener(ev, () => {
+      dmSetField(s, el.dataset.dm, el.value);
+      if (el.dataset.dm === "ownState") {           // 자차상태 → 처리상태 옵션 + 수리여부 활성 갱신
+        const opts = DM_PROC_OPTS[el.value] || [];
+        s.procState = opts[0] || "";
+        const ps = body.querySelector("#dmProcState");
+        if (ps) ps.innerHTML = opts.map(o => `<option ${o === s.procState ? "selected" : ""}>${iEsc(o)}</option>`).join("");
+        const rep = body.querySelector("#dmRepaired");
+        if (rep) rep.disabled = (el.value !== "분손");
+      }
+      if (el.dataset.dm.indexOf("cost.") === 0) dmRecalcCost(body, s);
+    });
+  });
+  body.querySelectorAll("[data-dmlost]").forEach(cb => cb.addEventListener("change", () => {
+    const v = cb.dataset.dmlost;
+    if (cb.checked) { if (!s.lost.includes(v)) s.lost.push(v); }
+    else s.lost = s.lost.filter(x => x !== v);
+  }));
+  const sb = body.querySelector("#dmShopSearch");
+  if (sb) sb.addEventListener("click", () => openShopSearchModal(d, s));
+}
+// 공업사 검색·지정 팝업
+function openShopSearchModal(d, s) {
+  let root = document.getElementById("dmShopRoot");
+  if (!root) { root = document.createElement("div"); root.id = "dmShopRoot"; document.body.appendChild(root); }
+  const base = (typeof SHOPS !== "undefined" ? SHOPS : []);
+  const shops = base.map((nm, i) => ({ nm, phone: `0${31 + (i % 40)}-${300 + i * 7}-${(1000 + i * 137) % 9000 + 1000}` }));
+  const close = () => { root.classList.remove("open"); root.innerHTML = ""; };
+  function render(filter) {
+    const list = shops.filter(x => !filter || x.nm.indexOf(filter) >= 0);
+    root.className = "ct-modal-root open";
+    root.innerHTML = `
+      <div class="ct-modal-bd"></div>
+      <div class="ct-modal" role="dialog" aria-modal="true" aria-label="공업사 검색">
+        <div class="ct-modal-h"><b>공업사 검색 · 지정</b><button type="button" class="ct-modal-x" aria-label="닫기">×</button></div>
+        <div class="ct-modal-b">
+          <input type="text" id="dmShopQuery" class="lg-cin" placeholder="공업사명 검색" value="${iEsc(filter || "")}" style="margin-bottom:10px">
+          <div class="lg-shoplist">${list.length ? list.map(x => `<button type="button" class="lg-shopitem" data-shop="${iEsc(x.nm)}" data-phone="${iEsc(x.phone)}"><span class="nm">${iEsc(x.nm)}</span><span class="ph">${iEsc(x.phone)}</span></button>`).join("") : `<div class="lg-shopempty">검색 결과가 없습니다.</div>`}</div>
+        </div>
+      </div>`;
+    root.querySelector(".ct-modal-bd").addEventListener("click", close);
+    root.querySelector(".ct-modal-x").addEventListener("click", close);
+    const q = root.querySelector("#dmShopQuery");
+    q.addEventListener("input", () => render(q.value));
+    q.focus(); q.setSelectionRange(q.value.length, q.value.length);
+    root.querySelectorAll("[data-shop]").forEach(b => b.addEventListener("click", () => {
+      s.shopName = b.dataset.shop; s.shopPhone = b.dataset.phone;
+      close();
+      $("#intakeBody").innerHTML = renderIntakeTab("damage", d);
+      bindIntakeDamage(d);
+      showToast(`${s.shopName} 공업사를 지정했습니다.`);
+    }));
+  }
+  render("");
 }
 
 function normalizeIntakeText(value) {
