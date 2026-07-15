@@ -110,6 +110,41 @@
   #viewIntake .lg-input[data-desc],
   #viewIntake .lg-in[data-desc],
   #viewIntake .lg-ta[data-desc] { cursor: text; }
+
+  /* ===== 계약 사고 정보 탭 — 담당자 편집 컨트롤 ===== */
+  .lg-cin, .lg-csel { width: 100%; box-sizing: border-box; border: 1px solid #C9D0DE; border-radius: 5px;
+    padding: 3px 7px; font-size: 12px; color: #242832; background: #fff; font-family: inherit; }
+  .lg-cin.sm { width: auto; min-width: 130px; }
+  .lg-csel { cursor: pointer; }
+  .lg-cin:focus, .lg-csel:focus { outline: none; border-color: #2F5BB7; box-shadow: 0 0 0 2px rgba(47,91,183,.15); }
+  .lg-tbl td:has(> .lg-cin), .lg-tbl td:has(> .lg-csel) { padding: 3px 6px; }
+  /* 조사 Task 체크박스 */
+  .lg-ctchecks { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+  .lg-ctchk { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #3A3F4E; cursor: pointer; }
+  .lg-ctchk input { width: 13px; height: 13px; accent-color: #2F5BB7; cursor: pointer; }
+  /* 경찰접수 라디오 */
+  .lg-ctpolice { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .lg-ctradio { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #3A3F4E; cursor: pointer; }
+  .lg-ctradio input { accent-color: #2F5BB7; cursor: pointer; }
+  .lg-ctstation { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #5B6273; }
+  .lg-hide { display: none !important; }
+  /* 섹션 헤더 내 조회 버튼 */
+  .lg-sect .lg-mini { float: right; margin-top: -2px; }
+  .lg-ctype.disabled { opacity: .45; cursor: default; }
+
+  /* Moral 사고 조사 팝업 */
+  .ct-modal-root { position: fixed; inset: 0; z-index: 9500; display: none; }
+  .ct-modal-root.open { display: block; }
+  .ct-modal-bd { position: absolute; inset: 0; background: rgba(16,24,40,.4); }
+  .ct-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    width: 460px; max-width: 92vw; background: #fff; border-radius: 12px; box-shadow: 0 20px 50px rgba(16,30,54,.3); overflow: hidden; }
+  .ct-modal-h { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid #E6EAF2; font-size: 15px; }
+  .ct-modal-x { border: 0; background: #F1F4F9; width: 28px; height: 28px; border-radius: 8px; font-size: 18px; color: #5B6273; cursor: pointer; }
+  .ct-modal-b { padding: 16px 18px; }
+  .ct-modal-guide { margin: 0 0 10px; font-size: 12.5px; color: #B45309; background: #FEF3C7; border-radius: 8px; padding: 9px 11px; }
+  .ct-modal-b textarea { width: 100%; box-sizing: border-box; border: 1px solid #C9D0DE; border-radius: 8px; padding: 10px; font-size: 13px; line-height: 1.6; font-family: inherit; resize: vertical; }
+  .ct-modal-b textarea:focus { outline: none; border-color: #2F5BB7; box-shadow: 0 0 0 3px rgba(47,91,183,.15); }
+  .ct-modal-f { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px 16px; }
 </style>
 </head>
 <body>

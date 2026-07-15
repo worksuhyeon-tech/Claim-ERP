@@ -513,12 +513,15 @@ function lgTable(entries) {
   let buf = [];
   const flush = () => { if (buf.length) { rows.push("<tr>" + buf.join("") + "</tr>"); buf = []; } };
   entries.forEach(e => {
+    const hasRaw = e.raw != null;          // raw: 이스케이프하지 않는 입력/컨트롤 HTML
     const val = iEsc(e.v);
+    const content = hasRaw ? e.raw : (val || "-");
+    const phCls = (!hasRaw && !val) ? "ph" : "";
     if (e.full) {
       flush();
-      rows.push(`<tr><th>${e.k}</th><td colspan="3" class="${e.blue ? "blue " : ""}${val ? "" : "ph"}">${val || "-"}</td></tr>`);
+      rows.push(`<tr><th>${e.k}</th><td colspan="3" class="${e.blue ? "blue " : ""}${phCls}">${content}</td></tr>`);
     } else {
-      buf.push(`<th>${e.k}</th><td class="${e.blue ? "blue " : ""}${val ? "" : "ph"}">${val || "-"}</td>`);
+      buf.push(`<th>${e.k}</th><td class="${e.blue ? "blue " : ""}${phCls}">${content}</td>`);
       if (buf.length === 2) flush();
     }
   });
@@ -703,36 +706,97 @@ function intakeWorkbenchHtml(d) {
   </div>`;
 }
 
-/* ---- 탭1: 계약 사고 정보 ---- */
+/* ---- 탭1: 계약 사고 정보 — 담당자 편집 컨트롤 ---- */
+const CT_LICENSE_TYPES = ["1종대형", "1종보통", "1종특수", "2종보통", "2종소형", "원동기", "무면허", "해당없음"];
+const CT_ACC_MAJORS = ["차대차", "차량단독", "차대인", "타차일방", "계약위반(음주·약물 등)"];
+const CT_ACC_DETAILS = {
+  "차대차": ["추돌", "후진사고", "주/정차 중 사고", "차선변경(가해)", "차선변경(피해)", "신호위반", "교차로 진입", "측면 접촉"],
+  "차량단독": ["기타 피해물 접촉", "로드킬", "비래/낙하물", "도난", "전복", "전도", "침수", "화재", "가드레일 접촉"],
+  "차대인": ["횡단보도", "PM(개인형이동장치) 사고", "무단횡단", "보도 통행 중", "이면도로 사고"],
+  "타차일방": ["신호대기 중 추돌 피해", "주정차 중 피해", "상대 중앙선 침범", "상대 신호위반"],
+  "계약위반(음주·약물 등)": ["음주운전", "약물운전", "무면허운전", "사고후 미조치(뺑소니)"],
+};
+const CT_TASKS = ["Moral사고", "당일사고", "근접배서", "심야사고", "범위위배", "무면허운전", "타차운전"];
+
+const intakeContractState = {};
+function getContractState(id, d) {
+  if (!intakeContractState[id]) {
+    const P = d.parties || {}, A = d.accident || {}, dr = (P.driver || {});
+    intakeContractState[id] = {
+      driverName: dr.name || "", driverRel: dr.rel || "", birth: dr.birth || "", phone: dr.phone || "",
+      licenseNo: dr.licenseNo || "", licenseType: (dr.license || "").split("/")[0].trim() || "2종보통",
+      datetime: A.datetime || "", place: A.place || "", placeDetail: A.placeDetail || "",
+      content: A.content || "", note: A.note || "",
+      accMajor: "차대차", accDetail: CT_ACC_DETAILS["차대차"][0],
+      tasks: (A.otherDrive && A.otherDrive !== "해당없음") ? ["타차운전"] : [], moralNote: "",
+      police: (A.police === "신고접수") ? "신고" : "미신고", policeStation: "",
+      comp: { insurer: "", caseNo: "", staff: "", staffPhone: "", faultRate: "", faultFixed: "미확정", place: A.place || "", accType: "", dispatched: "미출동", content: "" },
+    };
+  }
+  return intakeContractState[id];
+}
+function ctText(field, val, ph) {
+  return `<input type="text" class="lg-cin" data-ct="${iEsc(field)}" value="${iEsc(val)}" placeholder="${iEsc(ph || "")}" data-desc="담당자가 직접 수정하고 저장하는 입력 항목입니다.">`;
+}
+function ctSel(field, val, opts) {
+  return `<select class="lg-csel" data-ct="${iEsc(field)}">${opts.map(o => `<option ${o === val ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>`;
+}
+function ctTaskChecksHtml(st) {
+  return `<div class="lg-ctchecks">` + CT_TASKS.map(t =>
+    `<label class="lg-ctchk" data-desc="${t === "Moral사고" ? "Moral(모럴) 의심 사고로 지정하면 조사내용 입력 팝업이 열립니다." : `'${iEsc(t)}' 조사 항목으로 표시합니다.`}"><input type="checkbox" data-cttask="${iEsc(t)}" ${st.tasks.includes(t) ? "checked" : ""}><span>${iEsc(t)}</span></label>`
+  ).join("") + `</div>`;
+}
+function ctPoliceHtml(st) {
+  const rep = st.police === "신고";
+  return `<div class="lg-ctpolice">
+    <label class="lg-ctradio" data-desc="경찰에 사고를 신고한 건입니다."><input type="radio" name="ctPolice" value="신고" ${rep ? "checked" : ""}>신고</label>
+    <label class="lg-ctradio" data-desc="경찰 신고를 하지 않은 건입니다."><input type="radio" name="ctPolice" value="미신고" ${!rep ? "checked" : ""}>미신고</label>
+    <span id="ctPoliceStationWrap" class="lg-ctstation ${rep ? "" : "lg-hide"}">관할 <input type="text" class="lg-cin sm" data-ct="policeStation" value="${iEsc(st.policeStation)}" placeholder="경찰서명" data-desc="신고한 관할 경찰서명을 입력합니다."></span>
+  </div>`;
+}
 function intakeContractTab(d) {
   const P = d.parties;
-  const left = lgSect("사고 관련자", "※ 운전자 접수 / 저장")
+  const st = getContractState(d.id, d);
+  const detailOpts = (CT_ACC_DETAILS[st.accMajor] || []);
+  const c = st.comp;
+  const left = lgSect("사고 관련자", "※ 운전자 접수 / 저장 · 담당자 수정 가능")
     + lgTable([
-      { k: "운전자", v: `${P.driver.name || ""} ${P.driver.rel ? "(" + P.driver.rel + ")" : ""}`.trim() },
-      { k: "연락처", v: P.driver.phone, blue: true },
-      { k: "생년월일", v: P.driver.birth }, { k: "면허", v: P.driver.license },
+      { k: "운전자", raw: ctText("driverName", st.driverName, "운전자명") },
+      { k: "연락처", raw: ctText("phone", st.phone, "010-0000-0000") },
+      { k: "생년월일", raw: ctText("birth", st.birth, "YYMMDD-0") },
+      { k: "관계", raw: ctText("driverRel", st.driverRel, "예: 피보험자 본인") },
+      { k: "면허종류", raw: ctSel("licenseType", st.licenseType, CT_LICENSE_TYPES) },
+      { k: "면허번호", raw: ctText("licenseNo", st.licenseNo, "00-00-000000-00") },
       { k: "소유자", v: P.owner.name }, { k: "연락처", v: P.owner.phone, blue: true },
       { k: "피보험자", v: P.insured.name }, { k: "연락처", v: P.insured.phone, blue: true },
       { k: "통보자", v: `${P.notifier.name || ""} ${P.notifier.rel ? "(" + P.notifier.rel + ")" : ""}`.trim() },
       { k: "연락처", v: P.notifier.phone, blue: true },
       { k: "개동", v: "운전 Y / 소유 Y", full: true },
     ])
-    + lgSect("사고 정보")
+    + lgSect("사고 정보", "※ 담당자 수정 가능")
     + lgTable([
-      { k: "사고일시", v: d.accident.datetime, full: true },
-      { k: "사고장소", v: d.accident.place, full: true },
-      { k: "장소상세", v: d.accident.placeDetail, full: true },
-      { k: "내용", v: d.accident.content, full: true },
-      { k: "특이사항", v: d.accident.note }, { k: "조사Task", v: d.accident.task },
-      { k: "경찰접수", v: d.accident.police }, { k: "타차운전", v: d.accident.otherDrive },
+      { k: "사고일시", raw: ctText("datetime", st.datetime, "YYYY-MM-DD HH:MM"), full: true },
+      { k: "사고장소", raw: ctText("place", st.place, "사고 발생 장소"), full: true },
+      { k: "장소상세", raw: ctText("placeDetail", st.placeDetail, "상세 위치"), full: true },
+      { k: "내용", raw: ctText("content", st.content, "사고 경위·내용"), full: true },
+      { k: "사고유형", raw: ctSel("accMajor", st.accMajor, CT_ACC_MAJORS) },
+      { k: "세부분류", raw: `<select class="lg-csel" id="ctAccDetail" data-ct="accDetail">${detailOpts.map(o => `<option ${o === st.accDetail ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>` },
+      { k: "특이사항", raw: ctText("note", st.note, "특이사항"), full: true },
+      { k: "조사Task", raw: ctTaskChecksHtml(st), full: true },
+      { k: "경찰접수", raw: ctPoliceHtml(st), full: true },
     ])
-    + lgSect("출동 정보")
+    + `<div class="lg-sect">경합 보험사 접수 정보<button class="lg-mini" type="button" id="ctCompFetch" data-desc="상대측(타 보험사) 접수 정보를 조회해 아래 항목을 자동으로 불러옵니다. (연동 시 실제 타사 데이터)">타사 정보 조회</button></div>`
     + lgTable([
-      { k: "담당", v: d.dispatch.manager }, { k: "운전자", v: d.dispatch.driver },
-      { k: "중대사고", v: d.dispatch.majorAcc, full: true },
-      { k: "사고내용", v: d.dispatch.content, full: true },
-      { k: "전달사항", v: d.dispatch.delivery, full: true },
-      { k: "기타", v: (d.dispatch.etc || []).join(" / "), full: true },
+      { k: "경합 보험사명", raw: ctText("comp.insurer", c.insurer, "예: DB손해보험") },
+      { k: "접수번호", raw: ctText("comp.caseNo", c.caseNo, "타사 접수번호") },
+      { k: "타보험사 담당자", raw: ctText("comp.staff", c.staff, "담당자명") },
+      { k: "담당자 연락처", raw: ctText("comp.staffPhone", c.staffPhone, "010-0000-0000"), blue: true },
+      { k: "과실율", raw: ctText("comp.faultRate", c.faultRate, "예: 70:30") },
+      { k: "과실 확정여부", raw: ctSel("comp.faultFixed", c.faultFixed, ["미확정", "협의중", "확정"]) },
+      { k: "사고장소", raw: ctText("comp.place", c.place, "타사 기재 사고장소"), full: true },
+      { k: "사고유형", raw: ctText("comp.accType", c.accType, "타사 기재 사고유형"), full: true },
+      { k: "출동여부", raw: ctSel("comp.dispatched", c.dispatched, ["미출동", "출동", "출동요청"]) },
+      { k: "사고내용", raw: ctText("comp.content", c.content, "타사 기재 사고내용"), full: true },
     ]);
   const right = lgSect("면부책")
     + lgTable([
@@ -766,6 +830,92 @@ function intakeContractTab(d) {
       { k: "담당RC", v: d.contract.rc, full: true },
     ]);
   return `<div class="lg-cols"><div>${left}</div><div>${right}</div></div>`;
+}
+
+function ctSetField(st, path, val) {
+  if (path.indexOf(".") >= 0) { const [a, b] = path.split("."); (st[a] = st[a] || {})[b] = val; }
+  else st[path] = val;
+}
+function bindIntakeContract(d) {
+  const body = $("#intakeBody"); if (!body) return;
+  const st = getContractState(d.id, d);
+  body.querySelectorAll("[data-ct]").forEach(el => {
+    const ev = el.tagName === "SELECT" ? "change" : "input";
+    el.addEventListener(ev, () => {
+      ctSetField(st, el.dataset.ct, el.value);
+      if (el.dataset.ct === "accMajor") {          // 대분류 변경 → 세부분류 옵션 갱신
+        const opts = CT_ACC_DETAILS[el.value] || [];
+        st.accDetail = opts[0] || "";
+        const sel = body.querySelector("#ctAccDetail");
+        if (sel) sel.innerHTML = opts.map(o => `<option ${o === st.accDetail ? "selected" : ""}>${iEsc(o)}</option>`).join("");
+      }
+    });
+  });
+  body.querySelectorAll("[data-cttask]").forEach(cb => cb.addEventListener("change", () => {
+    const t = cb.dataset.cttask;
+    if (cb.checked) { if (!st.tasks.includes(t)) st.tasks.push(t); if (t === "Moral사고") openMoralModal(st); }
+    else { st.tasks = st.tasks.filter(x => x !== t); }
+  }));
+  body.querySelectorAll('input[name="ctPolice"]').forEach(r => r.addEventListener("change", () => {
+    if (!r.checked) return;
+    st.police = r.value;
+    const wrap = body.querySelector("#ctPoliceStationWrap");
+    if (wrap) wrap.classList.toggle("lg-hide", r.value !== "신고");
+  }));
+  const fb = body.querySelector("#ctCompFetch");
+  if (fb) fb.addEventListener("click", () => fetchCompetitorInfo(d, st));
+}
+// 타사(경합 보험사) 정보 조회 — 데모: 임의 접수정보를 끌어와 채운다.
+function fetchCompetitorInfo(d, st) {
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const rnd = (min, max) => min + Math.floor(Math.random() * (max - min + 1));
+  st.comp = {
+    insurer: pick(["DB손해보험", "삼성화재", "현대해상", "KB손해보험", "메리츠화재", "롯데손해보험"]),
+    caseNo: `2026-${rnd(1000000, 9999999)}`,
+    staff: pick(["김", "이", "박", "최", "정", "강"]) + pick(["성민", "지훈", "서연", "도윤", "하늘", "예린"]),
+    staffPhone: `010-${rnd(2000, 8999)}-${rnd(1000, 9999)}`,
+    faultRate: pick(["70:30", "80:20", "100:0", "60:40", "0:100", "90:10"]),
+    faultFixed: pick(["미확정", "협의중", "확정"]),
+    place: st.place || (d.accident && d.accident.place) || "",
+    accType: `${st.accMajor} · ${st.accDetail}`,
+    dispatched: pick(["출동", "미출동"]),
+    content: pick(["상대차 후미 추돌 인정", "과실 협의 진행 중", "현장 블랙박스 확인 요청", "상대 운전자 진술 확보", "쌍방 과실 검토 중"]),
+  };
+  $("#intakeBody").innerHTML = renderIntakeTab("contract", d);
+  bindIntakeContract(d);
+  showToast(`${st.comp.insurer} 접수정보를 조회했습니다.`);
+}
+// Moral 사고 조사내용 입력 팝업
+function openMoralModal(st) {
+  let root = document.getElementById("ctMoralRoot");
+  if (!root) { root = document.createElement("div"); root.id = "ctMoralRoot"; document.body.appendChild(root); }
+  root.className = "ct-modal-root open";
+  root.innerHTML = `
+    <div class="ct-modal-bd"></div>
+    <div class="ct-modal" role="dialog" aria-modal="true" aria-label="Moral 사고 조사 내용">
+      <div class="ct-modal-h"><b>Moral 사고 조사 내용</b><button type="button" class="ct-modal-x" aria-label="닫기">×</button></div>
+      <div class="ct-modal-b">
+        <p class="ct-modal-guide">Moral(모럴) 의심 사고로 지정했습니다. 판단 근거와 조사 내용을 입력하세요.</p>
+        <textarea id="ctMoralText" rows="6" placeholder="예: 사고 경위 진술 불일치, 단기간 반복 사고 이력, 심야 단독사고 등 의심 정황과 조사 결과">${iEsc(st.moralNote)}</textarea>
+      </div>
+      <div class="ct-modal-f"><button type="button" class="lg-abtn" id="ctMoralCancel">취소</button><button type="button" class="lg-abtn primary" id="ctMoralSave">조사내용 저장</button></div>
+    </div>`;
+  const close = (uncheck) => {
+    root.classList.remove("open"); root.innerHTML = "";
+    if (uncheck && !st.moralNote) {   // 조사내용 없이 닫으면 Moral 체크 해제
+      st.tasks = st.tasks.filter(x => x !== "Moral사고");
+      const cb = document.querySelector('[data-cttask="Moral사고"]');
+      if (cb) cb.checked = false;
+    }
+  };
+  root.querySelector(".ct-modal-bd").addEventListener("click", () => close(true));
+  root.querySelector(".ct-modal-x").addEventListener("click", () => close(true));
+  root.querySelector("#ctMoralCancel").addEventListener("click", () => close(true));
+  root.querySelector("#ctMoralSave").addEventListener("click", () => {
+    st.moralNote = document.getElementById("ctMoralText").value;
+    close(false);
+    showToast("Moral 사고 조사내용을 저장했습니다.");
+  });
 }
 
 /* ---- 탭2: 피해 진행 정보 ---- */
@@ -1921,6 +2071,7 @@ function renderIntake() {
   const root = $("#intakeRoot");
   if (!d) { root.innerHTML = `<div style="padding:40px;text-align:center;color:#8a90a0">표시할 사고건이 없습니다.</div>`; return; }
   const done = d.procStatus === "완료";
+  const isContractTab = intakeTab === "contract";  // 계약 사고 정보 탭: 저장 전용(종결 구분 비활성)
   const closeType = intakeCloseType[id] || "지급"; // 종결 구분 기본값: 지급
   const unresolvedText = (d.unresolved && d.unresolved.length) ? d.unresolved.join(", ") : "없음";
   const queryType = INTAKE_QUERY_TYPES.includes(intakeQueryType) ? intakeQueryType : INTAKE_QUERY_TYPES[0];
@@ -1951,9 +2102,11 @@ function renderIntake() {
             <span class="lg-std" data-desc="현재 이 사고건에 남아 있는 미결 속성(재통화·VOC 등) 태그입니다.">미결 태그: ${iEsc(unresolvedText)}</span>
             <span class="sp"></span>
             <div class="lg-close-type" role="radiogroup" aria-label="종결 구분">
-              ${["면책", "지급"].map(t => `<label class="lg-ctype ${closeType === t ? "on" : ""}" data-desc="이 사고건을 '${t}'(으)로 종결 처리할 구분으로 지정합니다."><input type="radio" name="intakeCloseType" value="${t}" ${closeType === t ? "checked" : ""} ${done ? "disabled" : ""}>${t}</label>`).join("")}
+              ${["면책", "지급"].map(t => `<label class="lg-ctype ${closeType === t ? "on" : ""} ${isContractTab ? "disabled" : ""}" data-desc="${isContractTab ? "계약 사고 정보 탭에서는 종결 구분 선택이 비활성화됩니다. (저장 전용)" : `이 사고건을 '${t}'(으)로 종결 처리할 구분으로 지정합니다.`}"><input type="radio" name="intakeCloseType" value="${t}" ${closeType === t ? "checked" : ""} ${(done || isContractTab) ? "disabled" : ""}>${t}</label>`).join("")}
             </div>
-            <button class="lg-abtn primary" type="button" id="intakeComplete" ${done ? "disabled" : ""} data-desc="선택한 종결 구분(면책/지급)으로 이 사고건을 종결 처리합니다.">${done ? "종결됨" : "종결"}</button>
+            ${isContractTab
+      ? `<button class="lg-abtn primary" type="button" id="intakeSaveContract" data-desc="담당자가 수정한 사고 관련자·사고 정보와 조회한 경합 보험사 정보를 저장합니다.">저장</button>`
+      : `<button class="lg-abtn primary" type="button" id="intakeComplete" ${done ? "disabled" : ""} data-desc="선택한 종결 구분(면책/지급)으로 이 사고건을 종결 처리합니다.">${done ? "종결됨" : "종결"}</button>`}
           </div>
         </div>
       </div>
@@ -2007,6 +2160,15 @@ function renderIntake() {
     setProcStatus(d.id, "완료");
     showToast(`${d.id} 건이 ${closeType} 종결되었습니다.`);
   });
+  // 계약 사고 정보 탭: 편집 컨트롤 바인딩 + 저장 버튼
+  if (intakeTab === "contract") {
+    bindIntakeContract(d);
+    const sc = $("#intakeSaveContract");
+    if (sc) sc.addEventListener("click", () => {
+      getContractState(d.id, d);   // 입력값은 이미 상태에 반영됨
+      showToast(`${d.id} 계약 사고 정보가 저장되었습니다.`);
+    });
+  }
 }
 
 
