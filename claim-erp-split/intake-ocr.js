@@ -223,9 +223,11 @@ function renderOcrEditor(d) {
       ${ocrSummaryHtml(fault)}
     </div>
     <div class="modal-foot">
-      ${fault.confirmed ? "" : `<span class="ocr-fault-warn">과실율 확정 후 결의입력하세요</span>`}
+      ${editing && !fault.confirmed ? `<span class="ocr-fault-warn">과실율 확정 후 결의입력하세요</span>` : ""}
       <button class="btn-modal" type="button" data-ocr-close>취소</button>
-      <button class="btn-modal primary" type="button" id="ocrConfirm" ${fault.confirmed ? "" : "disabled"} data-desc="검토·수정한 내용을 부품 지급결의로 확정 저장합니다.">${editing ? "재확정" : "확정 (지급결의 저장)"}</button>
+      ${editing
+        ? `<button class="btn-modal primary" type="button" id="ocrConfirm" ${fault.confirmed ? "" : "disabled"} data-desc="검토·수정한 내용으로 부품 지급결의를 재확정합니다.">재확정</button>`
+        : `<button class="btn-modal primary" type="button" id="ocrConfirm" data-desc="검토·수정한 부품 내역을 청구내역 테이블에 반영합니다. (저장은 별도 '저장' 버튼)">확정 (청구내역 반영)</button>`}
     </div>`;
   bindOcrEditor(d);
 }
@@ -355,24 +357,30 @@ function diffOcrRows(rows, actor) {
   return hist;
 }
 
-/* ---- 확정 → PAYMENT_RESOLUTIONS 저장 ---- */
+/* ===================== 미저장 부품 스테이징 (확정→청구내역 반영, 저장→결의) =====================
+   확정 시 곧바로 지급결의로 저장하지 않고, 청구내역 테이블에 '추가부품'으로 반영(스테이징).
+   담당자가 정비 견적과 부품을 함께 확인한 뒤 별도 '저장' 버튼으로 부품 지급결의를 확정한다.
+   프로토타입은 localStorage로 화면 간 유지. */
+const OCR_STAGE_LS_KEY = "claimOcrStaged";
+let ocrStagedMap = null; // { claimId: { fileName, sourceType, rows, editHistory } }
+function ocrLoadStaged() {
+  if (ocrStagedMap) return;
+  try { ocrStagedMap = JSON.parse(localStorage.getItem(OCR_STAGE_LS_KEY) || "{}") || {}; } catch (e) { ocrStagedMap = {}; }
+}
+function ocrPersistStaged() { try { localStorage.setItem(OCR_STAGE_LS_KEY, JSON.stringify(ocrStagedMap || {})); } catch (e) {} }
+function ocrGetStaged(claimId) { ocrLoadStaged(); return ocrStagedMap[claimId] || null; }
+function ocrSetStaged(claimId, batch) { ocrLoadStaged(); ocrStagedMap[claimId] = batch; ocrPersistStaged(); }
+function ocrClearStaged(claimId) { ocrLoadStaged(); delete ocrStagedMap[claimId]; ocrPersistStaged(); }
+
+// 확정: 신규는 청구내역에 반영(스테이징), 편집은 기존 부품결의 재확정
 function confirmOcrResolution(d) {
   if (!ocrState || !ocrState.rows.length) {
     showToast("인식된 부품 항목이 없습니다. 파일을 다시 등록하거나 행을 직접 추가하세요.");
     return;
   }
-  const fault = parseFaultInfo(d.ownDamage && d.ownDamage.faultRate);
-  if (!fault.confirmed) { showToast("과실율 확정 후 결의입력하세요"); return; }
-
   const c = CLAIMS.find(x => x.id === d.id);
   const staff = srCurrentStaff(c);
   const editing = ocrState.editingResolutionId ? getResolution(ocrState.editingResolutionId) : null;
-
-  // 동일 파일명 중복 확인 (신규 저장 시)
-  if (!editing) {
-    const dup = resolutionsFor(d.id).some(r => r.sourceFileName === ocrState.fileName);
-    if (dup && !window.confirm("동일한 파일명으로 저장된 지급결의가 있습니다.\n계속 등록하시겠습니까?")) return;
-  }
 
   const rows = ocrState.rows.map((r, i) => ({
     rowId: r.rowId, seq: i + 1,
@@ -385,42 +393,74 @@ function confirmOcrResolution(d) {
   const newHist = diffOcrRows(ocrState.rows, staff);
 
   if (editing) {
+    // 기존 부품 지급결의 재확정 (과실률 확정 필요)
+    const fault = parseFaultInfo(d.ownDamage && d.ownDamage.faultRate);
+    if (!fault.confirmed) { showToast("과실율 확정 후 결의입력하세요"); return; }
     editing.rows = rows;
     editing.faultRateAtConfirmed = fault.pct;
     recalcResolutionAmounts(editing, fault.pct);
     editing.editHistory = (editing.editHistory || []).concat(newHist);
-    editing.status = "결재 전";           // 재확정 시 재확인 상태 해제
+    editing.status = "결재 전";
     editing.faultRateAtReview = null;
     editing.updatedAt = apprNow();
     persistResolutions();
     showToast(`${d.id} 부품 지급결의 ${editing.resolutionSeq}가 재확정되었습니다.`);
   } else {
-    const res = {
-      id: nextResolutionId(),
-      claimNo: d.id,
-      resolutionSeq: nextResolutionSeq(d.id),
-      resolutionType: "부품",
-      sourceType: ocrState.sourceType || "AI-OCR",
-      sourceFileName: ocrState.fileName,
-      documentType: "claim",
-      status: "결재 전",
-      faultRateAtConfirmed: fault.pct,
-      claimAmount: 0, assessedAmountBeforeFault: 0, faultOffsetAmount: 0, finalAssessedAmount: 0,
-      rows: rows,
-      editHistory: newHist,
-      currentApprovalId: null,
-      approvalHistoryIds: [],
-      confirmedBy: staff.id,
-      confirmedByName: staff.name,
-      confirmedAt: apprNow(),
-      updatedAt: apprNow(),
-    };
-    recalcResolutionAmounts(res, fault.pct);
-    PAYMENT_RESOLUTIONS.push(res);
-    persistResolutions();
-    showToast(`${d.id} 부품 지급결의 ${res.resolutionSeq}가 저장되었습니다. (AI-OCR)`);
+    // 신규: 청구내역 테이블에 반영(스테이징). 저장은 별도 '저장' 버튼.
+    ocrSetStaged(d.id, { fileName: ocrState.fileName, sourceType: ocrState.sourceType || "AI-OCR", rows: rows, editHistory: newHist });
+    if (typeof estimateDocType !== "undefined") estimateDocType = "claim"; // 부품청구서는 청구서 보기
+    showToast(`부품청구서 ${ocrState.fileName}이(가) 청구내역에 반영되었습니다. '저장'을 눌러 부품 지급결의로 저장하세요.`);
   }
   closeOcrModal();
+  renderIntake();
+}
+
+// 저장: 스테이징된 부품을 부품 지급결의로 확정 저장 (과실률 확정 필요)
+function saveStagedResolution(d) {
+  const staged = ocrGetStaged(d.id);
+  if (!staged) { showToast("저장할 미저장 부품 내역이 없습니다."); return; }
+  const fault = parseFaultInfo(d.ownDamage && d.ownDamage.faultRate);
+  if (!fault.confirmed) { showToast("과실율 확정 후 결의입력하세요"); return; }
+  // 동일 파일명 중복 확인
+  const dup = resolutionsFor(d.id).some(r => r.sourceFileName === staged.fileName);
+  if (dup && !window.confirm("동일한 파일명으로 저장된 지급결의가 있습니다.\n계속 등록하시겠습니까?")) return;
+
+  const c = CLAIMS.find(x => x.id === d.id);
+  const staff = srCurrentStaff(c);
+  const res = {
+    id: nextResolutionId(),
+    claimNo: d.id,
+    resolutionSeq: nextResolutionSeq(d.id),
+    resolutionType: "부품",
+    sourceType: staged.sourceType || "AI-OCR",
+    sourceFileName: staged.fileName,
+    documentType: "claim",
+    status: "결재 전",
+    faultRateAtConfirmed: fault.pct,
+    claimAmount: 0, assessedAmountBeforeFault: 0, faultOffsetAmount: 0, finalAssessedAmount: 0,
+    rows: staged.rows,
+    editHistory: staged.editHistory || [],
+    currentApprovalId: null,
+    approvalHistoryIds: [],
+    confirmedBy: staff.id,
+    confirmedByName: staff.name,
+    confirmedAt: apprNow(),
+    updatedAt: apprNow(),
+  };
+  recalcResolutionAmounts(res, fault.pct);
+  PAYMENT_RESOLUTIONS.push(res);
+  persistResolutions();
+  ocrClearStaged(d.id);
+  showToast(`${d.id} 부품 지급결의 ${res.resolutionSeq}가 저장되었습니다. (AI-OCR)`);
+  renderIntake();
+}
+
+// 미저장 부품 취소 (청구내역 반영 철회)
+function cancelStagedOcr(d) {
+  if (!ocrGetStaged(d.id)) return;
+  if (!window.confirm("반영한 미저장 부품 내역을 취소하시겠습니까?")) return;
+  ocrClearStaged(d.id);
+  showToast("미저장 부품 내역을 취소했습니다.");
   renderIntake();
 }
 

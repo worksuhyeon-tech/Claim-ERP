@@ -1262,14 +1262,56 @@ function intakeEstimatePhotoStrip(d) {
     <div class="es-strip" id="estPhotoStrip">${inner}</div>
   </div>`;
 }
+// 견적 테이블 1행 렌더 (기본 견적 행 + AI-OCR 추가부품 행 공용)
+function lgEstRowHtml(r) {
+  const denied = r.adjust.denied;
+  const cls = r.ocr ? ` class="ocr-extra-row${r.unsaved ? " unsaved" : ""}"` : "";
+  const grp = r.ocr ? `${iEsc(r.g)} <span class="ocr-rowbadge${r.unsaved ? " unsaved" : ""}">${iEsc(r.badge)}</span>` : iEsc(r.g);
+  return `<tr${cls}>
+    <td class="grp">${grp}</td>
+    <td class="nm">${iEsc(r.n)}</td>
+    <td class="it">${iEsc(r.it)}</td>
+    <td class="num">${r.base.unit}</td>
+    <td class="num amt">${won(r.base.amount)}</td>
+    <td class="ck"><input type="checkbox" ${denied ? "checked" : ""} disabled></td>
+    <td class="num${denied ? " off" : ""}">${denied ? "-" : r.adjust.unit}</td>
+    <td class="num amt${denied ? " off" : ""}">${denied ? "0" : won(r.adjust.amount)}</td>
+  </tr>`;
+}
+function lgEstTableHtml(allRows, baseLabel, sumLabel) {
+  const baseSum = estSum(allRows, "base");
+  const adjSum = estSum(allRows, "adjust");
+  return `<div class="lg-scroll"><table class="lg-est-tbl">
+    <colgroup><col style="width:74px"><col><col style="width:96px"><col style="width:52px"><col style="width:88px"><col style="width:40px"><col style="width:52px"><col style="width:88px"></colgroup>
+    <thead>
+      <tr>
+        <th rowspan="2">작업구분</th><th rowspan="2">작업내용</th><th rowspan="2">작업항목</th>
+        <th colspan="2" class="grp-claim">${baseLabel}</th>
+        <th colspan="3" class="grp-adjust">손해사정</th>
+      </tr>
+      <tr><th>단위</th><th>금액</th><th>불인</th><th>단위</th><th>금액</th></tr>
+    </thead>
+    <tbody>${allRows.map(lgEstRowHtml).join("")}</tbody>
+    <tfoot>
+      <tr>
+        <th colspan="3">${sumLabel}</th>
+        <td class="num"></td><td class="num amt">${won(baseSum)}</td>
+        <td class="ck"></td><td class="num"></td><td class="num amt">${won(adjSum)}</td>
+      </tr>
+    </tfoot>
+  </table></div>`;
+}
 function intakeEstimateTab(d) {
   const doc = d.estimateDoc;
   if (!doc) {
-    // 견적 문서가 없어도 AI-OCR 부품청구서 등록은 가능(설계문서 §5.1)
+    // 견적 문서가 없어도 AI-OCR 부품청구서 등록·부품 지급결의는 가능(설계문서 §5.1)
+    const extra = ocrClaimExtraRows(d);
+    const partsTable = extra.length ? lgEstTableHtml(extra, "청구 내역", "부품 청구 합계") : "";
+    const note = extra.length ? "정비 견적(청구서)은 아직 없습니다. 아래는 AI-OCR로 등록한 부품 내역입니다." : "등록된 청구 견적 정보가 없습니다.";
     return `<div class="lg-est-emptybar">
-      <div class="lg-est-empty">등록된 청구 견적 정보가 없습니다.</div>
+      <div class="lg-est-empty">${note}</div>
       <button type="button" class="ocr-pro-btn" id="ocrProBtn" data-desc="부품청구서를 업로드해 AI-OCR로 전산화하고 부품 지급결의를 생성합니다. (Pro 기능)"><span class="ai">🤖</span> AI-OCR <span class="tag">Pro</span></button>
-    </div>${srApprComponentHtml(d)}`;
+    </div>${partsTable}${ocrStageBarHtml(d)}${srApprComponentHtml(d)}`;
   }
   const rows = estimateDocType === "pre" ? doc.pre : doc.claim;
   const isPre = estimateDocType === "pre";
@@ -1300,44 +1342,11 @@ function intakeEstimateTab(d) {
     <button type="button" class="ocr-pro-btn" id="ocrProBtn" data-desc="부품청구서를 업로드해 AI-OCR로 전산화하고 부품 지급결의를 생성합니다. (Pro 기능)"><span class="ai">🤖</span> AI-OCR <span class="tag">Pro</span></button>
   </div>`;
 
-  const baseSum = estSum(rows, "base");
-  const adjSum = estSum(rows, "adjust");
-  const body = rows.map(r => {
-    const denied = r.adjust.denied;
-    return `<tr>
-      <td class="grp">${iEsc(r.g)}</td>
-      <td class="nm">${iEsc(r.n)}</td>
-      <td class="it">${iEsc(r.it)}</td>
-      <td class="num">${r.base.unit}</td>
-      <td class="num amt">${won(r.base.amount)}</td>
-      <td class="ck"><input type="checkbox" ${denied ? "checked" : ""} disabled></td>
-      <td class="num${denied ? " off" : ""}">${denied ? "-" : r.adjust.unit}</td>
-      <td class="num amt${denied ? " off" : ""}">${denied ? "0" : won(r.adjust.amount)}</td>
-    </tr>`;
-  }).join("");
-
-  const table = `<div class="lg-scroll"><table class="lg-est-tbl">
-    <colgroup><col style="width:74px"><col><col style="width:96px"><col style="width:52px"><col style="width:88px"><col style="width:40px"><col style="width:52px"><col style="width:88px"></colgroup>
-    <thead>
-      <tr>
-        <th rowspan="2">작업구분</th><th rowspan="2">작업내용</th><th rowspan="2">작업항목</th>
-        <th colspan="2" class="grp-claim">${baseLabel}</th>
-        <th colspan="3" class="grp-adjust">손해사정</th>
-      </tr>
-      <tr>
-        <th>단위</th><th>금액</th>
-        <th>불인</th><th>단위</th><th>금액</th>
-      </tr>
-    </thead>
-    <tbody>${body}</tbody>
-    <tfoot>
-      <tr>
-        <th colspan="3">${docLabel} 합계</th>
-        <td class="num"></td><td class="num amt">${won(baseSum)}</td>
-        <td class="ck"></td><td class="num"></td><td class="num amt">${won(adjSum)}</td>
-      </tr>
-    </tfoot>
-  </table></div>`;
+  // AI-OCR 부품 행: 청구서 보기에서만 정비 견적과 함께 표시(추가부품). 저장된 부품결의 + 미저장 스테이징.
+  const extra = !isPre ? ocrClaimExtraRows(d) : [];
+  const allRows = rows.concat(extra);
+  const sumLabel = extra.length ? `${docLabel} 합계 (정비+부품)` : `${docLabel} 합계`;
+  const table = lgEstTableHtml(allRows, baseLabel, sumLabel);
 
   return `<div class="lg-est">
     <div class="lg-est-head">
@@ -1348,7 +1357,41 @@ function intakeEstimateTab(d) {
     ${toggle}
     ${band}
     ${table}
+    ${ocrStageBarHtml(d)}
   </div>${srApprComponentHtml(d)}`;
+}
+
+// 청구서 테이블에 함께 표시할 AI-OCR 부품 행(추가부품) — 저장된 부품결의 + 미저장 스테이징
+function ocrRowToEst(row, badge, unsaved) {
+  return {
+    g: "추가부품", n: row.partName, it: row.partNumber || row.partCategory,
+    base: { unit: row.quantity, amount: Number(row.claimAmount || 0) },
+    adjust: { denied: !!row.denied, unit: row.quantity, amount: row.denied ? 0 : Number(row.assessedAmount || 0) },
+    ocr: true, badge: badge, unsaved: !!unsaved,
+  };
+}
+function ocrClaimExtraRows(d) {
+  const out = [];
+  (typeof resolutionsFor === "function" ? resolutionsFor(d.id) : []).forEach(res => {
+    if (res.resolutionType !== "부품") return;
+    res.rows.forEach(row => out.push(ocrRowToEst(row, "결의 " + res.resolutionSeq, false)));
+  });
+  const staged = (typeof ocrGetStaged === "function") ? ocrGetStaged(d.id) : null;
+  if (staged) staged.rows.forEach(row => out.push(ocrRowToEst(row, "미저장", true)));
+  return out;
+}
+// 미저장 부품 청구내역 저장 바 (확정 → 청구내역 반영 후 '저장'으로 부품 지급결의 확정)
+function ocrStageBarHtml(d) {
+  const staged = (typeof ocrGetStaged === "function") ? ocrGetStaged(d.id) : null;
+  if (!staged) return "";
+  const fault = parseFaultInfo(d.ownDamage && d.ownDamage.faultRate);
+  return `<div class="ocr-savebar">
+    <span class="ocr-savebar-note">📄 미저장 부품청구서 <b>${iEsc(staged.fileName)}</b> · ${staged.rows.length}개 항목이 청구내역에 반영되었습니다.</span>
+    <span class="grow"></span>
+    ${fault.confirmed ? "" : `<span class="ocr-fault-warn">과실율 확정 후 결의입력하세요</span>`}
+    <button type="button" class="lg-abtn" id="ocrStageCancel" data-desc="반영한 미저장 부품 내역을 취소합니다.">취소</button>
+    <button type="button" class="lg-abtn primary" id="ocrStageSave" ${fault.confirmed ? "" : "disabled"} data-desc="청구내역에 반영된 부품을 부품 지급결의로 저장합니다.">저장 (부품 지급결의)</button>
+  </div>`;
 }
 function bindIntakeEstimate(d) {
   document.querySelectorAll("[data-estdoc]").forEach(b => b.addEventListener("click", () => {
@@ -1372,6 +1415,11 @@ function bindIntakeEstimate(d) {
   // AI-OCR Pro 버튼 — 과실률 확정 여부와 무관하게 활성(설계문서 §5.1)
   const ocrBtn = $("#ocrProBtn");
   if (ocrBtn && typeof openOcrUpload === "function") ocrBtn.addEventListener("click", () => openOcrUpload(d));
+  // 미저장 부품 저장/취소 바
+  const stageSave = $("#ocrStageSave");
+  if (stageSave && typeof saveStagedResolution === "function") stageSave.addEventListener("click", () => saveStagedResolution(d));
+  const stageCancel = $("#ocrStageCancel");
+  if (stageCancel && typeof cancelStagedOcr === "function") stageCancel.addEventListener("click", () => cancelStagedOcr(d));
   bindIntakeApprForm(d);   // 결재 폼 최초 바인딩
 }
 
