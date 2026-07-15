@@ -75,12 +75,13 @@ const AI_REVIEWS = [
     recommend: ["전조등 근접사진 요청", "범퍼 수리방법을 교환→보수로 재검토", "확인된 수리범위만 우선 승인"],
     forcedHold: [], missing: [],
     approval: {
-      approvable: "일부 승인", approvedAmount: 1180000, excludedAmount: 320000,
+      approvable: "일부 승인", approvedAmount: 860000, excludedAmount: 440000,
       items: [
-        { name: "앞범퍼", method: "교환→보수 재검토", part: 380000, labor: 40000, paint: 0, status: "조건부" },
-        { name: "우측 전휀더", method: "판금", part: 0, labor: 180000, paint: 0, status: "승인" },
-        { name: "우측 전조등", method: "교환", part: 260000, labor: 60000, paint: 0, status: "제외" },
-        { name: "도장 (범퍼·펜더)", method: "도장", part: 0, labor: 0, paint: 260000, status: "승인" }
+        { group: "주체", name: "앞범퍼", method: "교환", time: 1.5, part: 380000, labor: 40000, paint: 0, status: "조건부", reason: "스크래치 수준으로 보수 가능성이 높아 교환 근거가 부족합니다. 탈착 후 내부 손상사진 필요." },
+        { group: "판금", name: "우측 전휀더", method: "판금", time: 2.0, part: 0, labor: 180000, paint: 0, status: "승인" },
+        { group: "주체", name: "우측 전조등", method: "교환", time: 0.8, part: 260000, labor: 60000, paint: 0, status: "제외", reason: "제출 사진에서 전조등 파손이 확인되지 않습니다." },
+        { group: "도장", name: "범퍼·펜더 도장", method: "도장", time: 2.3, part: 0, labor: 0, paint: 260000, status: "승인" },
+        { group: "주체", name: "좌측 도어 흠집 보수", method: "판금", time: 0.6, part: 0, labor: 120000, paint: 0, status: "제외", reason: "이번 사고와 연관성이 낮은 기존손상으로 판단됩니다." }
       ]
     },
     report: {
@@ -134,8 +135,9 @@ const AI_REVIEWS = [
     approval: {
       approvable: "보류", approvedAmount: 0, excludedAmount: 0,
       items: [
-        { name: "라디에이터 그릴", method: "교환", part: 210000, labor: 40000, paint: 0, status: "보류" },
-        { name: "앞범퍼", method: "판금·도장", part: 0, labor: 120000, paint: 180000, status: "보류" }
+        { group: "주체", name: "라디에이터 그릴", method: "교환", time: 0.6, part: 210000, labor: 40000, paint: 0, status: "보류", reason: "이미지 해상도가 낮아 파손 여부·심도 인식 신뢰도가 낮습니다." },
+        { group: "판금", name: "앞범퍼", method: "판금", time: 1.4, part: 0, labor: 120000, paint: 0, status: "보류", reason: "파손심도 인식 신뢰도 부족으로 판금 범위 확정 불가." },
+        { group: "도장", name: "앞범퍼 도장", method: "도장", time: 2.0, part: 0, labor: 0, paint: 180000, status: "조건부", reason: "그릴 도장과 범위 중복 소지가 있어 확인이 필요합니다." }
       ]
     },
     report: {
@@ -164,10 +166,11 @@ const AI_REVIEWS = [
     recommend: ["수리범위·금액 전면 재검토", "담당자 직접검토 전환 권장"],
     forcedHold: [], missing: [],
     approval: {
-      approvable: "부적정", approvedAmount: 0, excludedAmount: 0,
+      approvable: "부적정", approvedAmount: 210000, excludedAmount: 1750000,
       items: [
-        { name: "본넷", method: "교환", part: 620000, labor: 90000, paint: 240000, status: "제외" },
-        { name: "양측 펜더", method: "교환", part: 480000, labor: 120000, paint: 200000, status: "제외" }
+        { group: "주체", name: "본넷", method: "교환", time: 1.8, part: 620000, labor: 90000, paint: 240000, status: "제외", reason: "앞단 경미한 눌림으로 교환 근거가 부족합니다. 보수 가능." },
+        { group: "주체", name: "양측 펜더", method: "교환", time: 2.4, part: 480000, labor: 120000, paint: 200000, status: "제외", reason: "제출 사진에서 펜더 파손이 확인되지 않습니다." },
+        { group: "주체", name: "본넷 앞단 보수", method: "판금", time: 1.0, part: 0, labor: 150000, paint: 60000, status: "승인" }
       ]
     },
     report: {
@@ -196,10 +199,18 @@ const AI_REVIEWS = [
     recommend: ["추가 도장 근거사진 확인 후 인정범위 조정", "미승인 항목 불인정 처리 검토"],
     forcedHold: [], missing: [],
     adjust: {
-      claimedAmount: 2140000, aiAmount: 1820000, deniedAmount: 320000, diffText: "승인견적 대비 +18%",
+      claimedAmount: 2140000, aiAmount: 1820000, deniedAmount: 320000, diffText: "+18% 증가", exemption: 300000,
+      items: [
+        { group: "주체", name: "본넷", method: "교환", time: 1.8, part: 520000, labor: 90000, paint: 0, status: "승인" },
+        { group: "도장", name: "본넷 도장", method: "도장", time: 2.5, part: 0, labor: 0, paint: 230000, status: "승인" },
+        { group: "주체", name: "앞범퍼", method: "탈착", time: 0.5, part: 0, labor: 60000, paint: 0, status: "승인" },
+        { group: "부품", name: "그릴·엠블럼", method: "교환", time: 0.4, part: 340000, labor: 20000, paint: 0, status: "승인" },
+        { group: "도장", name: "도어 도장 확장(추가)", method: "도장", time: 1.5, part: 0, labor: 0, paint: 220000, status: "제외", reason: "사전 승인범위 외 · 근거사진 부족" },
+        { group: "공임", name: "부가 공임 상향분", method: "-", time: 0, part: 0, labor: 100000, paint: 0, status: "제외", reason: "기준 공임 초과분" }
+      ],
       deniedItems: [
         { name: "추가 도장 확장(도어)", amount: 220000, reason: "사전 승인범위 외 · 근거사진 부족" },
-        { name: "부가 공임 상향분", amount: 100000, reason: "기준 공임 초과" }
+        { name: "부가 공임 상향분", amount: 100000, reason: "기준 공임 초과분" }
       ]
     },
     report: {
@@ -224,7 +235,17 @@ const AI_REVIEWS = [
       "미승인 항목이 없습니다.", "청구금액이 적정합니다.", "면책금·기지급금이 반영되었습니다."
     ]),
     reasons: [], recommend: ["추가 조치가 필요하지 않습니다."], forcedHold: [], missing: [],
-    adjust: { claimedAmount: 1650000, aiAmount: 1650000, deniedAmount: 0, diffText: "승인견적과 일치", deniedItems: [] },
+    adjust: {
+      claimedAmount: 1650000, aiAmount: 1650000, deniedAmount: 0, diffText: "승인견적과 일치", exemption: 300000,
+      items: [
+        { group: "주체", name: "앞범퍼", method: "교환", time: 1.5, part: 520000, labor: 60000, paint: 0, status: "승인" },
+        { group: "부품", name: "라디에이터 그릴", method: "교환", time: 0.6, part: 240000, labor: 40000, paint: 0, status: "승인" },
+        { group: "도장", name: "전면 도장", method: "도장", time: 3.0, part: 0, labor: 0, paint: 480000, status: "승인" },
+        { group: "주체", name: "헤드램프 탈부착", method: "탈착", time: 0.8, part: 0, labor: 90000, paint: 0, status: "승인" },
+        { group: "부품", name: "안개등(우)", method: "교환", time: 0.5, part: 180000, labor: 40000, paint: 0, status: "승인" }
+      ],
+      deniedItems: []
+    },
     report: {
       verdict: "적정 — 손해사정 완료, 인정금액 확정.",
       confirmed: ["전면 수리 완료", "도장 완료"], claimed: ["범퍼 교환", "그릴 교환", "도장"],
@@ -570,36 +591,86 @@ function photoCards(r) {
       <figcaption>${escapeHtml(im.name)}</figcaption>
     </figure>`).join("")}</div>`;
 }
-function estimateTable(r) {
-  const items = (r.approval && r.approval.items && r.approval.items.length) ? r.approval.items : null;
-  if (r.adjust) {
-    const a = r.adjust;
-    return `
-      <table class="ocr-table">
-        <thead><tr><th>구분</th><th class="num">금액</th></tr></thead>
-        <tbody>
-          <tr><td>최종 청구금액</td><td class="num">${won(a.claimedAmount)}원</td></tr>
-          <tr><td>AI 제안 인정금액</td><td class="num strong">${won(a.aiAmount)}원</td></tr>
-          <tr><td>불인정금액</td><td class="num red">${won(a.deniedAmount)}원</td></tr>
-          <tr><td>승인견적 대비</td><td class="num">${escapeHtml(a.diffText)}</td></tr>
-        </tbody>
-      </table>
-      ${a.deniedItems.length ? `<div class="ocr-sub">불인정 항목</div><ul class="deny-list">${a.deniedItems.map(d => `<li><b>${escapeHtml(d.name)}</b> ${won(d.amount)}원 — ${escapeHtml(d.reason)}</li>`).join("")}</ul>` : ""}`;
-  }
-  if (!items) return `<div class="ai-nodata">견적/청구 OCR 추출내역이 없습니다.</div>`;
+// 견적/청구 항목 (수리승인=견적, 손해사정=청구서)
+function estimateItems(r) {
+  if (r.approval && r.approval.items && r.approval.items.length) return r.approval.items;
+  if (r.adjust && r.adjust.items && r.adjust.items.length) return r.adjust.items;
+  return null;
+}
+// (좌) 공업사 청구견적 — 원본 라인아이템 + AI 제외/조건부 인라인 표시
+function shopEstimateTable(r) {
+  const items = estimateItems(r);
+  if (!items) return `<div class="ai-nodata">${r.hasBill ? "청구서" : "견적서"} OCR 추출내역이 없습니다.</div>`;
+  let tPart = 0, tLabor = 0, tExcl = 0;
+  const rows = items.map(it => {
+    const partSum = (it.part || 0) + (it.paint || 0), labor = it.labor || 0;
+    tPart += partSum; tLabor += labor;
+    if (it.status === "제외") tExcl += partSum + labor;
+    const excl = it.status === "제외", cond = it.status === "조건부" || it.status === "보류";
+    const badge = excl ? `<span class="item-st st-no">제외</span>` : cond ? `<span class="item-st st-cond">${escapeHtml(it.status)}</span>` : "";
+    return `<tr class="${excl ? "row-excl" : ""}">
+      <td class="et-g">${escapeHtml(it.group || "-")}</td>
+      <td class="et-name">${escapeHtml(it.name)}</td>
+      <td class="et-m">${escapeHtml(it.method)}</td>
+      <td class="num">${it.time != null ? Number(it.time).toFixed(2) : "-"}</td>
+      <td class="num">${partSum ? won(partSum) : "0"}</td>
+      <td class="num">${labor ? won(labor) : "0"}</td>
+      <td class="et-st">${badge}</td>
+    </tr>`;
+  }).join("");
   return `
-    <table class="ocr-table">
-      <thead><tr><th>부품/작업</th><th>수리방법</th><th class="num">부품비</th><th class="num">공임</th><th class="num">도장비</th><th>판정</th></tr></thead>
-      <tbody>${items.map(it => `
-        <tr class="st-${it.status === "승인" ? "ok" : it.status === "제외" ? "no" : "cond"}">
-          <td>${escapeHtml(it.name)}</td><td>${escapeHtml(it.method)}</td>
-          <td class="num">${it.part ? won(it.part) : "-"}</td>
-          <td class="num">${it.labor ? won(it.labor) : "-"}</td>
-          <td class="num">${it.paint ? won(it.paint) : "-"}</td>
-          <td><span class="item-st st-${it.status === "승인" ? "ok" : it.status === "제외" ? "no" : "cond"}">${escapeHtml(it.status)}</span></td>
-        </tr>`).join("")}</tbody>
+    <div class="et-scroll">
+    <table class="et-table">
+      <thead><tr><th>작업구분</th><th>작업내용</th><th>작업</th><th class="num">시간</th><th class="num">부품금액</th><th class="num">공임금액</th><th>AI판정</th></tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr><td colspan="4">청구 합계</td><td class="num">${won(tPart)}</td><td class="num">${won(tLabor)}</td><td class="num tot">${won(tPart + tLabor)}</td></tr></tfoot>
     </table>
-    <div class="ocr-foot">AI 승인금액 <b>${won(r.approval.approvedAmount)}원</b> · 제외 <b class="red">${won(r.approval.excludedAmount)}원</b></div>`;
+    </div>
+    ${tExcl ? `<div class="et-exclnote">AI 제외 대상 <b class="red">${won(tExcl)}원</b> — 우측 인정금액 산정 참고</div>` : ""}`;
+}
+// (우) AI 인정금액 산정 — 손해사정사 판정 지원 (청구→인정→불인정, 인정률, 조정 사유)
+//     좌측 청구견적 라인아이템과 금액이 항상 일치하도록 items 기준으로 산정한다.
+function amountAdjudication(r) {
+  const items = estimateItems(r);
+  const isAdj = !!r.adjust;
+  if (items) {
+    let claimed = 0; const adj = [];
+    items.forEach(it => {
+      const amt = (it.part || 0) + (it.paint || 0) + (it.labor || 0); claimed += amt;
+      if (it.status && it.status !== "승인") adj.push({ name: it.name, amt, status: it.status, reason: it.reason || "" });
+    });
+    const excluded = items.reduce((s, it) => s + (it.status === "제외" ? (it.part || 0) + (it.paint || 0) + (it.labor || 0) : 0), 0);
+    const approved = claimed - excluded;
+    const rate = claimed ? Math.round(approved / claimed * 100) : 0;
+    const L = isAdj ? ["최종 청구금액", "AI 제안 인정금액", "불인정금액"] : ["청구금액", "AI 인정(승인)금액", "불인정(제외)금액"];
+    const a = r.adjust || {};
+    const diff = isAdj && (a.diffText || a.exemption)
+      ? `<div class="adj-diff">${a.diffText ? `승인견적 대비 <b>${escapeHtml(a.diffText)}</b>` : ""}${a.exemption ? `${a.diffText ? " · " : ""}면책금 반영 <b>${won(a.exemption)}원</b>` : ""}</div>` : "";
+    return `
+      <div class="adj-grid">
+        <div class="adj-cell"><span>${L[0]}</span><b>${won(claimed)}원</b></div>
+        <div class="adj-cell hl"><span>${L[1]}</span><b>${won(approved)}원</b></div>
+        <div class="adj-cell"><span>${L[2]}</span><b class="red">${won(excluded)}원</b></div>
+        <div class="adj-cell"><span>인정률</span><b>${rate}%</b></div>
+      </div>
+      ${diff}
+      ${adj.length ? `<div class="adj-sub">불인정 · 조정 항목</div><ul class="adj-list">${adj.map(d => `<li><div class="adj-h"><span class="adj-tag ${d.status === "제외" ? "no" : "cond"}">${escapeHtml(d.status)}</span> <b>${escapeHtml(d.name)}</b><span class="adj-amt ${d.status === "제외" ? "red" : ""}">${d.status === "제외" ? "−" : ""}${won(d.amt)}원</span></div>${d.reason ? `<div class="adj-reason">${escapeHtml(d.reason)}</div>` : ""}</li>`).join("")}</ul>` : `<div class="adj-ok">모든 청구 항목이 인정되었습니다.</div>`}
+      <div class="adj-note">※ 부가세·감가·지급대상자·지급계좌 적정성은 <b>정산관리</b>에서 별도 산정합니다.</div>`;
+  }
+  // 라인아이템이 없는 경우(재분석 생성분 등) → adjust 요약값 사용
+  if (isAdj) {
+    const a = r.adjust;
+    const rate = a.claimedAmount ? Math.round(a.aiAmount / a.claimedAmount * 100) : 0;
+    return `
+      <div class="adj-grid">
+        <div class="adj-cell"><span>최종 청구금액</span><b>${won(a.claimedAmount)}원</b></div>
+        <div class="adj-cell hl"><span>AI 제안 인정금액</span><b>${won(a.aiAmount)}원</b></div>
+        <div class="adj-cell"><span>불인정금액</span><b class="red">${won(a.deniedAmount)}원</b></div>
+        <div class="adj-cell"><span>인정률</span><b>${rate}%</b></div>
+      </div>
+      <div class="adj-note">※ 부가세·감가·지급대상자·지급계좌 적정성은 <b>정산관리</b>에서 별도 산정합니다.</div>`;
+  }
+  return `<div class="ai-nodata">AI 인정금액 산정 정보가 아직 없습니다.</div>`;
 }
 function criteriaBars(r) {
   if (!r.criteria) return `<div class="ai-nodata">판단기준 점수가 아직 산출되지 않았습니다.</div>`;
@@ -669,9 +740,15 @@ function renderDetail(r) {
       </div>
     </section>
 
-    <section class="det-criteria card">
-      <div class="det-ct">판단기준별 Score <span class="det-hint">항목 클릭 시 감점사유 표시</span></div>
-      <div class="cri-list">${criteriaBars(r)}</div>
+    <section class="det-mid">
+      <div class="cmp-col card et-col">
+        <div class="cmp-t">${r.hasBill ? "AI 청구 심사 결과" : "AI 견적 결과"} <span class="det-hint">공업사 청구 원본 · AI 제외 표시</span></div>
+        ${shopEstimateTable(r)}
+      </div>
+      <div class="cmp-col card score-col">
+        <div class="cmp-t">판단기준별 Score <span class="det-hint">항목 클릭 시 감점사유</span></div>
+        <div class="cri-list">${criteriaBars(r)}</div>
+      </div>
     </section>
 
     <section class="det-compare">
@@ -680,8 +757,8 @@ function renderDetail(r) {
         ${photoCards(r)}
       </div>
       <div class="cmp-col card">
-        <div class="cmp-t">${r.hasBill ? "청구서" : "견적서"} · OCR 추출내역</div>
-        ${estimateTable(r)}
+        <div class="cmp-t">AI 인정금액 산정 <span class="det-hint">손해사정 판정 지원</span></div>
+        ${amountAdjudication(r)}
       </div>
     </section>
 
