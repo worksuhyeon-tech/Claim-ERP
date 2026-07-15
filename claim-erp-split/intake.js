@@ -22,6 +22,50 @@ let intakeLogFilter = "전체";   // 진행 이력 채널(구분) 필터
 const INTAKE_QUERY_TYPES = ["사고번호", "차량번호", "피해차량번호", "피보험자 휴대폰", "통보자 휴대폰", "피해자 휴대폰", "운전자 휴대폰", "소유자 휴대폰"];
 let intakeQueryType = INTAKE_QUERY_TYPES[0];
 
+// 사고 접수 목록 상태 (차량번호·휴대폰 조회 시 동일 차량의 여러 접수건 표시)
+let intakeResults = null;   // 조회된 사고 접수건 id 배열
+let intakeListPage = 0;     // 목록 페이지 (3줄/페이지)
+const INTAKE_LIST_SIZE = 3;
+
+/* 동일 차량 다건 접수 데모 — 이 화면(접수지)에서만 사용.
+   · 6번(23허6789): 부모 포함 2건 모두 진행중
+   · 11번(22하9900): 부모 포함 서로 다른 접수번호 5건 (과거건 포함) */
+(function seedIntakeSiblings() {
+  if (typeof CLAIMS === "undefined") return;
+  const addSiblings = (parentId, extras) => {
+    const parent = CLAIMS.find(c => c.id === parentId);
+    if (!parent) return;
+    extras.forEach(ex => {
+      if (CLAIMS.some(c => c.id === ex.id)) return;
+      const sib = Object.assign({}, parent, ex);  // car·carModel·name·custType 등 동일 차량 승계
+      delete sib.work; delete sib.reviewState; delete sib.submitState; // 단계에 맞게 재도출
+      CLAIMS.push(sib);
+    });
+  };
+  addSiblings("CLM-2026-0006", [
+    { id:"CLM-2026-0043", flowStage:"손해사정", procStatus:"처리중", urgency:"주의",
+      actionType:"업체 미회신", status:"AOS 청구 수신 대기", elapsed:"4시간 10분", manager:"유나래",
+      actionDesc:"동일 차량 별건 사고 — 공업사 청구서 수신 대기 중",
+      nextAction:"공업사에 청구 등록을 요청하세요." },
+  ]);
+  addSiblings("CLM-2026-0011", [
+    { id:"CLM-2026-0044", flowStage:"지급 / 정산", procStatus:"완료", urgency:"정상",
+      actionType:"정산 완료", status:"정산 종결", elapsed:"종결", manager:"유나래",
+      actionDesc:"과거 사고건 — 정산 종결 완료", nextAction:"-" },
+    { id:"CLM-2026-0045", flowStage:"손해사정", procStatus:"완료", urgency:"정상",
+      actionType:"계약 조사", status:"손해사정 종결", elapsed:"종결", manager:"최도윤",
+      actionDesc:"과거 사고건 — 손해사정 종결", nextAction:"-" },
+    { id:"CLM-2026-0046", flowStage:"수리 승인", procStatus:"처리중", urgency:"정상",
+      actionType:"업체 미회신", status:"공업사 수리 오더 대기", elapsed:"6시간", manager:"유나래",
+      actionDesc:"동일 차량 별건 사고 — 수리 진행 중",
+      nextAction:"공업사에 수리 오더 확인을 요청하세요." },
+    { id:"CLM-2026-0047", flowStage:"접수·선견적", procStatus:"미처리", urgency:"주의",
+      actionType:"고객 미응답", status:"사고정보 확인", elapsed:"1시간 30분", manager:"박지현",
+      actionDesc:"동일 차량 신규 접수 — 사고경위 확인 요청 후 미응답",
+      nextAction:"고객 전화로 사고경위를 확인하세요." },
+  ]);
+})();
+
 const intakeProgressLogs = {
   "CLM-2026-0004": [
     { at:"06.18 09:12", type:"피보/운전", text:"운전자 통화 완료. 사고 경위와 입고 희망 공업사 확인." },
@@ -374,6 +418,18 @@ function defaultDetail(c, w) {
       assignDate: inDate !== "-" ? inDate : accDate, receiptDate: accDate,
     }] : [],
     parts:{ checked: genDamageParts(p) },
+    // SK렌터카 연동 수신 항목 (실제 운영 시 SK렌터카 시스템에서 수신)
+    skRent:{
+      deductAgreed: won(p.pick([300000, 400000, 500000, 700000])),
+      deductSurcharge: won(p.pick([0, 0, 0, 50000, 100000])),
+      maintProduct: p.pick(["기본정비", "표준정비", "케어플러스"]),
+      bizType: p.pick(["Direct", "제휴", "법인"]),
+      visitCheck: p.pick(["-", "포함", "미포함"]),
+      pickupMaint: p.pick(["N", "Y"]),
+      accidentSub: p.pick(["N(미포함)", "Y(포함)"]),
+      deductBilling: p.pick(["개별 정액", "통합 청구", "개별 실비"]),
+      personalSub: p.pick(["불포함", "포함"]),
+    },
     estimateDoc: est,
   };
 }
@@ -408,7 +464,7 @@ function getIntakeData(claimId) {
     unresolved: ov.unresolved || base.unresolved,
     guideCols: ov.guideCols || base.guideCols, guideRows: ov.guideRows || base.guideRows,
   };
-  ["accident","dispatch","liability","ownDamage","insuredCar","contract","damage","repair","handlers"]
+  ["accident","dispatch","liability","ownDamage","insuredCar","contract","damage","repair","handlers","skRent"]
     .forEach(s => { d[s] = Object.assign({}, base[s], ov[s] || {}); });
   const op = ov.parties || {};
   d.parties = {
@@ -473,6 +529,58 @@ function lgSect(title, note) {
   return `<div class="lg-sect">${title}${note ? `<span class="note">${note}</span>` : ""}</div>`;
 }
 
+/* ---- 사고 접수 목록 (조회구분 ↔ 상세 사이, 항상 3줄 표시) ---- */
+// 정렬 키: 사고일시(YYYY-MM-DD HH:MM) — 없으면 접수번호로 대체
+function intakeSortDate(id) {
+  const dd = getIntakeData(id);
+  return (dd && dd.accident && dd.accident.datetime) || id;
+}
+function intakeListHtml() {
+  const ids = intakeResults || [];
+  const pageCount = Math.max(1, Math.ceil(ids.length / INTAKE_LIST_SIZE));
+  if (intakeListPage >= pageCount) intakeListPage = pageCount - 1;
+  if (intakeListPage < 0) intakeListPage = 0;
+  const start = intakeListPage * INTAKE_LIST_SIZE;
+  const pageIds = ids.slice(start, start + INTAKE_LIST_SIZE);
+  let rows = "";
+  for (let i = 0; i < INTAKE_LIST_SIZE; i++) {
+    const id = pageIds[i];
+    if (!id) { rows += `<tr class="lg-lrow empty"><td colspan="9">&nbsp;</td></tr>`; continue; }
+    const c = CLAIMS.find(x => x.id === id) || {};
+    const dd = getIntakeData(id) || {};
+    const sel = id === intakeClaimId ? " on" : "";
+    const seq = start + i + 1;
+    const procCls = (typeof PROC_CLASS !== "undefined" && PROC_CLASS[c.procStatus]) || "";
+    rows += `<tr class="lg-lrow${sel}" data-listid="${iEsc(id)}" data-desc="이 사고건을 선택해 아래 상세를 표시합니다.">
+      <td class="c-seq">${seq}</td>
+      <td class="c-id">${iEsc(id)}</td>
+      <td>${iEsc(c.repairShop) || "-"}</td>
+      <td>${iEsc(c.car)}</td>
+      <td>${iEsc(c.carModel)}</td>
+      <td>${iEsc(dd.fault)}</td>
+      <td>${iEsc(c.flowStage)}</td>
+      <td><span class="lg-lstat ${procCls}">${iEsc(c.procStatus)}</span></td>
+      <td>${iEsc(c.manager)}</td>
+    </tr>`;
+  }
+  let pager = "";
+  if (pageCount > 1) {
+    let nums = "";
+    for (let pg = 0; pg < pageCount; pg++) {
+      nums += `<button type="button" class="lg-lpg${pg === intakeListPage ? " on" : ""}" data-listpage="${pg}" data-desc="${pg + 1}페이지의 접수건(과거건 포함)을 표시합니다.">${pg + 1}</button>`;
+    }
+    pager = `<div class="lg-list-pager">${nums}</div>`;
+  }
+  const listDesc = "차량번호·휴대폰으로 조회하면 동일 차량의 사고 접수건을 최대 3줄씩 표시합니다. 행을 클릭하면 아래 상세가 전환되고, 3건을 넘으면 페이지 번호로 과거건을 조회합니다.";
+  return `<div class="lg-list" data-desc="${iEsc(listDesc)}">
+    <div class="lg-list-head"><span class="h">사고 접수 목록</span><span class="cnt">${ids.length}건</span></div>
+    <table class="lg-list-tbl"><colgroup><col style="width:40px"><col style="width:128px"><col><col style="width:92px"><col style="width:84px"><col style="width:132px"><col style="width:92px"><col style="width:70px"><col style="width:78px"></colgroup>
+      <thead><tr><th>순번</th><th>접수번호</th><th>정비공장명</th><th>차량번호</th><th>차량명</th><th>과실</th><th>단계</th><th>상태</th><th>담당자</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>${pager}
+  </div>`;
+}
+
 function lgIdBand(d) {
   return `<div class="lg-idband">
     <span class="tag">${iEsc(d.procStatus) || "대기"}</span>
@@ -487,7 +595,37 @@ function lgRow2(d) {
     { k: "사고담당", v: d.accidentManager }, { k: "디지털안내", v: "-" },
     { k: "검토회신", v: d.reviewReply }, { k: "고객구분", v: d.custType },
   ]);
-  return `<div class="lg-row2 solo"><div>${left}</div></div>`;
+  // 좌: 요약(좁게) / 우: SK렌터카 연동 정보 (요약 오른쪽 빈 공간 채움)
+  return `<div class="lg-toprow">
+    <div class="lg-toprow-sum">${left}</div>
+    <div class="lg-toprow-sk">${intakeSkRentBandHtml(d)}</div>
+  </div>`;
+}
+
+/* ---- SK렌터카 연동 정보 (전체 폭 가로 밴드) ----
+   면책·정비·대차 관련 값은 SK렌터카 시스템과 연동하여 받아와야 하는 항목이다. */
+const SK_RENT_FIELDS = [
+  { k: "면책약정금액",   key: "deductAgreed" },
+  { k: "면책금할증금액", key: "deductSurcharge" },
+  { k: "정비상품",       key: "maintProduct" },
+  { k: "업무구분",       key: "bizType" },
+  { k: "방문점검",       key: "visitCheck" },
+  { k: "픽업정비",       key: "pickupMaint" },
+  { k: "사고/정비대차",  key: "accidentSub" },
+  { k: "면책금통합청구", key: "deductBilling" },
+  { k: "개인대차",       key: "personalSub" },
+];
+function intakeSkRentBandHtml(d) {
+  const sk = d.skRent || {};
+  const cellDesc = "SK렌터카 시스템과 연동해 받아오는 값입니다. (연동 전에는 예시·미수신 상태)";
+  const heads = SK_RENT_FIELDS.map(f => `<th>${f.k}</th>`).join("");
+  const vals = SK_RENT_FIELDS.map(f => {
+    const v = iEsc(sk[f.key]);
+    return `<td class="${v ? "" : "ph"}" data-desc="${iEsc(cellDesc)}">${v || "미수신"}</td>`;
+  }).join("");
+  const secDesc = "SK렌터카와 연동이 필요한 정보입니다. 이 항목들은 SK렌터카 시스템에서 받아와야 하는 값으로, 연동 시 실제 계약 데이터로 자동 채워집니다.";
+  return `<div class="lg-sect" data-desc="${iEsc(secDesc)}">SK렌터카 연동 정보<span class="note">※ SK렌터카 시스템 연동 수신 항목</span></div>`
+    + `<div class="lg-scroll"><table class="lg-tbl lg-sk-band"><thead><tr>${heads}</tr></thead><tbody><tr>${vals}</tr></tbody></table></div>`;
 }
 
 /* ---- 진행 이력 / 진행 메모 / 미결 속성 ---- */
@@ -501,46 +639,57 @@ function intakeLogTableHtml(logs) {
   return `<table><thead><tr><th style="width:32px">순번</th><th style="width:78px">일시</th><th style="width:74px">구분</th><th>내용</th></tr></thead><tbody>${rows.map((r, i) => `<tr><td>${rows.length - i}</td><td>${iEsc(r.at)}</td><td>${iEsc(r.type)}</td><td class="txt">${iEsc(r.text)}</td></tr>`).join("")}</tbody></table>`;
 }
 // 미결 속성 1행 (체크박스 + 항목명 + 부가 입력필드)
+const INTAKE_ATTR_DESC = {
+  "재통화": "고객 재통화가 필요한 건으로 표시합니다. 오른쪽에 재통화 예정일을 지정할 수 있습니다.",
+  "VOC":   "고객 불만(VOC) 발생 건으로 표시합니다.",
+  "탁송":   "차량 탁송(운송)이 필요한 건으로 표시합니다. 오른쪽에 탁송 메모를 남길 수 있습니다.",
+  "렌트":   "렌트(대차) 관련 미결 건으로 표시합니다. 오른쪽에 렌트 메모를 남길 수 있습니다.",
+  "기타":   "위 분류에 없는 기타 미결 건으로 표시합니다. 오른쪽에 메모를 남길 수 있습니다.",
+};
 function intakeAttrRowHtml(a, st) {
   const checked = (st.attrs || []).includes(a.key);
   let field = "";
-  if (a.field === "date") field = `<input type="date" class="lg-attr-field" data-attr-field="${iEsc(a.key)}" value="${iEsc(st.fields[a.key] || "")}" aria-label="${iEsc(a.key)} 날짜">`;
-  else if (a.field === "text") field = `<input type="text" maxlength="20" class="lg-attr-field" data-attr-field="${iEsc(a.key)}" placeholder="${iEsc(a.ph)}" value="${iEsc(st.fields[a.key] || "")}">`;
-  return `<label class="lg-attr2"><input type="checkbox" name="intakeAttr" value="${iEsc(a.key)}" ${checked ? "checked" : ""}><span class="nm">${iEsc(a.key)}</span></label><div class="lg-attr-fw">${field}</div>`;
+  const fieldDesc = a.field === "date" ? "재통화 예정일을 지정합니다." : "메모를 입력합니다. (최대 20자)";
+  if (a.field === "date") field = `<input type="date" class="lg-attr-field" data-attr-field="${iEsc(a.key)}" value="${iEsc(st.fields[a.key] || "")}" aria-label="${iEsc(a.key)} 날짜" data-desc="${iEsc(fieldDesc)}">`;
+  else if (a.field === "text") field = `<input type="text" maxlength="20" class="lg-attr-field" data-attr-field="${iEsc(a.key)}" placeholder="${iEsc(a.ph)}" value="${iEsc(st.fields[a.key] || "")}" data-desc="${iEsc(fieldDesc)}">`;
+  return `<label class="lg-attr2" data-desc="${iEsc(INTAKE_ATTR_DESC[a.key] || `'${a.key}' 미결 속성으로 표시합니다.`)}"><input type="checkbox" name="intakeAttr" value="${iEsc(a.key)}" ${checked ? "checked" : ""}><span class="nm">${iEsc(a.key)}</span></label><div class="lg-attr-fw">${field}</div>`;
 }
 // 담당자 자유 입력 1행 (체크박스 + 입력필드)
 function intakeCustomRowHtml(row, i) {
-  return `<label class="lg-attr2"><input type="checkbox" data-custom-check="${i}" ${row.checked ? "checked" : ""}><span class="nm muted">추가${i + 1}</span></label><div class="lg-attr-fw"><input type="text" maxlength="20" class="lg-attr-field" data-custom-text="${i}" placeholder="담당자 입력 (최대 20자)" value="${iEsc(row.text)}"></div>`;
+  return `<label class="lg-attr2" data-desc="담당자가 직접 정의한 미결 속성입니다. 체크하면 이 항목이 미결로 적용됩니다."><input type="checkbox" data-custom-check="${i}" ${row.checked ? "checked" : ""}><span class="nm muted">추가${i + 1}</span></label><div class="lg-attr-fw"><input type="text" maxlength="20" class="lg-attr-field" data-custom-text="${i}" placeholder="담당자 입력 (최대 20자)" value="${iEsc(row.text)}" data-desc="담당자가 직접 미결 속성명을 입력합니다. (최대 20자)"></div>`;
 }
 function intakeWorkbenchHtml(d) {
   const prop = getIntakeProperty(d.id, d);
   const logs = getIntakeLogs(d.id);
-  const histBtns = ["메세지발송", "간편렌트"];
+  const histBtns = [
+    { label:"메세지발송", desc:"고객·관련자에게 안내 문자(진행 상황·요청 사항)를 발송합니다." },
+    { label:"간편렌트", desc:"대차(렌트) 차량을 간편 신청 절차로 바로 접수합니다." },
+  ];
   const filterOpts = ["전체", ...INTAKE_MEMO_TYPES];
   return `<div class="lg-panels">
     <div class="lg-panel">
       <div class="lg-panel-h"><span class="h">진행 이력</span><span class="lg-radio"><label><input type="radio" name="lgHistScope" disabled> MY</label><label><input type="radio" name="lgHistScope" checked disabled> 전체</label></span></div>
-      <div class="lg-mini-btns">${histBtns.map(b => `<button class="lg-mini gray" type="button">${b}</button>`).join("")}</div>
-      <div class="lg-radio lg-hist-filter" style="margin-bottom:6px">${filterOpts.map(t => `<label><input type="radio" name="lgHistFilter" value="${iEsc(t)}" ${intakeLogFilter === t ? "checked" : ""}> ${iEsc(t)}</label>`).join("")}</div>
+      <div class="lg-mini-btns">${histBtns.map(b => `<button class="lg-mini gray" type="button" data-desc="${iEsc(b.desc)}">${iEsc(b.label)}</button>`).join("")}</div>
+      <div class="lg-radio lg-hist-filter" style="margin-bottom:6px">${filterOpts.map(t => `<label data-desc="${t === "전체" ? "모든 채널의 진행 이력을 표시합니다." : `'${iEsc(t)}' 채널로 남긴 진행 이력만 골라 표시합니다.`}"><input type="radio" name="lgHistFilter" value="${iEsc(t)}" ${intakeLogFilter === t ? "checked" : ""}> ${iEsc(t)}</label>`).join("")}</div>
       <div class="lg-log" id="intakeLogBox">${intakeLogTableHtml(logs)}</div>
     </div>
     <div class="lg-panel">
       <div class="lg-panel-h"><span class="h">진행 메모</span></div>
       <div class="lg-form">
-        <div class="fr"><label class="k" for="intakeMemoType">구분</label><select class="lg-sel" id="intakeMemoType">${INTAKE_MEMO_TYPES.map(t => `<option value="${iEsc(t)}">${iEsc(t)}</option>`).join("")}</select></div>
-        <div class="fr"><label class="k" for="intakeMemoTarget">관련대상</label><input class="lg-in" id="intakeMemoTarget" type="text" value="${iEsc(d.name)}"></div>
-        <div class="fr top"><label class="k" for="intakeMemoText">주요내용</label><textarea class="lg-ta" id="intakeMemoText" placeholder="진행 내용을 입력하세요. 예: 공업사 재요청, 고객 재통화 예정"></textarea></div>
-        <div class="lg-form-foot"><span class="sp"></span><button class="lg-mini" type="button" id="intakeMemoSave">메모 저장</button></div>
+        <div class="fr"><label class="k" for="intakeMemoType">구분</label><select class="lg-sel" id="intakeMemoType" data-desc="저장할 진행 메모의 구분(채널)을 선택합니다. 진행 이력 필터와 동일한 분류입니다.">${INTAKE_MEMO_TYPES.map(t => `<option value="${iEsc(t)}">${iEsc(t)}</option>`).join("")}</select></div>
+        <div class="fr"><label class="k" for="intakeMemoTarget">관련대상</label><input class="lg-in" id="intakeMemoTarget" type="text" value="${iEsc(d.name)}" data-desc="이 메모와 연관된 대상(고객·공업사·상대방 등)을 입력합니다."></div>
+        <div class="fr top"><label class="k" for="intakeMemoText">주요내용</label><textarea class="lg-ta" id="intakeMemoText" placeholder="진행 내용을 입력하세요. 예: 공업사 재요청, 고객 재통화 예정" data-desc="진행 내용을 입력합니다. 저장하면 위 진행 이력에 새 항목으로 추가됩니다."></textarea></div>
+        <div class="lg-form-foot"><span class="sp"></span><button class="lg-mini" type="button" id="intakeMemoSave" data-desc="입력한 진행 메모를 진행 이력에 추가 저장합니다.">메모 저장</button></div>
       </div>
     </div>
     <div class="lg-panel">
-      <div class="lg-panel-h"><span class="h">미결 속성</span><button class="lg-mini" type="button" id="intakeAttrSave">저장</button></div>
+      <div class="lg-panel-h"><span class="h">미결 속성</span><button class="lg-mini" type="button" id="intakeAttrSave" data-desc="체크한 미결 속성과 메모를 저장해 Smart업무관리 목록에 반영합니다.">저장</button></div>
       <div class="lg-attrs2">
         ${INTAKE_ATTRS.map(a => intakeAttrRowHtml(a, prop)).join("")}
         <div class="lg-attr-div"></div>
         ${prop.custom.map((row, i) => intakeCustomRowHtml(row, i)).join("")}
       </div>
-      <textarea class="lg-ta" id="intakeAttrNote" placeholder="미결 속성 메모 (Smart업무관리에 반영)">${iEsc(prop.note)}</textarea>
+      <textarea class="lg-ta" id="intakeAttrNote" placeholder="미결 속성 메모 (Smart업무관리에 반영)" data-desc="미결 사유·특이사항을 메모합니다. 저장 시 Smart업무관리 조치 설명에 반영됩니다.">${iEsc(prop.note)}</textarea>
     </div>
   </div>`;
 }
@@ -615,7 +764,7 @@ function intakeContractTab(d) {
 function dmgPartsHtml(checkedSet, interactive) {
   return PART_LIST.map(p => {
     const on = checkedSet.has(p);
-    const attr = interactive ? ` data-staff-part="${iEsc(p)}"` : "";
+    const attr = interactive ? ` data-staff-part="${iEsc(p)}" data-desc="'${iEsc(p)}'을(를) 담당자가 확인한 실제 파손부위로 지정/해제합니다. (정비공장 청구 부위와 대조)"` : "";
     const cls = interactive ? "lg-dmg-item staff-part" : "lg-dmg-item";
     return `<div class="${cls}${on ? " on" : ""}"${attr}><span class="b"></span>${p}</div>`;
   }).join("");
@@ -777,27 +926,31 @@ function srApprComponentHtml(d) {
     const s = assignStaffById(id);
     return s ? `<option value="${s.id}" ${s.id === currentApproverId ? "selected" : ""}>${iEsc(s.name)} · ${iEsc(s.position || "결재자")}</option>` : "";
   }).join("");
+  const APPR_TYPE_DESC = {
+    "추산":       "손해액 추산 결재입니다. (현재 준비중이라 선택할 수 없습니다.)",
+    "지급(종결)": "손해사정으로 확정된 지급액에 대한 지급 결재입니다. 비밀번호 인증이 필요합니다.",
+  };
   const radios = SR_APPR_FORM_TYPES.map(t =>
-    `<label class="rd${t.disabled ? " off" : ""}"><input type="radio" name="apprFormType" value="${iEsc(t.value)}" ${t.value === SR_APPR_DEFAULT_TYPE.value ? "checked" : ""} ${t.disabled ? "disabled" : ""}> ${iEsc(t.label)}${t.disabled ? ` <span class="rd-note">(준비중)</span>` : ""}</label>`).join("");
+    `<label class="rd${t.disabled ? " off" : ""}" data-desc="${iEsc(APPR_TYPE_DESC[t.value] || `'${t.value}' 결재로 상신합니다.`)}"><input type="radio" name="apprFormType" value="${iEsc(t.value)}" ${t.value === SR_APPR_DEFAULT_TYPE.value ? "checked" : ""} ${t.disabled ? "disabled" : ""}> ${iEsc(t.label)}${t.disabled ? ` <span class="rd-note">(준비중)</span>` : ""}</label>`).join("");
   const defPay = SR_APPR_DEFAULT_TYPE.pay;
   const form = `<div class="lg-appr-form">
     <div class="row">
       <label class="k">결재구분</label>
       ${radios}
       <label class="k" style="margin-left:14px">다음결재자</label>
-      <select class="lg-sel" id="apprFormApprover">${approverOpts}</select>
+      <select class="lg-sel" id="apprFormApprover" data-desc="이 결재를 처리할 다음 결재자를 지정합니다. (Speed결재 기본 결재자로도 반영)">${approverOpts}</select>
     </div>
     <div class="row top">
       <label class="k">결재의견</label>
-      <textarea class="lg-ta" id="apprFormComment" placeholder="상신 의견을 입력하세요."></textarea>
+      <textarea class="lg-ta" id="apprFormComment" placeholder="상신 의견을 입력하세요." data-desc="상신 사유·검토 의견을 입력합니다. 결재 이력에 함께 기록됩니다."></textarea>
     </div>
     <div class="row">
       <label class="k">비밀번호</label>
-      <input type="password" class="lg-in" id="apprFormPw" style="max-width:170px" placeholder="지급 결재 비밀번호" autocomplete="off" ${defPay ? "" : "disabled"}>
+      <input type="password" class="lg-in" id="apprFormPw" style="max-width:170px" placeholder="지급 결재 비밀번호" autocomplete="off" ${defPay ? "" : "disabled"} data-desc="지급 결재 승인용 비밀번호를 입력합니다. (지급 결재에만 필요)">
       <span class="lg-appr-pwhint${defPay ? " on" : ""}" id="apprFormPwHint">${defPay ? "지급 결재는 비밀번호 인증이 필요합니다." : "추산은 비밀번호가 필요 없습니다."}</span>
       <span class="grow"></span>
-      <button class="lg-abtn" type="button" id="apprFormCancel" style="display:none">상신취소</button>
-      <button class="lg-abtn primary" type="button" id="apprFormSubmit" ${noDoc ? "disabled" : ""}>결재</button>
+      <button class="lg-abtn" type="button" id="apprFormCancel" style="display:none" data-desc="상신중인 결재를 취소합니다. 취소 후 같은 종류로 다시 상신할 수 있습니다.">상신취소</button>
+      <button class="lg-abtn primary" type="button" id="apprFormSubmit" ${noDoc ? "disabled" : ""} data-desc="선택한 결재구분으로 지정한 결재자에게 결재를 상신합니다.">결재</button>
     </div>
     ${noDoc ? `<div class="lg-appr-note">※ 견적 정보 등록 후 결재를 상신할 수 있습니다.</div>` : ""}
   </div>`;
@@ -904,7 +1057,7 @@ function intakeEstimatePhotoStrip(d) {
   const imgs = estimateStripImages(d);
   const inner = imgs.length
     ? imgs.map((im, i) => `
-        <button type="button" class="es-photo" data-estphoto="${i}" title="${iEsc(im.name)}">
+        <button type="button" class="es-photo" data-estphoto="${i}" title="${iEsc(im.name)}" data-desc="차량 사진을 확대 뷰어로 엽니다. (클릭 확대 / 우클릭 축소 / Ctrl+휠 확대·축소)">
           <img src="${iEsc(im.url)}" alt="${iEsc(im.name)}" loading="lazy" draggable="false">
           <span class="es-photo-tag">${iEsc(im.folder)}</span>
           <span class="es-photo-name">${iEsc(im.name)}</span>
@@ -947,8 +1100,8 @@ function intakeEstimateTab(d) {
   // 견적서 전환 토글
   const toggle = `<div class="lg-est-toggle" role="tablist">
     <span class="tl">견적서 전환</span>
-    <button type="button" class="be-tgl ${isPre ? "on" : ""}" data-estdoc="pre">선견적</button>
-    <button type="button" class="be-tgl ${!isPre ? "on" : ""}" data-estdoc="claim">청구서</button>
+    <button type="button" class="be-tgl ${isPre ? "on" : ""}" data-estdoc="pre" data-desc="입고 전 개략 견적인 '선견적' 내역으로 표를 전환합니다.">선견적</button>
+    <button type="button" class="be-tgl ${!isPre ? "on" : ""}" data-estdoc="claim" data-desc="공업사가 정식 청구한 '청구서' 내역으로 표를 전환합니다.">청구서</button>
   </div>`;
 
   const baseSum = estSum(rows, "base");
@@ -1459,15 +1612,21 @@ function runIntakeSearch() {
     showToast("조회할 값을 입력하세요.");
     return;
   }
-  const hit = CLAIMS.find(c => intakeClaimMatches(c, intakeQueryType, value));
-  if (!hit) {
+  const matches = CLAIMS.filter(c => intakeClaimMatches(c, intakeQueryType, value));
+  if (!matches.length) {
     showToast("조회 조건에 해당하는 사고건이 없습니다.");
     return;
   }
-  intakeClaimId = hit.id;
-  selectedId = hit.id;
+  // 사고일자 기준 내림차순 정렬 (가장 최근 접수건이 먼저)
+  matches.sort((a, b) => intakeSortDate(b.id).localeCompare(intakeSortDate(a.id)));
+  intakeResults = matches.map(c => c.id);
+  intakeListPage = 0;
+  intakeClaimId = matches[0].id;
+  selectedId = matches[0].id;
   renderIntake();
-  showToast(`${hit.id} 건을 조회했습니다.`);
+  showToast(matches.length > 1
+    ? `${matches.length}건이 조회되었습니다. 목록에서 사고건을 선택하세요.`
+    : `${matches[0].id} 건을 조회했습니다.`);
 }
 
 function bindIntakeSearchInputs() {
@@ -1500,6 +1659,8 @@ function renderIntake() {
   if (typeof seedApprovals === "function" && !apprSeeded) { seedApprovals(); apprSeeded = true; }
   const id = intakeClaimId || selectedId || (CLAIMS[0] && CLAIMS[0].id);
   intakeClaimId = id;
+  // 조회 결과 목록: 없거나 현재 선택이 목록에 없으면 단건으로 초기화
+  if (!intakeResults || !intakeResults.includes(id)) { intakeResults = [id]; intakeListPage = 0; }
   const d = getIntakeData(id);
   const root = $("#intakeRoot");
   if (!d) { root.innerHTML = `<div style="padding:40px;text-align:center;color:#8a90a0">표시할 사고건이 없습니다.</div>`; return; }
@@ -1508,40 +1669,52 @@ function renderIntake() {
   const unresolvedText = (d.unresolved && d.unresolved.length) ? d.unresolved.join(", ") : "없음";
   const queryType = INTAKE_QUERY_TYPES.includes(intakeQueryType) ? intakeQueryType : INTAKE_QUERY_TYPES[0];
   root.innerHTML = `
-    <button class="lg-back" type="button" id="intakeBack">← 목록으로</button>
+    <button class="lg-back" type="button" id="intakeBack" data-desc="Smart업무관리 목록 화면으로 돌아갑니다.">← 목록으로</button>
     <div class="lg">
       <div class="lg-window">
         <div class="lg-titlebar"><span class="t">Smart접수지</span><span class="r"><span class="lg-x">✕</span></span></div>
         <div class="lg-search">
           <span class="lk">조회구분</span>
-          <select class="lg-select" id="intakeQueryType">${INTAKE_QUERY_TYPES.map(t => `<option value="${iEsc(t)}" ${t === queryType ? "selected" : ""}>${iEsc(t)}</option>`).join("")}</select>
-          <span id="intakeSearchFields" class="lg-search-fields">${intakeSearchFieldsHtml(queryType, d)}</span>
+          <select class="lg-select" id="intakeQueryType" data-desc="조회 기준(사고번호·차량번호·휴대폰 등)을 선택합니다. 선택한 기준에 맞춰 아래 입력칸이 바뀝니다.">${INTAKE_QUERY_TYPES.map(t => `<option value="${iEsc(t)}" ${t === queryType ? "selected" : ""}>${iEsc(t)}</option>`).join("")}</select>
+          <span id="intakeSearchFields" class="lg-search-fields" data-desc="선택한 조회구분에 맞는 값을 입력해 사고건을 조회합니다. (입력 후 Enter로도 조회)">${intakeSearchFieldsHtml(queryType, d)}</span>
           <span class="grow"></span>
-          <div class="lg-search-btns"><button class="lg-sbtn" type="button" id="intakeSearchBtn">🔍 검색</button><button class="lg-sbtn gray" type="button" id="intakeResetBtn">↻ 재설정</button></div>
+          <div class="lg-search-btns"><button class="lg-sbtn" type="button" id="intakeSearchBtn" data-desc="입력한 조건으로 사고건을 조회해 접수지에 불러옵니다.">🔍 검색</button><button class="lg-sbtn gray" type="button" id="intakeResetBtn" data-desc="조회구분과 입력값을 처음 상태로 되돌립니다.">↻ 재설정</button></div>
         </div>
         <div class="lg-body">
+          ${intakeListHtml()}
           ${lgIdBand(d)}
           ${lgRow2(d)}
           ${intakeWorkbenchHtml(d)}
           <div class="lg-tabs">
-            <button class="lg-tab ${intakeTab === "contract" ? "active" : ""}" type="button" data-itab="contract">계약 사고 정보</button>
-            <button class="lg-tab ${intakeTab === "damage" ? "active" : ""}" type="button" data-itab="damage">피해 진행 정보</button>
-            <button class="lg-tab ${intakeTab === "estimate" ? "active" : ""}" type="button" data-itab="estimate">청구 견적 정보</button>
+            <button class="lg-tab ${intakeTab === "contract" ? "active" : ""}" type="button" data-itab="contract" data-desc="계약자·사고 관련자·사고/출동·계약 등 접수 기본 정보를 봅니다.">계약 사고 정보</button>
+            <button class="lg-tab ${intakeTab === "damage" ? "active" : ""}" type="button" data-itab="damage" data-desc="피해물·공업사 수리 정보와 차량 파손부위(정비공장 청구 ↔ 담당자 확인)를 대조합니다.">피해 진행 정보</button>
+            <button class="lg-tab ${intakeTab === "estimate" ? "active" : ""}" type="button" data-itab="estimate" data-desc="선견적·청구서 견적 내역과 손해사정 비교, 추산·지급 결재를 처리합니다.">청구 견적 정보</button>
           </div>
           <div class="lg-tabbody" id="intakeBody">${renderIntakeTab(intakeTab, d)}</div>
           <div class="lg-actionbar">
-            <span class="lg-std">미결 태그: ${iEsc(unresolvedText)}</span>
+            <span class="lg-std" data-desc="현재 이 사고건에 남아 있는 미결 속성(재통화·VOC 등) 태그입니다.">미결 태그: ${iEsc(unresolvedText)}</span>
             <span class="sp"></span>
             <div class="lg-close-type" role="radiogroup" aria-label="종결 구분">
-              ${["면책", "지급"].map(t => `<label class="lg-ctype ${closeType === t ? "on" : ""}"><input type="radio" name="intakeCloseType" value="${t}" ${closeType === t ? "checked" : ""} ${done ? "disabled" : ""}>${t}</label>`).join("")}
+              ${["면책", "지급"].map(t => `<label class="lg-ctype ${closeType === t ? "on" : ""}" data-desc="이 사고건을 '${t}'(으)로 종결 처리할 구분으로 지정합니다."><input type="radio" name="intakeCloseType" value="${t}" ${closeType === t ? "checked" : ""} ${done ? "disabled" : ""}>${t}</label>`).join("")}
             </div>
-            <button class="lg-abtn primary" type="button" id="intakeComplete" ${done ? "disabled" : ""}>${done ? "종결됨" : "종결"}</button>
+            <button class="lg-abtn primary" type="button" id="intakeComplete" ${done ? "disabled" : ""} data-desc="선택한 종결 구분(면책/지급)으로 이 사고건을 종결 처리합니다.">${done ? "종결됨" : "종결"}</button>
           </div>
         </div>
       </div>
     </div>`;
 
   $("#intakeBack").addEventListener("click", () => { window.location.href = VIEW_FILES.claims; });
+  // 사고 접수 목록 — 행 클릭 시 상세 전환, 페이지 번호로 과거건 이동
+  root.querySelectorAll(".lg-lrow[data-listid]").forEach(r => r.addEventListener("click", () => {
+    const rid = r.dataset.listid;
+    if (rid === intakeClaimId) return;
+    intakeClaimId = rid; selectedId = rid;
+    renderIntake();
+  }));
+  root.querySelectorAll("[data-listpage]").forEach(b => b.addEventListener("click", () => {
+    intakeListPage = parseInt(b.dataset.listpage, 10) || 0;
+    renderIntake();
+  }));
   root.querySelectorAll("[data-itab]").forEach(b => b.addEventListener("click", () => {
     intakeTab = b.dataset.itab;
     renderIntake();
@@ -1561,6 +1734,7 @@ function renderIntake() {
   const rb = $("#intakeResetBtn");
   if (rb) rb.addEventListener("click", () => {
     intakeQueryType = INTAKE_QUERY_TYPES[0];
+    intakeResults = null; intakeListPage = 0;   // 목록 단건으로 초기화
     renderIntake();
   });
   bindIntakeSearchInputs();
@@ -1579,6 +1753,56 @@ function renderIntake() {
   });
 }
 
+
+/* ===================== 기능 설명 툴팁 ===================== */
+/* [data-desc] 요소에 마우스를 올리면(또는 포커스하면) 기능 설명을 말풍선으로 노출 */
+(function initDescTooltips() {
+  const tip = document.createElement("div");
+  tip.id = "clTooltip";
+  document.body.appendChild(tip);
+  let current = null;
+
+  function place(el) {
+    const text = el.getAttribute("data-desc");
+    if (!text) return;
+    current = el;
+    tip.textContent = text;
+    tip.classList.remove("above", "below");
+    tip.style.visibility = "hidden";
+    tip.classList.add("show");           // 실제 크기 측정을 위해 표시
+    const r = el.getBoundingClientRect();
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    const vw = document.documentElement.clientWidth;
+    const gap = 10;
+    let left = r.left + r.width / 2 - tw / 2;
+    left = Math.max(8, Math.min(left, vw - tw - 8));
+    let top = r.top - th - gap;
+    if (top < 8) { top = r.bottom + gap; tip.classList.add("below"); }
+    else { tip.classList.add("above"); }
+    const arrow = r.left + r.width / 2 - left;
+    tip.style.setProperty("--tip-arrow", Math.max(12, Math.min(arrow, tw - 12)) + "px");
+    tip.style.left = left + "px";
+    tip.style.top = top + "px";
+    tip.style.visibility = "visible";
+  }
+  function hide() { current = null; tip.classList.remove("show"); }
+
+  document.addEventListener("mouseover", e => {
+    const el = e.target.closest("[data-desc]");
+    if (el && el !== current) place(el);
+  });
+  document.addEventListener("mouseout", e => {
+    const el = e.target.closest("[data-desc]");
+    if (el && el === current && !el.contains(e.relatedTarget)) hide();
+  });
+  document.addEventListener("focusin", e => {
+    const el = e.target.closest("[data-desc]");
+    if (el) place(el);
+  });
+  document.addEventListener("focusout", hide);
+  window.addEventListener("scroll", hide, true);
+  document.addEventListener("click", hide, true);
+})();
 
 /* ===================== 초기화 ===================== */
 (function initIntake() {

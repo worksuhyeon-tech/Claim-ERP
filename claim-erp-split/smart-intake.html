@@ -6,8 +6,40 @@
 <title>Smart접수지 | CLAIM ERP</title>
 <link rel="stylesheet" href="common.css" />
 <style>
-  /* 검토·청구진행 바 제거 후 상단 정보 행은 단일 컬럼 */
-  #viewIntake .lg-row2.solo { grid-template-columns: 1fr; }
+  /* 사고 접수 목록 (조회구분 ↔ 상세 사이, 항상 3줄) */
+  #viewIntake .lg-list { border: 1px solid var(--lg-line2, #C9D3E4); border-radius: 5px; background: #fff; margin-bottom: 8px; overflow: hidden; }
+  #viewIntake .lg-list-head { display: flex; align-items: center; gap: 8px; padding: 6px 10px; background: #F4F7FC; border-bottom: 1px solid var(--lg-line, #D9E0EC); font-size: 12px; font-weight: 800; color: #2B3140; }
+  #viewIntake .lg-list-head .cnt { color: #2F5FBF; font-weight: 700; }
+  #viewIntake .lg-list-tbl { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  #viewIntake .lg-list-tbl th, #viewIntake .lg-list-tbl td { border-bottom: 1px solid var(--lg-line, #EEF1F6); padding: 5px 8px; font-size: 11.5px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #viewIntake .lg-list-tbl th { background: var(--lg-label, #EEF2F8); color: #3A3F4E; font-weight: 700; }
+  #viewIntake .lg-list-tbl td.c-id { color: #2F5FBF; font-weight: 700; }
+  #viewIntake .lg-lrow { cursor: pointer; }
+  #viewIntake .lg-lrow:hover { background: #F1F6FF; }
+  #viewIntake .lg-lrow.on { background: #E7F0FF; }
+  #viewIntake .lg-lrow.on td { font-weight: 700; }
+  #viewIntake .lg-lrow.empty, #viewIntake .lg-lrow.empty:hover { cursor: default; background: transparent; }
+  #viewIntake .lg-lrow.empty td { color: transparent; }
+  #viewIntake .lg-lstat { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 10.5px; font-weight: 700; background: #EEF1F6; color: #5B6273; }
+  #viewIntake .lg-lstat.s-todo { background: #FDECEC; color: #D14343; }
+  #viewIntake .lg-lstat.s-doing { background: #E7F0FF; color: #2F5FBF; }
+  #viewIntake .lg-lstat.s-done { background: #E7F7EE; color: #1E8E5A; }
+  #viewIntake .lg-lstat.s-hold { background: #FFF4E5; color: #B4690E; }
+  #viewIntake .lg-list-pager { display: flex; gap: 4px; justify-content: center; padding: 6px; background: #FAFBFD; border-top: 1px solid var(--lg-line, #EEF1F6); }
+  #viewIntake .lg-lpg { min-width: 24px; height: 24px; border: 1px solid var(--lg-line2, #C9D3E4); background: #fff; border-radius: 4px; font-size: 11.5px; font-weight: 700; color: #3C4050; cursor: pointer; }
+  #viewIntake .lg-lpg.on { background: #2F5FBF; color: #fff; border-color: #2F5FBF; }
+
+  /* 상단 행 — 좌: 요약(좁게) / 우: SK렌터카 연동 정보 (요약 오른쪽 빈 공간 채움) */
+  #viewIntake .lg-toprow { display: flex; gap: 12px; align-items: flex-start; margin-bottom: 8px; }
+  #viewIntake .lg-toprow-sum { flex: 0 0 440px; max-width: 46%; }
+  #viewIntake .lg-toprow-sk { flex: 1 1 0; min-width: 0; }
+  #viewIntake .lg-toprow-sk .lg-sect { margin-top: 0; }
+  /* SK렌터카 연동 정보 — 우측 폭에 맞춘 가로 표 (헤더 2줄 허용) */
+  #viewIntake .lg-sk-band { width: 100%; min-width: 0; table-layout: fixed; }
+  #viewIntake .lg-sk-band th { white-space: normal; word-break: keep-all; font-size: 11.5px; padding: 4px; }
+  #viewIntake .lg-sk-band td { text-align: center; font-size: 11.5px; }
+  #viewIntake .lg-sk-band td[data-desc],
+  #viewIntake .lg-sect[data-desc] { cursor: help; }
 
   /* 차량 부위 손상 — 정비공장 입력 ↔ 담당자 입력 2단 대조 */
   #viewIntake .lg-dmg-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
@@ -46,7 +78,37 @@
 
   @media (max-width: 900px) {
     #viewIntake .lg-dmg-pair { grid-template-columns: 1fr; }
+    #viewIntake .lg-toprow { flex-direction: column; }
+    #viewIntake .lg-toprow-sum { flex-basis: auto; max-width: none; width: 100%; }
   }
+
+  /* --- 기능 설명 툴팁 (버튼 hover 시 노출) --- */
+  #clTooltip {
+    position: fixed; z-index: 9999; max-width: 300px;
+    background: #1B2430; color: #fff;
+    font-size: 11.5px; font-weight: 500; line-height: 1.55;
+    padding: 8px 11px; border-radius: 9px;
+    box-shadow: 0 8px 22px rgba(16, 30, 54, .3);
+    pointer-events: none; opacity: 0; transform: translateY(4px);
+    transition: opacity .12s ease, transform .12s ease;
+    white-space: normal; word-break: keep-all;
+  }
+  #clTooltip.show { opacity: 1; transform: translateY(0); }
+  #clTooltip::after {
+    content: ""; position: absolute; left: var(--tip-arrow, 50%);
+    width: 9px; height: 9px; background: #1B2430;
+    transform: translateX(-50%) rotate(45deg);
+  }
+  #clTooltip.above::after { bottom: -4px; }
+  #clTooltip.below::after { top: -4px; }
+  /* hover 시 설명 대상임을 은근히 안내 */
+  #viewIntake [data-desc] { cursor: pointer; }
+  #viewIntake input[type="text"][data-desc],
+  #viewIntake input[type="date"][data-desc],
+  #viewIntake textarea[data-desc],
+  #viewIntake .lg-input[data-desc],
+  #viewIntake .lg-in[data-desc],
+  #viewIntake .lg-ta[data-desc] { cursor: text; }
 </style>
 </head>
 <body>
@@ -132,7 +194,7 @@
     <div class="brand-tag" id="viewName">Smart접수지</div>
   </div>
   <div class="topbar-right">
-    <button type="button" class="btn-req" id="btnRequest">
+    <button type="button" class="btn-req" id="btnRequest" data-desc="고객 차량 수리 기간 동안 제공할 대차(렌트)·탑승 서비스를 신청합니다.">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M5 17a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h9l5 4v5a2 2 0 0 1-2 2"/><circle cx="7.5" cy="17.5" r="1.6"/><circle cx="16.5" cy="17.5" r="1.6"/></svg>
       대차/탑승 신청
     </button>
