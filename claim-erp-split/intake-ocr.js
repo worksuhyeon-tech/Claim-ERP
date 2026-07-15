@@ -415,31 +415,21 @@ function confirmOcrResolution(d) {
   renderIntake();
 }
 
-// 저장: 스테이징된 부품을 부품 지급결의로 확정 저장 (과실률 확정 필요)
-function saveStagedResolution(d) {
-  const staged = ocrGetStaged(d.id);
-  if (!staged) { showToast("저장할 미저장 부품 내역이 없습니다."); return; }
-  const fault = parseFaultInfo(d.ownDamage && d.ownDamage.faultRate);
-  if (!fault.confirmed) { showToast("과실율 확정 후 결의입력하세요"); return; }
-  // 동일 파일명 중복 확인
-  const dup = resolutionsFor(d.id).some(r => r.sourceFileName === staged.fileName);
-  if (dup && !window.confirm("동일한 파일명으로 저장된 지급결의가 있습니다.\n계속 등록하시겠습니까?")) return;
-
-  const c = CLAIMS.find(x => x.id === d.id);
-  const staff = srCurrentStaff(c);
+// 지급결의 저장소 생성 헬퍼 (정비/부품 공용) — resolutionSeq는 push 시점 기준으로 순차 부여
+function ocrMakeResolution(d, staff, type, sourceType, fileName, rows, editHistory, faultPct) {
   const res = {
     id: nextResolutionId(),
     claimNo: d.id,
     resolutionSeq: nextResolutionSeq(d.id),
-    resolutionType: "부품",
-    sourceType: staged.sourceType || "AI-OCR",
-    sourceFileName: staged.fileName,
+    resolutionType: type,
+    sourceType: sourceType,
+    sourceFileName: fileName,
     documentType: "claim",
     status: "결재 전",
-    faultRateAtConfirmed: fault.pct,
+    faultRateAtConfirmed: faultPct,
     claimAmount: 0, assessedAmountBeforeFault: 0, faultOffsetAmount: 0, finalAssessedAmount: 0,
-    rows: staged.rows,
-    editHistory: staged.editHistory || [],
+    rows: rows,
+    editHistory: editHistory || [],
     currentApprovalId: null,
     approvalHistoryIds: [],
     confirmedBy: staff.id,
@@ -447,11 +437,50 @@ function saveStagedResolution(d) {
     confirmedAt: apprNow(),
     updatedAt: apprNow(),
   };
-  recalcResolutionAmounts(res, fault.pct);
+  recalcResolutionAmounts(res, faultPct);
   PAYMENT_RESOLUTIONS.push(res);
+  return res;
+}
+
+// 저장: 현재 청구내역을 지급결의로 확정 저장 (과실률 확정 필요)
+//  - 정비 견적이 아직 결의 저장 안 됨 → 정비 지급결의 저장
+//  - 부품(OCR) 반영분이 있음 → 부품 지급결의 저장
+//  - 둘 다면 함께 저장(정비→부품 순번). 정비가 이미 저장됐으면 부품만 다음 순번.
+function saveClaimResolutions(d) {
+  const fault = parseFaultInfo(d.ownDamage && d.ownDamage.faultRate);
+  if (!fault.confirmed) { showToast("과실율 확정 후 결의입력하세요"); return; }
+  const c = CLAIMS.find(x => x.id === d.id);
+  const staff = srCurrentStaff(c);
+  const hasMech = resolutionsFor(d.id).some(r => r.resolutionType === "정비");
+  const mechRows = (d.estimateDoc && d.estimateDoc.claim) ? d.estimateDoc.claim : [];
+  const staged = ocrGetStaged(d.id);
+  const saved = [];
+
+  // 1) 정비 지급결의 (정비 견적 존재 + 미저장)
+  if (!hasMech && mechRows.length) {
+    const rows = mechRows.map((r, i) => ({
+      rowId: "MECH-" + Date.now() + "-" + i, seq: i + 1,
+      partName: r.n, partNumber: "-", partCategory: r.it || "",
+      quantity: Number(r.base.unit) || 1, denied: !!r.adjust.denied,
+      claimAmount: Number(r.base.amount) || 0,
+      assessedAmount: r.adjust.denied ? 0 : (Number(r.adjust.amount) || 0),
+      ocrOriginal: null,
+    }));
+    saved.push(ocrMakeResolution(d, staff, "정비", "견적", "정비청구서_" + d.id, rows, [], fault.pct));
+  }
+
+  // 2) 부품 지급결의 (OCR 반영분)
+  if (staged) {
+    const dup = resolutionsFor(d.id).some(r => r.sourceFileName === staged.fileName);
+    if (dup && !window.confirm("동일한 파일명으로 저장된 지급결의가 있습니다.\n계속 등록하시겠습니까?")) return;
+    saved.push(ocrMakeResolution(d, staff, "부품", staged.sourceType || "AI-OCR", staged.fileName, staged.rows, staged.editHistory || [], fault.pct));
+    ocrClearStaged(d.id);
+  }
+
+  if (!saved.length) { showToast("저장할 청구 내역이 없습니다."); return; }
   persistResolutions();
-  ocrClearStaged(d.id);
-  showToast(`${d.id} 부품 지급결의 ${res.resolutionSeq}가 저장되었습니다. (AI-OCR)`);
+  const label = saved.map(r => `${r.resolutionType} 지급결의 ${r.resolutionSeq}`).join(", ");
+  showToast(`${d.id} ${label}가 저장되었습니다.`);
   renderIntake();
 }
 
