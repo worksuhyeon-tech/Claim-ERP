@@ -699,7 +699,6 @@ function intakeWorkbenchHtml(d) {
         <div class="lg-attr-div"></div>
         ${prop.custom.map((row, i) => intakeCustomRowHtml(row, i)).join("")}
       </div>
-      <textarea class="lg-ta" id="intakeAttrNote" placeholder="미결 속성 메모 (Smart업무관리에 반영)" data-desc="미결 사유·특이사항을 메모합니다. 저장 시 Smart업무관리 조치 설명에 반영됩니다.">${iEsc(prop.note)}</textarea>
     </div>
   </div>`;
 }
@@ -1762,7 +1761,8 @@ function bindIntakeWorkbench(d) {
       checked: !!document.querySelector(`[data-custom-check="${i}"]`)?.checked,
       text: (document.querySelector(`[data-custom-text="${i}"]`)?.value || "").trim(),
     }));
-    const note = $("#intakeAttrNote").value.trim();
+    const noteEl = $("#intakeAttrNote");                       // 메모 필드 제거됨 → 기존 값 유지
+    const note = noteEl ? noteEl.value.trim() : (getIntakeProperty(d.id, d).note || "");
     intakePropertyState[d.id] = { attrs, fields, custom, note };
     const detail = INTAKE_DETAIL[d.id] || (INTAKE_DETAIL[d.id] = {});
     detail.unresolved = attrs;
