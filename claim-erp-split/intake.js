@@ -81,8 +81,8 @@ const intakePropertyState = {
 };
 // 사고번호별 담당자 입력 파손부위 (차량 부위 손상 · 담당자 대조용, 클릭 선택)
 const intakeStaffParts = {};
-// 사고번호별 피해 진행 정보 저장 여부 — 저장해야 추산 등록·종결 가능
-const intakeDamageSaved = {};
+// 사고번호별 접수지 저장 여부 — 저장해야 추산 등록·종결 가능
+const intakeSaved = {};
 
 const CLAIM_CHIP_KEYS = ["정비", "부품", "유리", "실런트", "운반", "기타", "렌트", "교통"];
 const CHIP_STATE_TEXT = { none:"미청구", recv:"청구접수", review:"검토", done:"완료" };
@@ -2214,11 +2214,9 @@ function renderIntake() {
   const root = $("#intakeRoot");
   if (!d) { root.innerHTML = `<div style="padding:40px;text-align:center;color:#8a90a0">표시할 사고건이 없습니다.</div>`; return; }
   const done = d.procStatus === "완료";
-  const isContractTab = intakeTab === "contract";  // 계약 사고 정보 탭: 저장 전용(종결 구분 비활성)
-  const isDamageTab = intakeTab === "damage";      // 피해 진행 정보 탭: 저장 후 종결/추산 가능
-  const damageSaved = !!intakeDamageSaved[id];
-  // 종결(면책/지급)은 피해 진행 정보 저장 후에만 가능. 계약 사고 정보 탭은 저장 전용.
-  const closeLocked = isContractTab || (isDamageTab && !damageSaved);
+  const saved = !!intakeSaved[id];   // 접수지 저장 여부 (모든 탭 공통)
+  const closeLocked = !saved;        // 저장 후에만 면책/지급 선택·종결 가능
+  const tabLabel = intakeTab === "contract" ? "계약 사고 정보" : intakeTab === "damage" ? "피해 진행 정보" : "청구 견적 정보";
   const closeType = intakeCloseType[id] || "지급"; // 종결 구분 기본값: 지급
   const unresolvedText = (d.unresolved && d.unresolved.length) ? d.unresolved.join(", ") : "없음";
   const queryType = INTAKE_QUERY_TYPES.includes(intakeQueryType) ? intakeQueryType : INTAKE_QUERY_TYPES[0];
@@ -2248,16 +2246,12 @@ function renderIntake() {
           <div class="lg-actionbar">
             <span class="lg-std" data-desc="현재 이 사고건에 남아 있는 미결 속성(재통화·VOC 등) 태그입니다.">미결 태그: ${iEsc(unresolvedText)}</span>
             <span class="sp"></span>
-            ${isDamageTab ? `<span class="lg-savetag ${damageSaved ? "on" : ""}" data-desc="${damageSaved ? "피해 진행 정보가 저장되어 추산 등록·종결이 가능합니다." : "피해 진행 정보를 저장해야 추산 등록·종결이 가능합니다."}">${damageSaved ? "저장됨 ✓" : "미저장"}</span>` : ""}
+            <span class="lg-savetag ${saved ? "on" : ""}" data-desc="${saved ? "접수지가 저장되어 청구 견적 탭에서 추산을 등록하고 면책/지급 종결을 할 수 있습니다." : "계약 사고 정보·피해 진행 정보를 저장해야 청구 견적 탭에서 추산을 등록하고 면책/지급 종결을 할 수 있습니다."}">${saved ? "저장됨 ✓" : "미저장"}</span>
             <div class="lg-close-type" role="radiogroup" aria-label="종결 구분">
-              ${["면책", "지급"].map(t => `<label class="lg-ctype ${closeType === t ? "on" : ""} ${closeLocked ? "disabled" : ""}" data-desc="${isContractTab ? "계약 사고 정보 탭에서는 종결 구분 선택이 비활성화됩니다. (저장 전용)" : (isDamageTab && !damageSaved) ? "피해 진행 정보를 저장한 후 종결 구분을 선택할 수 있습니다." : `이 사고건을 '${t}'(으)로 종결 처리할 구분으로 지정합니다.`}"><input type="radio" name="intakeCloseType" value="${t}" ${closeType === t ? "checked" : ""} ${(done || closeLocked) ? "disabled" : ""}>${t}</label>`).join("")}
+              ${["면책", "지급"].map(t => `<label class="lg-ctype ${closeType === t ? "on" : ""} ${closeLocked ? "disabled" : ""}" data-desc="${closeLocked ? "먼저 '저장'을 눌러 접수지를 저장한 후 종결 구분(면책/지급)을 선택할 수 있습니다." : `이 사고건을 '${t}'(으)로 종결 처리할 구분으로 지정합니다.`}"><input type="radio" name="intakeCloseType" value="${t}" ${closeType === t ? "checked" : ""} ${(done || closeLocked) ? "disabled" : ""}>${t}</label>`).join("")}
             </div>
-            ${isContractTab
-      ? `<button class="lg-abtn primary" type="button" id="intakeSaveContract" data-desc="담당자가 수정한 사고 관련자·사고 정보와 조회한 경합 보험사 정보를 저장합니다.">저장</button>`
-      : isDamageTab
-        ? `<button class="lg-abtn" type="button" id="intakeSaveDamage" data-desc="피해 진행 정보(공업사·수리·예상수리비 등)를 저장합니다. 저장해야 청구 견적 탭에서 추산을 등록하고 면책/지급 종결을 할 수 있습니다.">저장</button>
-           <button class="lg-abtn primary" type="button" id="intakeComplete" ${(done || !damageSaved) ? "disabled" : ""} data-desc="${damageSaved ? "선택한 구분(면책/지급)으로 이 사고건을 종결 처리합니다." : "피해 진행 정보를 저장한 후 종결할 수 있습니다."}">${done ? "종결됨" : "종결"}</button>`
-        : `<button class="lg-abtn primary" type="button" id="intakeComplete" ${done ? "disabled" : ""} data-desc="선택한 종결 구분(면책/지급)으로 이 사고건을 종결 처리합니다.">${done ? "종결됨" : "종결"}</button>`}
+            <button class="lg-abtn" type="button" id="intakeSave" data-desc="현재 '${iEsc(tabLabel)}' 탭의 입력 내용을 저장합니다. 계약 사고 정보·피해 진행 정보를 저장해야 청구 견적 탭에서 추산(선견적)을 등록하고 면책/지급 종결을 진행할 수 있습니다.">저장</button>
+            <button class="lg-abtn primary" type="button" id="intakeComplete" ${(done || !saved) ? "disabled" : ""} data-desc="${saved ? "선택한 구분(면책/지급)으로 이 사고건을 종결 처리합니다." : "접수지를 저장한 후 종결할 수 있습니다. 저장 전에는 비활성화됩니다."}">${done ? "종결됨" : "종결"}</button>
           </div>
         </div>
       </div>
@@ -2311,25 +2305,18 @@ function renderIntake() {
     setProcStatus(d.id, "완료");
     showToast(`${d.id} 건이 ${closeType} 종결되었습니다.`);
   });
-  // 계약 사고 정보 탭: 편집 컨트롤 바인딩 + 저장 버튼
-  if (intakeTab === "contract") {
-    bindIntakeContract(d);
-    const sc = $("#intakeSaveContract");
-    if (sc) sc.addEventListener("click", () => {
-      getContractState(d.id, d);   // 입력값은 이미 상태에 반영됨
-      showToast(`${d.id} 계약 사고 정보가 저장되었습니다.`);
-    });
-  }
-  // 피해 진행 정보 탭: 저장 → 추산 등록·종결 잠금 해제
-  if (intakeTab === "damage") {
-    const sdmg = $("#intakeSaveDamage");
-    if (sdmg) sdmg.addEventListener("click", () => {
-      getDamageState(d.id, d);     // 입력값은 이미 상태에 반영됨
-      intakeDamageSaved[d.id] = true;
-      showToast(`${d.id} 피해 진행 정보가 저장되었습니다. 추산 등록·종결이 가능합니다.`);
-      renderIntake();              // 저장 뱃지·종결 버튼 활성 반영
-    });
-  }
+  // 계약 사고 정보 탭: 편집 컨트롤 바인딩
+  if (intakeTab === "contract") bindIntakeContract(d);
+  // 저장 버튼(모든 탭 공통): 현재 탭 입력 저장 → 저장 상태 전환(추산 등록·종결 잠금 해제)
+  const sv = $("#intakeSave");
+  if (sv) sv.addEventListener("click", () => {
+    if (intakeTab === "contract") getContractState(d.id, d);
+    else if (intakeTab === "damage") getDamageState(d.id, d);
+    intakeSaved[d.id] = true;      // 입력값은 각 탭 상태에 이미 반영됨
+    const label = intakeTab === "contract" ? "계약 사고 정보" : intakeTab === "damage" ? "피해 진행 정보" : "청구 견적 정보";
+    showToast(`${d.id} ${label}가 저장되었습니다. 추산 등록·종결이 가능합니다.`);
+    renderIntake();                // 저장 뱃지·종결 버튼 활성 반영
+  });
 }
 
 
