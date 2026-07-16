@@ -1,7 +1,7 @@
 "use strict";
 const activeView = "intake";
 
-let intakeClaimId = null;   // Smart접수지에 바인딩된 사고건
+let intakeClaimId = null;   // Smart업무처리에 바인딩된 사고건
 let intakeTab = "contract"; // "contract"(계약·사고정보) | "damage"(피해 진행정보) | "estimate"(청구 견적 정보)
 let estimateDocType = "claim"; // 청구 견적 문서 전환: "pre"(선견적) | "claim"(청구서)
 const intakeCloseType = {};    // 사고번호별 종결 구분: "면책" | "지급" (기본 지급)
@@ -18,7 +18,7 @@ const INTAKE_ATTRS = [
 ];
 const INTAKE_ATTR_KEYS = INTAKE_ATTRS.map(a => a.key);
 let intakeLogFilter = "전체";   // 진행 이력 채널(구분) 필터
-// Smart접수지 조회구분 (참조: reference/조회구분값.png)
+// Smart업무처리 조회구분 (참조: reference/조회구분값.png)
 const INTAKE_QUERY_TYPES = ["사고번호", "차량번호", "피해차량번호", "피보험자 휴대폰", "통보자 휴대폰", "피해자 휴대폰", "운전자 휴대폰", "소유자 휴대폰"];
 let intakeQueryType = INTAKE_QUERY_TYPES[0];
 
@@ -481,7 +481,7 @@ function getIntakeData(claimId) {
   return d;
 }
 
-/* ===================== Smart접수지 렌더링 ===================== */
+/* ===================== Smart업무처리 렌더링 ===================== */
 function iEsc(v) { return (v === undefined || v === null || v === "") ? "" : escapeHtml(String(v)); }
 function joinDot(arr) { return arr.filter(Boolean).join(" · "); }
 function intakeNowLabel() {
@@ -698,7 +698,7 @@ function intakeWorkbenchHtml(d) {
       </div>
     </div>
     <div class="lg-panel">
-      <div class="lg-panel-h"><span class="h">미결 속성</span><button class="lg-mini" type="button" id="intakeAttrSave" data-desc="체크한 미결 속성과 메모를 저장해 Smart업무관리 목록에 반영합니다.">저장</button></div>
+      <div class="lg-panel-h"><span class="h">미결 속성</span><button class="lg-mini" type="button" id="intakeAttrSave" data-desc="체크한 미결 속성과 메모를 저장해 미결일괄조회 목록에 반영합니다.">저장</button></div>
       <div class="lg-attrs2">
         ${INTAKE_ATTRS.map(a => intakeAttrRowHtml(a, prop)).join("")}
         <div class="lg-attr-div"></div>
@@ -1999,7 +1999,7 @@ function bindIntakeWorkbench(d) {
         claim.nextAction = `${attrs[0] || "미결"} 속성 확인 후 후속 조치를 진행하세요.`;
       }
     }
-    showToast(`${d.id} 미결 속성이 Smart업무관리에 반영되었습니다.`);
+    showToast(`${d.id} 미결 속성이 미결일괄조회에 반영되었습니다.`);
     if (typeof renderAll === "function") renderAll();
     renderIntake();
   });
@@ -2221,10 +2221,10 @@ function renderIntake() {
   const unresolvedText = (d.unresolved && d.unresolved.length) ? d.unresolved.join(", ") : "없음";
   const queryType = INTAKE_QUERY_TYPES.includes(intakeQueryType) ? intakeQueryType : INTAKE_QUERY_TYPES[0];
   root.innerHTML = `
-    <button class="lg-back" type="button" id="intakeBack" data-desc="Smart업무관리 목록 화면으로 돌아갑니다.">← 목록으로</button>
+    <button class="lg-back" type="button" id="intakeBack" data-desc="미결일괄조회 목록 화면으로 돌아갑니다.">← 목록으로</button>
     <div class="lg">
       <div class="lg-window">
-        <div class="lg-titlebar"><span class="t">Smart접수지</span><span class="r"><span class="lg-x">✕</span></span></div>
+        <div class="lg-titlebar"><span class="t">Smart업무처리</span><span class="r"><span class="lg-x">✕</span></span></div>
         <div class="lg-search">
           <span class="lk">조회구분</span>
           <select class="lg-select" id="intakeQueryType" data-desc="조회 기준(사고번호·차량번호·휴대폰 등)을 선택합니다. 선택한 기준에 맞춰 아래 입력칸이 바뀝니다.">${INTAKE_QUERY_TYPES.map(t => `<option value="${iEsc(t)}" ${t === queryType ? "selected" : ""}>${iEsc(t)}</option>`).join("")}</select>

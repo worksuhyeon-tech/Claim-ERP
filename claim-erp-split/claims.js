@@ -1400,7 +1400,7 @@ $("#rows").addEventListener("click", e => {
     e.stopPropagation();
     return;
   }
-  // 행 클릭 → 해당 사고건 Smart접수지 열기
+  // 행 클릭 → 해당 사고건 Smart업무처리 열기
   const row = e.target.closest(".row");
   if (!row) return;
   selectedId = row.dataset.id;
