@@ -772,7 +772,7 @@ function setProcStatus(id, status) {
 }
 
 /* ===================== 메뉴 간 이동 (파일 분리로 인해 페이지 이동 방식으로 대체) ===================== */
-const VIEW_TITLES = { claims:"Smart업무관리", intake:"Smart접수지", images:"이미지 시스템", closing:"결재 LIST", assign:"전결·순환배당 관리", ai:"AI 통합대시보드" };
+const VIEW_TITLES = { claims:"미결일괄조회", intake:"Smart업무처리", images:"이미지 시스템", closing:"결재 LIST", assign:"전결·순환배당 관리", ai:"AI 통합대시보드" };
 const VIEW_FILES = {
   claims: "smart-claims.html",
   intake: "smart-intake.html",
@@ -896,7 +896,7 @@ document.querySelectorAll(".nav-popout[data-open-view]").forEach(btn => {
 
 
 /* ===================== 결재 공용 기반 (접수지·결재LIST 공유) ===================== */
-// closing.js에서 이동 — Smart접수지 결재 상신과 결재LIST가 단일 APPROVALS 소스를 공유.
+// closing.js에서 이동 — Smart업무처리 결재 상신과 결재LIST가 단일 APPROVALS 소스를 공유.
 const APPR_PAY_TYPES = ["지급(종결)", "추가지급"];              // 비밀번호 인증 대상(지급성)
 const APPR_PASSWORD = "1234";                                 // 데모 검증 전용(화면 검증용)
 // 결재자 후보 — 전결권한 데이터(staffAssignmentSettings) 참조. 기본 김본부 센터장.

@@ -1,7 +1,7 @@
 "use strict";
 const activeView = "intake";
 
-let intakeClaimId = null;   // Smart접수지에 바인딩된 사고건
+let intakeClaimId = null;   // Smart업무처리에 바인딩된 사고건
 let intakeTab = "contract"; // "contract"(계약·사고정보) | "damage"(피해 진행정보) | "estimate"(청구 견적 정보)
 let estimateDocType = "claim"; // 청구 견적 문서 전환: "pre"(선견적) | "claim"(청구서)
 const intakeCloseType = {};    // 사고번호별 종결 구분: "면책" | "지급" (기본 지급)
@@ -18,7 +18,7 @@ const INTAKE_ATTRS = [
 ];
 const INTAKE_ATTR_KEYS = INTAKE_ATTRS.map(a => a.key);
 let intakeLogFilter = "전체";   // 진행 이력 채널(구분) 필터
-// Smart접수지 조회구분 (참조: reference/조회구분값.png)
+// Smart업무처리 조회구분 (참조: reference/조회구분값.png)
 const INTAKE_QUERY_TYPES = ["사고번호", "차량번호", "피해차량번호", "피보험자 휴대폰", "통보자 휴대폰", "피해자 휴대폰", "운전자 휴대폰", "소유자 휴대폰"];
 let intakeQueryType = INTAKE_QUERY_TYPES[0];
 
@@ -81,6 +81,8 @@ const intakePropertyState = {
 };
 // 사고번호별 담당자 입력 파손부위 (차량 부위 손상 · 담당자 대조용, 클릭 선택)
 const intakeStaffParts = {};
+// 사고번호별 접수지 저장 여부 — 저장해야 추산 등록·종결 가능
+const intakeSaved = {};
 
 const CLAIM_CHIP_KEYS = ["정비", "부품", "유리", "실런트", "운반", "기타", "렌트", "교통"];
 const CHIP_STATE_TEXT = { none:"미청구", recv:"청구접수", review:"검토", done:"완료" };
@@ -479,7 +481,7 @@ function getIntakeData(claimId) {
   return d;
 }
 
-/* ===================== Smart접수지 렌더링 ===================== */
+/* ===================== Smart업무처리 렌더링 ===================== */
 function iEsc(v) { return (v === undefined || v === null || v === "") ? "" : escapeHtml(String(v)); }
 function joinDot(arr) { return arr.filter(Boolean).join(" · "); }
 function intakeNowLabel() {
@@ -513,12 +515,15 @@ function lgTable(entries) {
   let buf = [];
   const flush = () => { if (buf.length) { rows.push("<tr>" + buf.join("") + "</tr>"); buf = []; } };
   entries.forEach(e => {
+    const hasRaw = e.raw != null;          // raw: 이스케이프하지 않는 입력/컨트롤 HTML
     const val = iEsc(e.v);
+    const content = hasRaw ? e.raw : (val || "-");
+    const phCls = (!hasRaw && !val) ? "ph" : "";
     if (e.full) {
       flush();
-      rows.push(`<tr><th>${e.k}</th><td colspan="3" class="${e.blue ? "blue " : ""}${val ? "" : "ph"}">${val || "-"}</td></tr>`);
+      rows.push(`<tr><th>${e.k}</th><td colspan="3" class="${e.blue ? "blue " : ""}${phCls}">${content}</td></tr>`);
     } else {
-      buf.push(`<th>${e.k}</th><td class="${e.blue ? "blue " : ""}${val ? "" : "ph"}">${val || "-"}</td>`);
+      buf.push(`<th>${e.k}</th><td class="${e.blue ? "blue " : ""}${phCls}">${content}</td>`);
       if (buf.length === 2) flush();
     }
   });
@@ -693,7 +698,7 @@ function intakeWorkbenchHtml(d) {
       </div>
     </div>
     <div class="lg-panel">
-      <div class="lg-panel-h"><span class="h">미결 속성</span><button class="lg-mini" type="button" id="intakeAttrSave" data-desc="체크한 미결 속성과 메모를 저장해 Smart업무관리 목록에 반영합니다.">저장</button></div>
+      <div class="lg-panel-h"><span class="h">미결 속성</span><button class="lg-mini" type="button" id="intakeAttrSave" data-desc="체크한 미결 속성과 메모를 저장해 미결일괄조회 목록에 반영합니다.">저장</button></div>
       <div class="lg-attrs2">
         ${INTAKE_ATTRS.map(a => intakeAttrRowHtml(a, prop)).join("")}
         <div class="lg-attr-div"></div>
@@ -703,36 +708,97 @@ function intakeWorkbenchHtml(d) {
   </div>`;
 }
 
-/* ---- 탭1: 계약 사고 정보 ---- */
+/* ---- 탭1: 계약 사고 정보 — 담당자 편집 컨트롤 ---- */
+const CT_LICENSE_TYPES = ["1종대형", "1종보통", "1종특수", "2종보통", "2종소형", "원동기", "무면허", "해당없음"];
+const CT_ACC_MAJORS = ["차대차", "차량단독", "차대인", "타차일방", "계약위반(음주·약물 등)"];
+const CT_ACC_DETAILS = {
+  "차대차": ["추돌", "후진사고", "주/정차 중 사고", "차선변경(가해)", "차선변경(피해)", "신호위반", "교차로 진입", "측면 접촉"],
+  "차량단독": ["기타 피해물 접촉", "로드킬", "비래/낙하물", "도난", "전복", "전도", "침수", "화재", "가드레일 접촉"],
+  "차대인": ["횡단보도", "PM(개인형이동장치) 사고", "무단횡단", "보도 통행 중", "이면도로 사고"],
+  "타차일방": ["신호대기 중 추돌 피해", "주정차 중 피해", "상대 중앙선 침범", "상대 신호위반"],
+  "계약위반(음주·약물 등)": ["음주운전", "약물운전", "무면허운전", "사고후 미조치(뺑소니)"],
+};
+const CT_TASKS = ["Moral사고", "당일사고", "근접배서", "심야사고", "범위위배", "무면허운전", "타차운전"];
+
+const intakeContractState = {};
+function getContractState(id, d) {
+  if (!intakeContractState[id]) {
+    const P = d.parties || {}, A = d.accident || {}, dr = (P.driver || {});
+    intakeContractState[id] = {
+      driverName: dr.name || "", driverRel: dr.rel || "", birth: dr.birth || "", phone: dr.phone || "",
+      licenseNo: dr.licenseNo || "", licenseType: (dr.license || "").split("/")[0].trim() || "2종보통",
+      datetime: A.datetime || "", place: A.place || "", placeDetail: A.placeDetail || "",
+      content: A.content || "", note: A.note || "",
+      accMajor: "차대차", accDetail: CT_ACC_DETAILS["차대차"][0],
+      tasks: (A.otherDrive && A.otherDrive !== "해당없음") ? ["타차운전"] : [], moralNote: "",
+      police: (A.police === "신고접수") ? "신고" : "미신고", policeStation: "",
+      comp: { insurer: "", caseNo: "", staff: "", staffPhone: "", faultRate: "", faultFixed: "미확정", place: A.place || "", accType: "", dispatched: "미출동", content: "" },
+    };
+  }
+  return intakeContractState[id];
+}
+function ctText(field, val, ph) {
+  return `<input type="text" class="lg-cin" data-ct="${iEsc(field)}" value="${iEsc(val)}" placeholder="${iEsc(ph || "")}" data-desc="담당자가 직접 수정하고 저장하는 입력 항목입니다.">`;
+}
+function ctSel(field, val, opts) {
+  return `<select class="lg-csel" data-ct="${iEsc(field)}">${opts.map(o => `<option ${o === val ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>`;
+}
+function ctTaskChecksHtml(st) {
+  return `<div class="lg-ctchecks">` + CT_TASKS.map(t =>
+    `<label class="lg-ctchk" data-desc="${t === "Moral사고" ? "Moral(모럴) 의심 사고로 지정하면 조사내용 입력 팝업이 열립니다." : `'${iEsc(t)}' 조사 항목으로 표시합니다.`}"><input type="checkbox" data-cttask="${iEsc(t)}" ${st.tasks.includes(t) ? "checked" : ""}><span>${iEsc(t)}</span></label>`
+  ).join("") + `</div>`;
+}
+function ctPoliceHtml(st) {
+  const rep = st.police === "신고";
+  return `<div class="lg-ctpolice">
+    <label class="lg-ctradio" data-desc="경찰에 사고를 신고한 건입니다."><input type="radio" name="ctPolice" value="신고" ${rep ? "checked" : ""}>신고</label>
+    <label class="lg-ctradio" data-desc="경찰 신고를 하지 않은 건입니다."><input type="radio" name="ctPolice" value="미신고" ${!rep ? "checked" : ""}>미신고</label>
+    <span id="ctPoliceStationWrap" class="lg-ctstation ${rep ? "" : "lg-hide"}">관할 <input type="text" class="lg-cin sm" data-ct="policeStation" value="${iEsc(st.policeStation)}" placeholder="경찰서명" data-desc="신고한 관할 경찰서명을 입력합니다."></span>
+  </div>`;
+}
 function intakeContractTab(d) {
   const P = d.parties;
-  const left = lgSect("사고 관련자", "※ 운전자 접수 / 저장")
+  const st = getContractState(d.id, d);
+  const detailOpts = (CT_ACC_DETAILS[st.accMajor] || []);
+  const c = st.comp;
+  const left = lgSect("사고 관련자", "※ 운전자 접수 / 저장 · 담당자 수정 가능")
     + lgTable([
-      { k: "운전자", v: `${P.driver.name || ""} ${P.driver.rel ? "(" + P.driver.rel + ")" : ""}`.trim() },
-      { k: "연락처", v: P.driver.phone, blue: true },
-      { k: "생년월일", v: P.driver.birth }, { k: "면허", v: P.driver.license },
+      { k: "운전자", raw: ctText("driverName", st.driverName, "운전자명") },
+      { k: "연락처", raw: ctText("phone", st.phone, "010-0000-0000") },
+      { k: "생년월일", raw: ctText("birth", st.birth, "YYMMDD-0") },
+      { k: "관계", raw: ctText("driverRel", st.driverRel, "예: 피보험자 본인") },
+      { k: "면허종류", raw: ctSel("licenseType", st.licenseType, CT_LICENSE_TYPES) },
+      { k: "면허번호", raw: ctText("licenseNo", st.licenseNo, "00-00-000000-00") },
       { k: "소유자", v: P.owner.name }, { k: "연락처", v: P.owner.phone, blue: true },
       { k: "피보험자", v: P.insured.name }, { k: "연락처", v: P.insured.phone, blue: true },
       { k: "통보자", v: `${P.notifier.name || ""} ${P.notifier.rel ? "(" + P.notifier.rel + ")" : ""}`.trim() },
       { k: "연락처", v: P.notifier.phone, blue: true },
       { k: "개동", v: "운전 Y / 소유 Y", full: true },
     ])
-    + lgSect("사고 정보")
+    + lgSect("사고 정보", "※ 담당자 수정 가능")
     + lgTable([
-      { k: "사고일시", v: d.accident.datetime, full: true },
-      { k: "사고장소", v: d.accident.place, full: true },
-      { k: "장소상세", v: d.accident.placeDetail, full: true },
-      { k: "내용", v: d.accident.content, full: true },
-      { k: "특이사항", v: d.accident.note }, { k: "조사Task", v: d.accident.task },
-      { k: "경찰접수", v: d.accident.police }, { k: "타차운전", v: d.accident.otherDrive },
+      { k: "사고일시", raw: ctText("datetime", st.datetime, "YYYY-MM-DD HH:MM"), full: true },
+      { k: "사고장소", raw: ctText("place", st.place, "사고 발생 장소"), full: true },
+      { k: "장소상세", raw: ctText("placeDetail", st.placeDetail, "상세 위치"), full: true },
+      { k: "내용", raw: ctText("content", st.content, "사고 경위·내용"), full: true },
+      { k: "사고유형", raw: ctSel("accMajor", st.accMajor, CT_ACC_MAJORS) },
+      { k: "세부분류", raw: `<select class="lg-csel" id="ctAccDetail" data-ct="accDetail">${detailOpts.map(o => `<option ${o === st.accDetail ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>` },
+      { k: "특이사항", raw: ctText("note", st.note, "특이사항"), full: true },
+      { k: "조사Task", raw: ctTaskChecksHtml(st), full: true },
+      { k: "경찰접수", raw: ctPoliceHtml(st), full: true },
     ])
-    + lgSect("출동 정보")
+    + `<div class="lg-sect">경합 보험사 접수 정보<button class="lg-mini" type="button" id="ctCompFetch" data-desc="상대측(타 보험사) 접수 정보를 조회해 아래 항목을 자동으로 불러옵니다. (연동 시 실제 타사 데이터)">타사 정보 조회</button></div>`
     + lgTable([
-      { k: "담당", v: d.dispatch.manager }, { k: "운전자", v: d.dispatch.driver },
-      { k: "중대사고", v: d.dispatch.majorAcc, full: true },
-      { k: "사고내용", v: d.dispatch.content, full: true },
-      { k: "전달사항", v: d.dispatch.delivery, full: true },
-      { k: "기타", v: (d.dispatch.etc || []).join(" / "), full: true },
+      { k: "경합 보험사명", raw: ctText("comp.insurer", c.insurer, "예: DB손해보험") },
+      { k: "접수번호", raw: ctText("comp.caseNo", c.caseNo, "타사 접수번호") },
+      { k: "타보험사 담당자", raw: ctText("comp.staff", c.staff, "담당자명") },
+      { k: "담당자 연락처", raw: ctText("comp.staffPhone", c.staffPhone, "010-0000-0000"), blue: true },
+      { k: "과실율", raw: ctText("comp.faultRate", c.faultRate, "예: 70:30") },
+      { k: "과실 확정여부", raw: ctSel("comp.faultFixed", c.faultFixed, ["미확정", "협의중", "확정"]) },
+      { k: "사고장소", raw: ctText("comp.place", c.place, "타사 기재 사고장소"), full: true },
+      { k: "사고유형", raw: ctText("comp.accType", c.accType, "타사 기재 사고유형"), full: true },
+      { k: "출동여부", raw: ctSel("comp.dispatched", c.dispatched, ["미출동", "출동", "출동요청"]) },
+      { k: "사고내용", raw: ctText("comp.content", c.content, "타사 기재 사고내용"), full: true },
     ]);
   const right = lgSect("면부책")
     + lgTable([
@@ -768,6 +834,92 @@ function intakeContractTab(d) {
   return `<div class="lg-cols"><div>${left}</div><div>${right}</div></div>`;
 }
 
+function ctSetField(st, path, val) {
+  if (path.indexOf(".") >= 0) { const [a, b] = path.split("."); (st[a] = st[a] || {})[b] = val; }
+  else st[path] = val;
+}
+function bindIntakeContract(d) {
+  const body = $("#intakeBody"); if (!body) return;
+  const st = getContractState(d.id, d);
+  body.querySelectorAll("[data-ct]").forEach(el => {
+    const ev = el.tagName === "SELECT" ? "change" : "input";
+    el.addEventListener(ev, () => {
+      ctSetField(st, el.dataset.ct, el.value);
+      if (el.dataset.ct === "accMajor") {          // 대분류 변경 → 세부분류 옵션 갱신
+        const opts = CT_ACC_DETAILS[el.value] || [];
+        st.accDetail = opts[0] || "";
+        const sel = body.querySelector("#ctAccDetail");
+        if (sel) sel.innerHTML = opts.map(o => `<option ${o === st.accDetail ? "selected" : ""}>${iEsc(o)}</option>`).join("");
+      }
+    });
+  });
+  body.querySelectorAll("[data-cttask]").forEach(cb => cb.addEventListener("change", () => {
+    const t = cb.dataset.cttask;
+    if (cb.checked) { if (!st.tasks.includes(t)) st.tasks.push(t); if (t === "Moral사고") openMoralModal(st); }
+    else { st.tasks = st.tasks.filter(x => x !== t); }
+  }));
+  body.querySelectorAll('input[name="ctPolice"]').forEach(r => r.addEventListener("change", () => {
+    if (!r.checked) return;
+    st.police = r.value;
+    const wrap = body.querySelector("#ctPoliceStationWrap");
+    if (wrap) wrap.classList.toggle("lg-hide", r.value !== "신고");
+  }));
+  const fb = body.querySelector("#ctCompFetch");
+  if (fb) fb.addEventListener("click", () => fetchCompetitorInfo(d, st));
+}
+// 타사(경합 보험사) 정보 조회 — 데모: 임의 접수정보를 끌어와 채운다.
+function fetchCompetitorInfo(d, st) {
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const rnd = (min, max) => min + Math.floor(Math.random() * (max - min + 1));
+  st.comp = {
+    insurer: pick(["DB손해보험", "삼성화재", "현대해상", "KB손해보험", "메리츠화재", "롯데손해보험"]),
+    caseNo: `2026-${rnd(1000000, 9999999)}`,
+    staff: pick(["김", "이", "박", "최", "정", "강"]) + pick(["성민", "지훈", "서연", "도윤", "하늘", "예린"]),
+    staffPhone: `010-${rnd(2000, 8999)}-${rnd(1000, 9999)}`,
+    faultRate: pick(["70:30", "80:20", "100:0", "60:40", "0:100", "90:10"]),
+    faultFixed: pick(["미확정", "협의중", "확정"]),
+    place: st.place || (d.accident && d.accident.place) || "",
+    accType: `${st.accMajor} · ${st.accDetail}`,
+    dispatched: pick(["출동", "미출동"]),
+    content: pick(["상대차 후미 추돌 인정", "과실 협의 진행 중", "현장 블랙박스 확인 요청", "상대 운전자 진술 확보", "쌍방 과실 검토 중"]),
+  };
+  $("#intakeBody").innerHTML = renderIntakeTab("contract", d);
+  bindIntakeContract(d);
+  showToast(`${st.comp.insurer} 접수정보를 조회했습니다.`);
+}
+// Moral 사고 조사내용 입력 팝업
+function openMoralModal(st) {
+  let root = document.getElementById("ctMoralRoot");
+  if (!root) { root = document.createElement("div"); root.id = "ctMoralRoot"; document.body.appendChild(root); }
+  root.className = "ct-modal-root open";
+  root.innerHTML = `
+    <div class="ct-modal-bd"></div>
+    <div class="ct-modal" role="dialog" aria-modal="true" aria-label="Moral 사고 조사 내용">
+      <div class="ct-modal-h"><b>Moral 사고 조사 내용</b><button type="button" class="ct-modal-x" aria-label="닫기">×</button></div>
+      <div class="ct-modal-b">
+        <p class="ct-modal-guide">Moral(모럴) 의심 사고로 지정했습니다. 판단 근거와 조사 내용을 입력하세요.</p>
+        <textarea id="ctMoralText" rows="6" placeholder="예: 사고 경위 진술 불일치, 단기간 반복 사고 이력, 심야 단독사고 등 의심 정황과 조사 결과">${iEsc(st.moralNote)}</textarea>
+      </div>
+      <div class="ct-modal-f"><button type="button" class="lg-abtn" id="ctMoralCancel">취소</button><button type="button" class="lg-abtn primary" id="ctMoralSave">조사내용 저장</button></div>
+    </div>`;
+  const close = (uncheck) => {
+    root.classList.remove("open"); root.innerHTML = "";
+    if (uncheck && !st.moralNote) {   // 조사내용 없이 닫으면 Moral 체크 해제
+      st.tasks = st.tasks.filter(x => x !== "Moral사고");
+      const cb = document.querySelector('[data-cttask="Moral사고"]');
+      if (cb) cb.checked = false;
+    }
+  };
+  root.querySelector(".ct-modal-bd").addEventListener("click", () => close(true));
+  root.querySelector(".ct-modal-x").addEventListener("click", () => close(true));
+  root.querySelector("#ctMoralCancel").addEventListener("click", () => close(true));
+  root.querySelector("#ctMoralSave").addEventListener("click", () => {
+    st.moralNote = document.getElementById("ctMoralText").value;
+    close(false);
+    showToast("Moral 사고 조사내용을 저장했습니다.");
+  });
+}
+
 /* ---- 탭2: 피해 진행 정보 ---- */
 // 차량 부위 손상 목록 렌더 (interactive=true → 담당자 입력, 클릭 토글)
 function dmgPartsHtml(checkedSet, interactive) {
@@ -778,21 +930,94 @@ function dmgPartsHtml(checkedSet, interactive) {
     return `<div class="${cls}${on ? " on" : ""}"${attr}><span class="b"></span>${p}</div>`;
   }).join("");
 }
+/* ---- 탭2: 피해 진행 정보 — 담당자 편집 상태/헬퍼 ---- */
+const DM_OWN_STATES = ["분손", "전손", "도난"];
+const DM_PROC_OPTS = { "분손": ["수리", "미수리"], "전손": ["폐차", "매각"], "도난": ["미회수", "회수"] };
+const DM_LOST_OPTS = ["차키", "앞번호판", "뒷번호판"];
+const intakeDamageState = {};
+function dmNumOf(v) { return parseInt(String(v || "").replace(/[^\d]/g, ""), 10) || 0; }
+function getDamageState(id, d) {
+  if (!intakeDamageState[id]) {
+    const ic = d.insuredCar || {}, rp = d.repair || {}, dg = d.damage || {};
+    const pm = String(ic.priceAB || "").match(/([\d,]+)[^\d]+([\d,]+)/);
+    const buy = pm ? pm[1] : (String(ic.priceAB || "").match(/[\d,]+/) || [""])[0];
+    const accVal = pm ? pm[2] : "";
+    const book = accVal ? won(Math.round(dmNumOf(accVal) * 0.72)) : "";
+    const shopM = String(rp.shop || "").match(/\]\s*(.+?)\s*(\d[\d-]+\d)/);
+    const period = String(rp.period || "");
+    const pdM = period.match(/입고\s*([\d-]+)\s*~\s*출고\s*([\d-]+)/);
+    intakeDamageState[id] = {
+      plate: ic.no || "", objectName: ic.name || "",
+      firstRegDate: "", owner: "(주)에스케이렌터카",
+      ownState: "분손", procState: "수리", repaired: "예",
+      maintSub: (dg.rentClaim === "청구") ? "이용" : "미이용",
+      lost: [],
+      buyPrice: buy, accidentValue: accVal, bookValue: book,
+      shopName: shopM ? shopM[1] : "", shopPhone: shopM ? shopM[2] : "",
+      repairPeriod: (period.match(/\((\d+일)\)/) || ["", ""])[1] || (period === "-" ? "" : period),
+      inDate: pdM ? pdM[1] : "", outPlanDate: pdM ? pdM[2] : "",
+      outChg1Date: "", outChg1Reason: "", outChg2Date: "", outChg2Reason: "",
+      repairStartDate: "", repairEndDate: "", outDoneDate: "",
+      estimate: "1,300,000",
+      deductible: "300,000",
+    };
+  }
+  return intakeDamageState[id];
+}
+function dmText(f, v, ph) { return `<input type="text" class="lg-cin" data-dm="${iEsc(f)}" value="${iEsc(v)}" placeholder="${iEsc(ph || "")}" data-desc="담당자가 직접 수정·저장하는 항목입니다.">`; }
+function dmDate(f, v) { return `<input type="date" class="lg-cin" data-dm="${iEsc(f)}" value="${iEsc(v)}" data-desc="날짜를 선택합니다.">`; }
+function dmNum(f, v) { return `<input type="text" inputmode="numeric" class="lg-cin ta-r" data-dm="${iEsc(f)}" value="${iEsc(v)}" data-desc="금액(원)을 입력합니다.">`; }
+function dmSel(f, v, opts) { return `<select class="lg-csel" data-dm="${iEsc(f)}">${opts.map(o => `<option ${o === v ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>`; }
+function dmSkVal(v) { return `<span class="lg-skval">${iEsc(v) || "미수신"}<span class="lg-sktag">SK</span></span>`; }
+function dmLostHtml(s) {
+  return `<div class="lg-ctchecks">` + DM_LOST_OPTS.map(x =>
+    `<label class="lg-ctchk" data-desc="분실 대상 '${iEsc(x)}'을(를) 표시합니다."><input type="checkbox" data-dmlost="${iEsc(x)}" ${s.lost.includes(x) ? "checked" : ""}><span>${iEsc(x)}</span></label>`
+  ).join("") + `</div>`;
+}
+function dmShopFieldHtml(s) {
+  const val = s.shopName ? `${iEsc(s.shopName)} <span class="lg-shopph">(${iEsc(s.shopPhone)})</span>` : `<span class="ph">미지정 — 검색하여 지정</span>`;
+  return `<span class="lg-shopfield">${val}<button type="button" class="lg-shopbtn" id="dmShopSearch" data-desc="공업사를 검색해 지정합니다. (AOS/SK 연동 시 자동 세팅)" aria-label="공업사 검색">
+    <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.4-7-11a7 7 0 0 1 14 0c0 4.6-7 11-7 11Z"/><circle cx="12" cy="10" r="2.4"/></svg>
+  </button></span>`;
+}
+// 예상수리비: 금액(VAT 별도) 입력 + VAT 포함액 자동 표시
+function dmEstimateHtml(s) {
+  const base = dmNumOf(s.estimate);
+  const vat = Math.round(base * 1.1);
+  return `<span class="lg-estwrap">${dmNum("estimate", s.estimate)}<span class="lg-estunit">원</span><span class="lg-estvat">(VAT 포함 <b id="dmEstVat">${won(vat)}</b>원)</span></span>`;
+}
 function intakeDamageTab(d) {
-  const left = lgSect("피해 진행")
+  const s = getDamageState(d.id, d);
+  const procOpts = DM_PROC_OPTS[s.ownState] || [];
+  const left = lgSect("피해 진행", "※ 담당자 수정 가능 · SK 연동 항목 표시")
     + lgTable([
-      { k: "피해물", v: d.damage.object, full: true },
-      { k: "소유자", v: d.damage.owner }, { k: "정보사항", v: d.damage.info },
-      { k: "교통비청구", v: d.damage.transport }, { k: "렌트청구", v: d.damage.rentClaim },
-      { k: "부가세대상", v: d.damage.vatTarget }, { k: "고객정보", v: d.damage.custInfo },
+      { k: "차량번호", raw: dmText("plate", s.plate, "12가3456") },
+      { k: "피해물명", raw: dmText("objectName", s.objectName, "차량명") },
+      { k: "최초등록일", raw: dmDate("firstRegDate", s.firstRegDate) },
+      { k: "소유자", raw: dmText("owner", s.owner, "소유자(법인명)") },
+      { k: "자차상태", raw: dmSel("ownState", s.ownState, DM_OWN_STATES) },
+      { k: "처리상태", raw: `<select class="lg-csel" id="dmProcState" data-dm="procState">${procOpts.map(o => `<option ${o === s.procState ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>` },
+      { k: "수리여부", raw: `<select class="lg-csel" id="dmRepaired" data-dm="repaired" ${s.ownState !== "분손" ? "disabled" : ""}>${["예", "아니요"].map(o => `<option ${o === s.repaired ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>` },
+      { k: "정비대차", raw: dmSel("maintSub", s.maintSub, ["이용", "미이용"]) },
+      { k: "분실대상", raw: dmLostHtml(s), full: true },
+      { k: "차량구입액", raw: dmSkVal(s.buyPrice) },
+      { k: "사고시가액", raw: dmSkVal(s.accidentValue) },
+      { k: "예상잔존가", raw: `${dmSkVal(s.bookValue)} <span class="lg-cinhint">장부가액</span>`, full: true },
     ]);
-  const right = lgSect("공업사 · 수리")
+  const right = lgSect("공업사 · 수리", "※ AOS 연동 우선 · 미연동 시 SK 수신")
     + lgTable([
-      { k: "공업사", v: d.repair.shop, full: true },
-      { k: "수리기간", v: d.repair.period, full: true },
-      { k: "사고가액", v: d.repair.accAmount, full: true },
-      { k: "지급특약", v: d.repair.paySpecial }, { k: "추산/지급", v: d.repair.estimatePay },
-      { k: "지급재원", v: d.repair.payResource }, { k: "종결일자", v: d.repair.closeDate },
+      { k: "공업사", raw: dmShopFieldHtml(s), full: true },
+      { k: "수리기간", raw: dmText("repairPeriod", s.repairPeriod, "예: 7일 (AOS 선견적)"), full: true },
+      { k: "입고일", raw: dmDate("inDate", s.inDate) }, { k: "출고예정일", raw: dmDate("outPlanDate", s.outPlanDate) },
+      { k: "출고예정 변경1", raw: dmDate("outChg1Date", s.outChg1Date) }, { k: "변경1 사유", raw: dmText("outChg1Reason", s.outChg1Reason, "변경 사유") },
+      { k: "출고예정 변경2", raw: dmDate("outChg2Date", s.outChg2Date) }, { k: "변경2 사유", raw: dmText("outChg2Reason", s.outChg2Reason, "변경 사유") },
+      { k: "수리개시일", raw: dmDate("repairStartDate", s.repairStartDate) }, { k: "수리완료일", raw: dmDate("repairEndDate", s.repairEndDate) },
+      { k: "출고완료일", raw: dmDate("outDoneDate", s.outDoneDate), full: true },
+    ])
+    + lgSect("수리비 · 면책금", "※ VAT 별도 입력 · 선견적/AOS 연동")
+    + lgTable([
+      { k: "예상수리비", raw: dmEstimateHtml(s), full: true },
+      { k: "면책금", raw: dmNum("deductible", s.deductible), full: true },
     ]);
 
   // 차량 부위 손상 — 정비공장 입력(좌, 읽기전용) ↔ 담당자 입력(우, 클릭 선택) 대조
@@ -1774,7 +1999,7 @@ function bindIntakeWorkbench(d) {
         claim.nextAction = `${attrs[0] || "미결"} 속성 확인 후 후속 조치를 진행하세요.`;
       }
     }
-    showToast(`${d.id} 미결 속성이 Smart업무관리에 반영되었습니다.`);
+    showToast(`${d.id} 미결 속성이 미결일괄조회에 반영되었습니다.`);
     if (typeof renderAll === "function") renderAll();
     renderIntake();
   });
@@ -1789,7 +2014,16 @@ function bindIntakeWorkbench(d) {
 }
 
 // 담당자 입력 파손부위 클릭 토글 (차량 부위 손상 · 우측 도식)
+function dmSetField(s, path, val) {
+  if (path.indexOf(".") >= 0) { const [a, b] = path.split("."); (s[a] = s[a] || {})[b] = val; }
+  else s[path] = val;
+}
+function dmRecalcEstimate(body, s) {
+  const vat = body.querySelector("#dmEstVat");
+  if (vat) vat.textContent = won(Math.round(dmNumOf(s.estimate) * 1.1));
+}
 function bindIntakeDamage(d) {
+  // 담당자 확인 파손부위 선택
   const set = intakeStaffParts[d.id] || (intakeStaffParts[d.id] = new Set());
   document.querySelectorAll("[data-staff-part]").forEach(el => {
     el.addEventListener("click", () => {
@@ -1798,6 +2032,65 @@ function bindIntakeDamage(d) {
       else { set.add(part); el.classList.add("on"); }
     });
   });
+  // 피해 진행 / 공업사·수리 편집 컨트롤
+  const body = $("#intakeBody"); if (!body) return;
+  const s = getDamageState(d.id, d);
+  body.querySelectorAll("[data-dm]").forEach(el => {
+    const ev = el.tagName === "SELECT" ? "change" : "input";
+    el.addEventListener(ev, () => {
+      dmSetField(s, el.dataset.dm, el.value);
+      if (el.dataset.dm === "ownState") {           // 자차상태 → 처리상태 옵션 + 수리여부 활성 갱신
+        const opts = DM_PROC_OPTS[el.value] || [];
+        s.procState = opts[0] || "";
+        const ps = body.querySelector("#dmProcState");
+        if (ps) ps.innerHTML = opts.map(o => `<option ${o === s.procState ? "selected" : ""}>${iEsc(o)}</option>`).join("");
+        const rep = body.querySelector("#dmRepaired");
+        if (rep) rep.disabled = (el.value !== "분손");
+      }
+      if (el.dataset.dm === "estimate") dmRecalcEstimate(body, s);
+    });
+  });
+  body.querySelectorAll("[data-dmlost]").forEach(cb => cb.addEventListener("change", () => {
+    const v = cb.dataset.dmlost;
+    if (cb.checked) { if (!s.lost.includes(v)) s.lost.push(v); }
+    else s.lost = s.lost.filter(x => x !== v);
+  }));
+  const sb = body.querySelector("#dmShopSearch");
+  if (sb) sb.addEventListener("click", () => openShopSearchModal(d, s));
+}
+// 공업사 검색·지정 팝업
+function openShopSearchModal(d, s) {
+  let root = document.getElementById("dmShopRoot");
+  if (!root) { root = document.createElement("div"); root.id = "dmShopRoot"; document.body.appendChild(root); }
+  const base = (typeof SHOPS !== "undefined" ? SHOPS : []);
+  const shops = base.map((nm, i) => ({ nm, phone: `0${31 + (i % 40)}-${300 + i * 7}-${(1000 + i * 137) % 9000 + 1000}` }));
+  const close = () => { root.classList.remove("open"); root.innerHTML = ""; };
+  function render(filter) {
+    const list = shops.filter(x => !filter || x.nm.indexOf(filter) >= 0);
+    root.className = "ct-modal-root open";
+    root.innerHTML = `
+      <div class="ct-modal-bd"></div>
+      <div class="ct-modal" role="dialog" aria-modal="true" aria-label="공업사 검색">
+        <div class="ct-modal-h"><b>공업사 검색 · 지정</b><button type="button" class="ct-modal-x" aria-label="닫기">×</button></div>
+        <div class="ct-modal-b">
+          <input type="text" id="dmShopQuery" class="lg-cin" placeholder="공업사명 검색" value="${iEsc(filter || "")}" style="margin-bottom:10px">
+          <div class="lg-shoplist">${list.length ? list.map(x => `<button type="button" class="lg-shopitem" data-shop="${iEsc(x.nm)}" data-phone="${iEsc(x.phone)}"><span class="nm">${iEsc(x.nm)}</span><span class="ph">${iEsc(x.phone)}</span></button>`).join("") : `<div class="lg-shopempty">검색 결과가 없습니다.</div>`}</div>
+        </div>
+      </div>`;
+    root.querySelector(".ct-modal-bd").addEventListener("click", close);
+    root.querySelector(".ct-modal-x").addEventListener("click", close);
+    const q = root.querySelector("#dmShopQuery");
+    q.addEventListener("input", () => render(q.value));
+    q.focus(); q.setSelectionRange(q.value.length, q.value.length);
+    root.querySelectorAll("[data-shop]").forEach(b => b.addEventListener("click", () => {
+      s.shopName = b.dataset.shop; s.shopPhone = b.dataset.phone;
+      close();
+      $("#intakeBody").innerHTML = renderIntakeTab("damage", d);
+      bindIntakeDamage(d);
+      showToast(`${s.shopName} 공업사를 지정했습니다.`);
+    }));
+  }
+  render("");
 }
 
 function normalizeIntakeText(value) {
@@ -1921,14 +2214,17 @@ function renderIntake() {
   const root = $("#intakeRoot");
   if (!d) { root.innerHTML = `<div style="padding:40px;text-align:center;color:#8a90a0">표시할 사고건이 없습니다.</div>`; return; }
   const done = d.procStatus === "완료";
+  const saved = !!intakeSaved[id];   // 접수지 저장 여부 (모든 탭 공통)
+  const closeLocked = !saved;        // 저장 후에만 면책/지급 선택·종결 가능
+  const tabLabel = intakeTab === "contract" ? "계약 사고 정보" : intakeTab === "damage" ? "피해 진행 정보" : "청구 견적 정보";
   const closeType = intakeCloseType[id] || "지급"; // 종결 구분 기본값: 지급
   const unresolvedText = (d.unresolved && d.unresolved.length) ? d.unresolved.join(", ") : "없음";
   const queryType = INTAKE_QUERY_TYPES.includes(intakeQueryType) ? intakeQueryType : INTAKE_QUERY_TYPES[0];
   root.innerHTML = `
-    <button class="lg-back" type="button" id="intakeBack" data-desc="Smart업무관리 목록 화면으로 돌아갑니다.">← 목록으로</button>
+    <button class="lg-back" type="button" id="intakeBack" data-desc="미결일괄조회 목록 화면으로 돌아갑니다.">← 목록으로</button>
     <div class="lg">
       <div class="lg-window">
-        <div class="lg-titlebar"><span class="t">Smart접수지</span><span class="r"><span class="lg-x">✕</span></span></div>
+        <div class="lg-titlebar"><span class="t">Smart업무처리</span><span class="r"><span class="lg-x">✕</span></span></div>
         <div class="lg-search">
           <span class="lk">조회구분</span>
           <select class="lg-select" id="intakeQueryType" data-desc="조회 기준(사고번호·차량번호·휴대폰 등)을 선택합니다. 선택한 기준에 맞춰 아래 입력칸이 바뀝니다.">${INTAKE_QUERY_TYPES.map(t => `<option value="${iEsc(t)}" ${t === queryType ? "selected" : ""}>${iEsc(t)}</option>`).join("")}</select>
@@ -1950,10 +2246,12 @@ function renderIntake() {
           <div class="lg-actionbar">
             <span class="lg-std" data-desc="현재 이 사고건에 남아 있는 미결 속성(재통화·VOC 등) 태그입니다.">미결 태그: ${iEsc(unresolvedText)}</span>
             <span class="sp"></span>
+            <span class="lg-savetag ${saved ? "on" : ""}" data-desc="${saved ? "접수지가 저장되어 청구 견적 탭에서 추산을 등록하고 면책/지급 종결을 할 수 있습니다." : "계약 사고 정보·피해 진행 정보를 저장해야 청구 견적 탭에서 추산을 등록하고 면책/지급 종결을 할 수 있습니다."}">${saved ? "저장됨 ✓" : "미저장"}</span>
             <div class="lg-close-type" role="radiogroup" aria-label="종결 구분">
-              ${["면책", "지급"].map(t => `<label class="lg-ctype ${closeType === t ? "on" : ""}" data-desc="이 사고건을 '${t}'(으)로 종결 처리할 구분으로 지정합니다."><input type="radio" name="intakeCloseType" value="${t}" ${closeType === t ? "checked" : ""} ${done ? "disabled" : ""}>${t}</label>`).join("")}
+              ${["면책", "지급"].map(t => `<label class="lg-ctype ${closeType === t ? "on" : ""} ${closeLocked ? "disabled" : ""}" data-desc="${closeLocked ? "먼저 '저장'을 눌러 접수지를 저장한 후 종결 구분(면책/지급)을 선택할 수 있습니다." : `이 사고건을 '${t}'(으)로 종결 처리할 구분으로 지정합니다.`}"><input type="radio" name="intakeCloseType" value="${t}" ${closeType === t ? "checked" : ""} ${(done || closeLocked) ? "disabled" : ""}>${t}</label>`).join("")}
             </div>
-            <button class="lg-abtn primary" type="button" id="intakeComplete" ${done ? "disabled" : ""} data-desc="선택한 종결 구분(면책/지급)으로 이 사고건을 종결 처리합니다.">${done ? "종결됨" : "종결"}</button>
+            <button class="lg-abtn" type="button" id="intakeSave" data-desc="현재 '${iEsc(tabLabel)}' 탭의 입력 내용을 저장합니다. 계약 사고 정보·피해 진행 정보를 저장해야 청구 견적 탭에서 추산(선견적)을 등록하고 면책/지급 종결을 진행할 수 있습니다.">저장</button>
+            <button class="lg-abtn primary" type="button" id="intakeComplete" ${(done || !saved) ? "disabled" : ""} data-desc="${saved ? "선택한 구분(면책/지급)으로 이 사고건을 종결 처리합니다." : "접수지를 저장한 후 종결할 수 있습니다. 저장 전에는 비활성화됩니다."}">${done ? "종결됨" : "종결"}</button>
           </div>
         </div>
       </div>
@@ -2006,6 +2304,18 @@ function renderIntake() {
     const closeType = intakeCloseType[d.id] || "지급";
     setProcStatus(d.id, "완료");
     showToast(`${d.id} 건이 ${closeType} 종결되었습니다.`);
+  });
+  // 계약 사고 정보 탭: 편집 컨트롤 바인딩
+  if (intakeTab === "contract") bindIntakeContract(d);
+  // 저장 버튼(모든 탭 공통): 현재 탭 입력 저장 → 저장 상태 전환(추산 등록·종결 잠금 해제)
+  const sv = $("#intakeSave");
+  if (sv) sv.addEventListener("click", () => {
+    if (intakeTab === "contract") getContractState(d.id, d);
+    else if (intakeTab === "damage") getDamageState(d.id, d);
+    intakeSaved[d.id] = true;      // 입력값은 각 탭 상태에 이미 반영됨
+    const label = intakeTab === "contract" ? "계약 사고 정보" : intakeTab === "damage" ? "피해 진행 정보" : "청구 견적 정보";
+    showToast(`${d.id} ${label}가 저장되었습니다. 추산 등록·종결이 가능합니다.`);
+    renderIntake();                // 저장 뱃지·종결 버튼 활성 반영
   });
 }
 

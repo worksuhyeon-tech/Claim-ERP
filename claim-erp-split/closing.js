@@ -254,7 +254,7 @@ function renderApprPanel() {
       <div class="sec"><div class="sec-title">결재이력</div>${apprHistoryHtml(item)}</div>
       <div class="sec"><div class="sec-title">빠른 이동</div>
         <div class="btn-grid">
-          <button class="btn" type="button" data-jump="intake">Smart접수지 보기</button>
+          <button class="btn" type="button" data-jump="intake">Smart업무처리 보기</button>
           <button class="btn" type="button" data-jump="pay">지급결의 화면</button>
           <button class="btn" type="button" data-jump="contact">고객 컨택이력</button>
           <button class="btn" type="button" data-jump="image">첨부/이미지 확인</button>

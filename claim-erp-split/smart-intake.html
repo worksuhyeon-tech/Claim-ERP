@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Smart접수지 | CLAIM ERP</title>
+<title>Smart업무처리 | CLAIM ERP</title>
 <link rel="stylesheet" href="common.css" />
 <link rel="stylesheet" href="intake-ocr.css" />
 <style>
@@ -110,6 +110,65 @@
   #viewIntake .lg-input[data-desc],
   #viewIntake .lg-in[data-desc],
   #viewIntake .lg-ta[data-desc] { cursor: text; }
+
+  /* ===== 계약 사고 정보 탭 — 담당자 편집 컨트롤 ===== */
+  .lg-cin, .lg-csel { width: 100%; box-sizing: border-box; border: 1px solid #C9D0DE; border-radius: 5px;
+    padding: 3px 7px; font-size: 12px; color: #242832; background: #fff; font-family: inherit; }
+  .lg-cin.sm { width: auto; min-width: 130px; }
+  .lg-csel { cursor: pointer; }
+  .lg-cin:focus, .lg-csel:focus { outline: none; border-color: #2F5BB7; box-shadow: 0 0 0 2px rgba(47,91,183,.15); }
+  .lg-tbl td:has(> .lg-cin), .lg-tbl td:has(> .lg-csel) { padding: 3px 6px; }
+  /* 조사 Task 체크박스 */
+  .lg-ctchecks { display: flex; flex-wrap: wrap; gap: 4px 12px; }
+  .lg-ctchk { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #3A3F4E; cursor: pointer; }
+  .lg-ctchk input { width: 13px; height: 13px; accent-color: #2F5BB7; cursor: pointer; }
+  /* 경찰접수 라디오 */
+  .lg-ctpolice { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .lg-ctradio { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #3A3F4E; cursor: pointer; }
+  .lg-ctradio input { accent-color: #2F5BB7; cursor: pointer; }
+  .lg-ctstation { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #5B6273; }
+  .lg-hide { display: none !important; }
+  /* 섹션 헤더 내 조회 버튼 */
+  .lg-sect .lg-mini { float: right; margin-top: -2px; }
+  .lg-ctype.disabled { opacity: .45; cursor: default; }
+
+  /* Moral 사고 조사 팝업 */
+  .ct-modal-root { position: fixed; inset: 0; z-index: 9500; display: none; }
+  .ct-modal-root.open { display: block; }
+  .ct-modal-bd { position: absolute; inset: 0; background: rgba(16,24,40,.4); }
+  .ct-modal { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    width: 460px; max-width: 92vw; background: #fff; border-radius: 12px; box-shadow: 0 20px 50px rgba(16,30,54,.3); overflow: hidden; }
+  .ct-modal-h { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid #E6EAF2; font-size: 15px; }
+  .ct-modal-x { border: 0; background: #F1F4F9; width: 28px; height: 28px; border-radius: 8px; font-size: 18px; color: #5B6273; cursor: pointer; }
+  .ct-modal-b { padding: 16px 18px; }
+  .ct-modal-guide { margin: 0 0 10px; font-size: 12.5px; color: #B45309; background: #FEF3C7; border-radius: 8px; padding: 9px 11px; }
+  .ct-modal-b textarea { width: 100%; box-sizing: border-box; border: 1px solid #C9D0DE; border-radius: 8px; padding: 10px; font-size: 13px; line-height: 1.6; font-family: inherit; resize: vertical; }
+  .ct-modal-b textarea:focus { outline: none; border-color: #2F5BB7; box-shadow: 0 0 0 3px rgba(47,91,183,.15); }
+  .ct-modal-f { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px 16px; }
+
+  /* ===== 피해 진행 정보 탭 — 편집 컨트롤 ===== */
+  .lg-cin.ta-r { text-align: right; }
+  .lg-skval { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: #242832; }
+  .lg-sktag { font-size: 10px; font-weight: 800; color: #2F5BB7; background: #EAF0FB; border: 1px solid #C6D7F2; border-radius: 4px; padding: 0 5px; }
+  .lg-cinhint { font-size: 11px; color: #9AA0B0; margin-left: 6px; }
+  .lg-savetag { font-size: 11.5px; font-weight: 800; padding: 3px 10px; border-radius: 999px; color: #8A90A0; background: #EEF1F6; border: 1px solid #DFE3EC; }
+  .lg-savetag.on { color: #15803D; background: #DCFCE7; border-color: #A7E9BF; }
+  .lg-shopfield { display: flex; align-items: center; gap: 8px; }
+  .lg-shopph { color: #2F5BB7; font-weight: 700; }
+  .lg-shopbtn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 24px; border: 1px solid #C9D0DE; border-radius: 6px; background: #F5F8FC; color: #2F5BB7; cursor: pointer; flex: none; }
+  .lg-shopbtn:hover { background: #E7EFFB; border-color: #2F5BB7; }
+  .lg-estwrap { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .lg-estwrap .lg-cin { width: 150px; }
+  .lg-estunit { color: #5B6273; font-size: 12px; }
+  .lg-estvat { color: #5B6273; font-size: 12px; }
+  .lg-estvat b { color: #2F5BB7; font-variant-numeric: tabular-nums; }
+  /* 공업사 검색 리스트 */
+  .lg-shoplist { max-height: 300px; overflow-y: auto; display: flex; flex-direction: column; gap: 6px; }
+  .lg-shopitem { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid #E6EAF2; border-radius: 8px; background: #fff; cursor: pointer; text-align: left; }
+  .lg-shopitem:hover { border-color: #2F5BB7; background: #F5F8FC; }
+  .lg-shopitem .nm { font-size: 13px; font-weight: 700; color: #242832; }
+  .lg-shopitem .ph { font-size: 12px; color: #2F5BB7; font-weight: 700; }
+  .lg-shopempty { text-align: center; color: #9AA0B0; font-size: 13px; padding: 24px 0; }
 </style>
 </head>
 <body>
@@ -135,18 +194,18 @@
     <div class="nav-row">
       <button class="nav-item" data-view="claims" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/><circle cx="4.5" cy="18" r="1.2"/></svg>
-        <span class="ni-label">Smart업무관리</span>
+        <span class="ni-label">미결일괄조회</span>
       </button>
-      <button class="nav-popout" data-open-view="claims" type="button" title="Smart업무관리 새창으로 열기" aria-label="Smart업무관리 새창으로 열기">
+      <button class="nav-popout" data-open-view="claims" type="button" title="미결일괄조회 새창으로 열기" aria-label="미결일괄조회 새창으로 열기">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
       </button>
     </div>
     <div class="nav-row">
       <button class="nav-item active" data-view="intake" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8a2 2 0 0 1 2 2v13a1 1 0 0 1-1.5.87L14 18.5l-2.5 1.4L9 18.5l-2.5 1.4A1 1 0 0 1 5 19V6a2 2 0 0 1 2-2Z"/><path d="M9 8h6M9 12h6"/></svg>
-        <span class="ni-label">Smart접수지</span>
+        <span class="ni-label">Smart업무처리</span>
       </button>
-      <button class="nav-popout" data-open-view="intake" type="button" title="Smart접수지 새창으로 열기" aria-label="Smart접수지 새창으로 열기">
+      <button class="nav-popout" data-open-view="intake" type="button" title="Smart업무처리 새창으로 열기" aria-label="Smart업무처리 새창으로 열기">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7"/><path d="M10 14 21 3"/><path d="M21 14v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5"/></svg>
       </button>
     </div>
@@ -197,7 +256,7 @@
 
 <header class="topbar">
   <div class="tb-left">
-    <div class="brand-tag" id="viewName">Smart접수지</div>
+    <div class="brand-tag" id="viewName">Smart업무처리</div>
   </div>
   <div class="topbar-right">
     <button type="button" class="btn-req" id="btnRequest" data-desc="고객 차량 수리 기간 동안 제공할 대차(렌트)·탑승 서비스를 신청합니다.">
