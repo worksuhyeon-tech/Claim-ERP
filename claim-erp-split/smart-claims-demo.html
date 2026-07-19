@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>미결일괄조회 · 자동처리 시연 | CLAIM ERP</title>
+<style>
+  /* ===== 디자인 토큰 (원본 common.css 팔레트에 맞춘 근사치) =====
+     실제 배포 시 이 :root 블록을 지우고 common.css를 <link>하면 픽셀 매칭됩니다. */
+  :root{
+    --navy:#232B39; --navy-hover:#2E3849;
+    --blue:#2563EB; --blue-dark:#1D4ED8; --blue-soft:#EFF5FF; --blue-line:#BFD4FF;
+    --red:#DC2626; --red-soft:#FEF2F2; --amber:#B45309; --amber-soft:#FEF3E2;
+    --green:#16A34A; --green-soft:#E7F6EE;
+    --text:#1B2430; --text-sub:#4A5568; --text-dim:#8A94A6;
+    --line:#E6E9EF; --line-strong:#D3D9E3;
+    --card:#fff; --bg:#EEF1F6; --radius:12px;
+    --shadow:0 1px 3px rgba(16,30,54,.06);
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+    background:var(--bg); color:var(--text); font-size:14px; -webkit-font-smoothing:antialiased;}
+
+  .app-shell{display:flex; min-height:100vh;}
+
+  /* ===== 사이드바 ===== */
+  .side-nav{width:224px; flex-shrink:0; background:var(--navy); color:#C6CEDA; padding:14px 12px; display:flex; flex-direction:column; gap:2px;}
+  .sn-brand{display:flex; align-items:center; gap:10px; padding:8px 8px 14px;}
+  .brand-mark{width:34px; height:34px; border-radius:9px; background:var(--blue); color:#fff; font-weight:900; display:flex; align-items:center; justify-content:center; font-size:18px;}
+  .brand-name{font-size:15px; font-weight:800; color:#fff; letter-spacing:.3px;}
+  .brand-name span{color:#8FB4FF;}
+  .sn-brand-sub{font-size:11px; color:#8A94A6;}
+  .sn-section{font-size:10.5px; font-weight:700; color:#697488; padding:12px 8px 5px; letter-spacing:.4px;}
+  .nav-item{display:flex; align-items:center; gap:10px; width:100%; padding:9px 10px; border:0; border-radius:8px; background:none; color:#C6CEDA; font-size:13px; font-weight:600; cursor:pointer; text-align:left; font-family:inherit;}
+  .nav-item svg{width:18px; height:18px; flex-shrink:0;}
+  .nav-item:hover:not(.active):not(:disabled){background:rgba(255,255,255,.06); color:#fff;}
+  .nav-item.active{background:var(--blue); color:#fff;}
+  .nav-item.disabled,.nav-item:disabled{opacity:.45; cursor:default;}
+  .ni-pro{margin-left:auto; font-size:9.5px; font-weight:800; background:#3A455A; color:#9FB6E8; padding:2px 6px; border-radius:5px;}
+
+  /* ===== 메인 ===== */
+  .app-main{flex:1; min-width:0; display:flex; flex-direction:column;}
+  .topbar{display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--card); border-bottom:1px solid var(--line); padding:10px 22px;}
+  .tb-left{display:flex; align-items:center; gap:10px;}
+  .brand-tag{font-size:14px; font-weight:800;}
+  .mode-badge{font-size:10.5px; font-weight:800; color:#1D4ED8; background:rgba(37,99,235,.12); border:1px solid rgba(37,99,235,.35); padding:2px 9px; border-radius:6px; letter-spacing:.3px;}
+  .topbar-right{display:flex; align-items:center; gap:14px;}
+  .mode-btn{display:inline-flex; align-items:center; gap:6px; padding:6px 13px; border-radius:8px; border:1px solid var(--line-strong); background:#fff; color:var(--text-sub); font-size:12px; font-weight:800; text-decoration:none; cursor:pointer; font-family:inherit;}
+  .mode-btn:hover{border-color:var(--navy); color:var(--navy);}
+  .mode-btn svg{width:14px; height:14px;}
+  .auto-pill{display:inline-flex; align-items:center; gap:7px; padding:5px 12px; border-radius:999px; background:var(--green-soft); color:var(--green); font-size:12px; font-weight:800; border:1px solid #BCE6CD;}
+  .auto-pill .dot{width:8px; height:8px; border-radius:50%; background:var(--green); box-shadow:0 0 0 0 rgba(22,163,74,.5); animation:pulse 1.4s infinite;}
+  .auto-pill.off{background:#F0F2F6; color:var(--text-dim); border-color:var(--line);}
+  .auto-pill.off .dot{background:var(--text-dim); animation:none;}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(22,163,74,.45);}70%{box-shadow:0 0 0 7px rgba(22,163,74,0);}100%{box-shadow:0 0 0 0 rgba(22,163,74,0);}}
+  #todayLabel{font-size:12px; color:var(--text-dim);}
+  .user-chip{display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-sub);}
+  .avatar{width:28px; height:28px; border-radius:50%; background:var(--blue-soft); color:var(--blue-dark); font-weight:800; display:flex; align-items:center; justify-content:center; font-size:12px;}
+
+  .container{padding:20px 22px 40px; max-width:1280px; width:100%;}
+  h1{font-size:20px; font-weight:800; margin:0 0 14px;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow);}
+
+  /* 검색 필터 (시연 정적) */
+  .cl-filter{padding:12px 16px; margin-bottom:14px; display:flex; align-items:center; gap:10px 16px; flex-wrap:wrap; opacity:.9;}
+  .cl-filter label{font-size:12.5px; font-weight:700; color:var(--text-sub);}
+  .cl-filter select,.cl-filter input{padding:8px 12px; border:1px solid var(--line-strong); border-radius:8px; background:#fff; font-size:13px; font-family:inherit; color:var(--text);}
+  .cl-filter .grow{flex:1; min-width:220px;}
+  .cl-filter .btn-search{margin-left:auto; padding:8px 20px; border:1px solid var(--navy); border-radius:8px; background:var(--navy); color:#fff; font-size:13px; font-weight:700; cursor:pointer; font-family:inherit;}
+
+  /* ===== 상단 KPI 카운터 (3종) ===== */
+  .kpis{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:16px;}
+  .kpi{padding:15px 18px; border:1.5px solid var(--line); border-radius:var(--radius); background:var(--card); box-shadow:var(--shadow); position:relative; overflow:hidden;}
+  .kpi::before{content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--kc,var(--navy));}
+  .kpi.k-pend{--kc:#2563EB;} .kpi.k-auto{--kc:#16A34A;} .kpi.k-man{--kc:#DC2626;}
+  .kpi .k-lab{font-size:12.5px; font-weight:700; color:var(--text-sub); margin-bottom:7px; display:flex; align-items:center; gap:6px;}
+  .kpi .k-val{font-size:30px; font-weight:800; letter-spacing:-.5px; font-variant-numeric:tabular-nums;}
+  .kpi .k-val small{font-size:13px; font-weight:700; color:var(--text-dim); margin-left:3px;}
+  .kpi .k-val.bump{animation:bump .42s ease;}
+  .kpi.k-auto .k-val.bump{--bc:#16A34A;} .kpi.k-man .k-val.bump{--bc:#DC2626;} .kpi.k-pend .k-val.bump{--bc:#2563EB;}
+  @keyframes bump{0%{transform:scale(1);}35%{transform:scale(1.16); color:var(--bc,var(--navy));}100%{transform:scale(1);}}
+
+  /* ===== 단계 통계 카드 ===== */
+  .cl-stats{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:16px;}
+  .cl-stat{padding:14px 16px; border:1.5px solid var(--line); border-radius:var(--radius); background:var(--card); box-shadow:var(--shadow); position:relative; overflow:hidden;}
+  .cl-stat::before{content:""; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--stage-c,var(--navy)); opacity:.85;}
+  .cl-stat[data-stage="0"]{--stage-c:#64748B;}
+  .cl-stat[data-stage="1"]{--stage-c:#2563EB;}
+  .cl-stat[data-stage="2"]{--stage-c:#B45309;}
+  .cl-stat[data-stage="3"]{--stage-c:#16A34A;}
+  .cs-head{display:flex; align-items:center; gap:8px; margin-bottom:9px;}
+  .cs-no{display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; border-radius:7px; background:var(--stage-c,var(--navy)); color:#fff; font-size:12px; font-weight:800;}
+  .cs-name{font-size:13px; font-weight:700; color:var(--text-sub);}
+  .cs-count{font-size:26px; font-weight:800; letter-spacing:-.5px; font-variant-numeric:tabular-nums;}
+  .cs-count small{font-size:13px; font-weight:700; color:var(--text-dim); margin-left:3px;}
+  .cs-count.bump{--bc:var(--stage-c); animation:bump .4s ease;}
+
+  /* ===== 요약 라인 ===== */
+  .cl-summary{display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0 2px 10px;}
+  .cls-left{font-size:13px; color:var(--text);}
+  .cls-left b{font-weight:800;}
+  .cls-dim{color:var(--text-dim); font-weight:500;}
+  .cls-right{font-size:12px; color:var(--text-dim);}
+
+  /* ===== 리스트 ===== */
+  .list-card{padding:4px 4px 8px;}
+  .rows{display:flex; flex-direction:column;}
+  .row{position:relative; display:grid; grid-template-columns:34px 168px 1fr 78px 120px 96px 96px 118px; align-items:center; gap:8px;
+    padding:11px 12px 11px 14px; border-bottom:1px solid var(--line); overflow:hidden;
+    max-height:64px; transition:max-height .45s ease, opacity .4s ease, transform .4s ease, padding .45s ease, background .25s;}
+  .row:last-child{border-bottom:0;}
+  .row.processing{background:var(--blue-soft);}
+  .row.manual{background:var(--red-soft);}
+  .row.manual::before{content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--red);}
+  .row.removing{opacity:0; transform:translateX(46px); max-height:0; padding-top:0; padding-bottom:0;}
+  .rhead{display:grid; grid-template-columns:34px 168px 1fr 78px 120px 96px 96px 118px; gap:8px; padding:9px 12px; background:#F5F8FC; border-radius:8px; margin:2px 2px 2px; font-size:11.5px; font-weight:800; color:var(--text-sub);}
+  .rhead span{white-space:nowrap;}
+  .cell-num{text-align:right; font-variant-numeric:tabular-nums;}
+
+  .plan-star{border:0; background:none; font-size:15px; line-height:1; color:var(--line-strong); cursor:default; padding:0;}
+  .plan-star.urgent{color:var(--red);} .plan-star.watch{color:var(--blue);}
+
+  .no-wrap{display:flex; flex-direction:column; gap:3px;}
+  .rcv-no{font-size:12.5px; font-weight:700; color:var(--text); font-variant-numeric:tabular-nums;}
+  .cust-badge{display:inline-flex; align-items:center; width:fit-content; padding:1px 8px; border-radius:999px; font-size:10.5px; font-weight:800;}
+  .cust-badge.rent{color:var(--blue-dark); background:var(--blue-soft);}
+  .cust-badge.lease{color:var(--amber); background:var(--amber-soft);}
+  .car-name{font-size:13px; font-weight:600;} .car-plate{font-size:11.5px; color:var(--text-dim);}
+  .mgr,.shop{font-size:12.5px; color:var(--text-sub); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .num{font-size:12.5px; text-align:right; font-variant-numeric:tabular-nums; font-weight:600;}
+  .num.est{color:var(--text);} .num.pay{color:var(--red);}
+
+  /* 상태 뱃지 */
+  .stg{display:inline-flex; align-items:center; gap:6px; justify-self:start; padding:4px 10px; border-radius:999px; font-size:11.5px; font-weight:800; white-space:nowrap;}
+  .stg[data-s="0"]{color:#475569; background:#EEF1F6;}
+  .stg[data-s="1"]{color:var(--blue-dark); background:var(--blue-soft);}
+  .stg[data-s="2"]{color:var(--amber); background:var(--amber-soft);}
+  .stg[data-s="3"]{color:var(--green); background:var(--green-soft);}
+  .stg.proc{color:#fff; background:var(--blue);}
+  .stg.doneb{color:#fff; background:var(--green);}
+  .stg.manualb{color:#fff; background:var(--red);}
+  .stg.pop{animation:pop .34s ease;}
+  @keyframes pop{0%{transform:scale(.8); opacity:.4;}60%{transform:scale(1.1);}100%{transform:scale(1);}}
+  .spin{width:12px; height:12px; border:2px solid rgba(255,255,255,.45); border-top-color:#fff; border-radius:50%; animation:spin .6s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .chk{width:13px; height:13px;} .warn{width:13px; height:13px;}
+  .man-reason{font-size:10.5px; color:var(--red); font-weight:700; margin-top:3px;}
+
+  /* ===== 하단 로그 + 컨트롤 ===== */
+  .foot-grid{display:grid; grid-template-columns:1.3fr 1fr; gap:14px; margin-top:16px;}
+  @media(max-width:900px){.foot-grid{grid-template-columns:1fr;} .cl-stats{grid-template-columns:repeat(2,1fr);} .kpis{grid-template-columns:1fr;}
+    .row,.rhead{grid-template-columns:28px 130px 1fr 100px;} .col-hide{display:none;}}
+  .log-card{padding:14px 16px;}
+  .panel-t{font-size:12px; font-weight:800; color:var(--text-sub); margin:0 0 10px; letter-spacing:.3px;}
+  .log{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:7px; max-height:170px; overflow:hidden;}
+  .log li{display:flex; align-items:center; gap:9px; font-size:12px; color:var(--text-sub); animation:logIn .35s ease;}
+  .log li .t{color:var(--text-dim); font-variant-numeric:tabular-nums; font-size:11px;}
+  .log li .tag{margin-left:auto; font-size:10.5px; font-weight:800; color:var(--green); background:var(--green-soft); padding:1px 7px; border-radius:5px; white-space:nowrap;}
+  .log li .tag.fail{color:var(--red); background:var(--red-soft);}
+  @keyframes logIn{from{opacity:0; transform:translateY(-4px);}to{opacity:1; transform:none;}}
+
+  .ctrl-card{padding:14px 16px; display:flex; flex-direction:column; gap:12px;}
+  .ctrl-row{display:flex; align-items:center; gap:9px; flex-wrap:wrap;}
+  .btn{display:inline-flex; align-items:center; gap:7px; padding:9px 16px; border-radius:9px; font-size:13px; font-weight:800; cursor:pointer; border:1px solid var(--line-strong); background:#fff; color:var(--text-sub); font-family:inherit;}
+  .btn:hover{border-color:var(--text-dim); color:var(--text);}
+  .btn.primary{background:var(--navy); border-color:var(--navy); color:#fff;}
+  .btn.primary:hover{background:var(--navy-hover);}
+  .btn svg{width:15px; height:15px;}
+  .speed{display:flex; align-items:center; gap:9px; font-size:12px; color:var(--text-sub); font-weight:700;}
+  .speed input{flex:1;}
+  .loopwrap{display:flex; align-items:center; gap:7px; font-size:12px; color:var(--text-sub); font-weight:700;}
+
+  .page-foot{margin-top:18px; font-size:11.5px; color:var(--text-dim); text-align:center;}
+  .page-foot b{color:var(--text-sub);}
+
+  /* ===== 완료 요약 모달 ===== */
+  .done-overlay{position:fixed; inset:0; background:rgba(20,28,42,.55); display:flex; align-items:center; justify-content:center; opacity:0; pointer-events:none; transition:opacity .3s; z-index:60;}
+  .done-overlay.show{opacity:1; pointer-events:auto;}
+  .done-modal{background:#fff; border-radius:18px; padding:28px 32px; width:min(450px,92vw); text-align:center; box-shadow:0 24px 60px rgba(16,30,54,.35); transform:translateY(12px) scale(.97); transition:transform .3s;}
+  .done-overlay.show .done-modal{transform:none;}
+  .done-ic{width:58px; height:58px; margin:0 auto 12px; border-radius:50%; background:var(--green-soft); color:var(--green); display:flex; align-items:center; justify-content:center;}
+  .done-ic svg{width:29px; height:29px;}
+  .done-modal h2{margin:0 0 4px; font-size:20px; font-weight:800;}
+  .done-modal .lead{font-size:12.5px; color:var(--text-sub); margin:0 0 16px;}
+  .rate-big{font-size:44px; font-weight:800; color:var(--green); letter-spacing:-1px; line-height:1;}
+  .rate-cap{font-size:12px; color:var(--text-dim); font-weight:700; margin:2px 0 18px;}
+  .done-stats{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:16px;}
+  .ds{padding:11px 8px; border:1px solid var(--line); border-radius:11px; background:#FAFBFD;}
+  .ds .v{font-size:19px; font-weight:800; letter-spacing:-.5px;}
+  .ds .v.auto{color:var(--green);} .ds .v.man{color:var(--red);}
+  .ds .k{font-size:11px; color:var(--text-dim); margin-top:2px; font-weight:700;}
+  .done-compare{font-size:12.5px; color:var(--text-sub); background:var(--blue-soft); border-radius:10px; padding:10px 12px; margin-bottom:12px;}
+  .done-compare b{color:var(--blue-dark);}
+  .done-note{font-size:11.5px; color:var(--text-dim); margin-bottom:18px; line-height:1.5;}
+  .done-modal .btn{width:100%; justify-content:center;}
+  @media (prefers-reduced-motion: reduce){*{animation:none !important; transition:none !important;}}
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+  <nav class="side-nav">
+    <div class="sn-brand">
+      <div class="brand-mark">C</div>
+      <div>
+        <div class="brand-name">CLAIM <span>ERP</span></div>
+        <div class="sn-brand-sub">Claim 운영센터</div>
+      </div>
+    </div>
+    <div class="sn-section">메뉴</div>
+    <button class="nav-item active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M9 6h11M9 12h11M9 18h11"/><circle cx="4.5" cy="6" r="1.2"/><circle cx="4.5" cy="12" r="1.2"/><circle cx="4.5" cy="18" r="1.2"/></svg>미결일괄조회</button>
+    <button class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4h8a2 2 0 0 1 2 2v13a1 1 0 0 1-1.5.87L14 18.5l-2.5 1.4L9 18.5l-2.5 1.4A1 1 0 0 1 5 19V6a2 2 0 0 1 2-2Z"/></svg>Smart업무처리</button>
+    <button class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m4 17 4.5-4.5 3 3L16 11l4 4.5"/></svg>이미지시스템</button>
+    <button class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>결재 LIST</button>
+    <button class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>전결·순환배당 관리</button>
+    <div class="sn-section">확장 (Pro)</div>
+    <button class="nav-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 13h4l2 5 4-12 2 7h6"/></svg>AI 통합대시보드<span class="ni-pro">Pro</span></button>
+    <button class="nav-item disabled" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>정산 관리<span class="ni-pro">Pro</span></button>
+  </nav>
+
+  <div class="app-main">
+    <header class="topbar">
+      <div class="tb-left">
+        <div class="brand-tag">미결일괄조회</div>
+        <span class="mode-badge">시연 모드</span>
+      </div>
+      <div class="topbar-right">
+        <a class="mode-btn" href="smart-claims.html" title="실제 업무 화면(AI-OCR·AI 손해사정)으로 전환">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M8 21H3v-5"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
+          모드변경 · 실제 화면
+        </a>
+        <span class="auto-pill off" id="autoPill"><span class="dot"></span><span id="autoPillTxt">자동 처리 대기</span></span>
+        <span id="todayLabel"></span>
+        <div class="user-chip"><div class="avatar">박</div><span><b>박지현</b> 매니저 · Claim운영1팀</span></div>
+      </div>
+    </header>
+
+    <main class="container">
+      <h1>미결일괄조회</h1>
+
+      <!-- KPI 3종 -->
+      <section class="kpis">
+        <div class="kpi k-pend"><div class="k-lab">미결 (자동 대기)</div><div class="k-val" id="kpiPend">0<small>건</small></div></div>
+        <div class="kpi k-auto"><div class="k-lab">자동 처리 완료</div><div class="k-val" id="kpiAuto">0<small>건</small></div></div>
+        <div class="kpi k-man"><div class="k-lab">미결 · 수동 (사람 확인)</div><div class="k-val" id="kpiMan">0<small>건</small></div></div>
+      </section>
+
+      <!-- 검색 필터 (시연 정적) -->
+      <section class="cl-filter card">
+        <label>단계</label>
+        <select disabled><option>전체 단계</option></select>
+        <label>검색어</label>
+        <input class="grow" placeholder="접수번호, 차량명, 차량번호, 담당자 like검색" disabled />
+        <button class="btn-search" disabled>조회</button>
+      </section>
+
+      <!-- 단계별 통계 카드 -->
+      <section class="cl-stats" id="statCards"></section>
+
+      <!-- 요약 -->
+      <div class="cl-summary">
+        <div class="cls-left" id="summaryLine"></div>
+        <div class="cls-right">자동 처리 시연 · 더미데이터</div>
+      </div>
+
+      <!-- 리스트 -->
+      <section class="list-card card">
+        <div class="rhead">
+          <span>계획</span><span>접수번호</span><span>차량</span><span class="col-hide">담당</span>
+          <span class="col-hide">정비공장</span><span class="col-hide cell-num">추산액</span>
+          <span class="col-hide cell-num">지급액</span><span>단계 / 상태</span>
+        </div>
+        <div class="rows" id="rows"></div>
+      </section>
+
+      <!-- 로그 + 컨트롤 -->
+      <div class="foot-grid">
+        <section class="log-card card">
+          <p class="panel-t">자동 처리 로그</p>
+          <ul class="log" id="log"></ul>
+        </section>
+        <section class="ctrl-card card">
+          <p class="panel-t">시연 컨트롤</p>
+          <div class="ctrl-row">
+            <button class="btn primary" id="btnPlay">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span id="btnPlayTxt">자동 처리 시작</span>
+            </button>
+            <button class="btn" id="btnReset">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>리셋
+            </button>
+          </div>
+          <div class="speed">속도<input type="range" id="speed" min="180" max="1100" step="20" value="620" /><span id="speedTxt">보통</span></div>
+          <label class="loopwrap"><input type="checkbox" id="loop" /> 완료 후 자동 반복 (회의실 상시 재생용)</label>
+        </section>
+      </div>
+
+      <footer class="page-foot">
+        CLAIM ERP <b>Standard</b> 자동처리 시연 · 자동 가능 건은 무인 처리, <b>판단이 필요한 예외 건</b>은 미결로 남아 담당자가 확인합니다.
+      </footer>
+    </main>
+  </div>
+</div>
+
+<!-- 완료 요약 -->
+<div class="done-overlay" id="doneOverlay">
+  <div class="done-modal">
+    <div class="done-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>
+    <h2>자동 처리 완료</h2>
+    <p class="lead">대부분 무인 처리, 예외 건만 사람에게 인계되었습니다.</p>
+    <div class="rate-big" id="rateBig">0%</div>
+    <div class="rate-cap">자동화율</div>
+    <div class="done-stats">
+      <div class="ds"><div class="v auto" id="dsAutoN">0</div><div class="k">자동 처리</div></div>
+      <div class="ds"><div class="v man" id="dsManN">0</div><div class="k">사람 확인</div></div>
+      <div class="ds"><div class="v" id="dsTime">0s</div><div class="k">소요 시간</div></div>
+    </div>
+    <div class="done-compare">자동 처리분 수작업 예상 <b id="dcManual">–</b> → 자동 처리 <b id="dcAuto">–</b></div>
+    <div class="done-note">남은 <b id="dcManInline">0</b>건은 전결 초과·서류 미비 등 판단이 필요한 건으로, 목록에 미결로 남아 담당자가 처리합니다.</div>
+    <button class="btn primary" id="btnReplay">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>다시 재생
+    </button>
+  </div>
+</div>
+
+<script>
+/* ===== 시연 파라미터 (자유 조정) ===== */
+const PER_CASE_MIN = 12;      // 수작업 건당 예상 처리시간(분)
+const FAIL_RATE    = 0.18;    // 자동 처리 실패(→사람 확인) 비율
+const FAIL_REASONS = ["전결 한도 초과","서류(사진) 미비","AI 손해사정 신뢰도 낮음","자동처리금지"];
+const STAGES = ["접수·선견적","수리 승인","손해사정","지급 / 정산"];
+
+/* ===== 더미데이터 ===== */
+const CARS = [
+  ["그랜저 IG","12가 3456"],["쏘렌토 MQ4","34나 5678"],["아반떼 CN7","56다 1234"],
+  ["K5 DL3","78라 9012"],["카니발 KA4","09마 3456"],["투싼 NX4","23바 7890"],
+  ["팰리세이드","45사 1122"],["레이","67아 3344"],["셀토스","89자 5566"],
+  ["G80","11차 7788"],["스포티지","33카 9900"],["모닝","55타 2233"],
+  ["싼타페 TM","77파 4455"],["코나","99하 6677"],["QM6","10거 8899"],
+];
+const MGRS = ["김도현","이서연","박준호","최유진","정민재","한지우","오세훈","윤하늘"];
+const SHOPS = ["대성모터스","한빛공업사","성일자동차","동양오토","제일바디샵","우진모터스","현대공업사"];
+const CUST = ["rent","rent","rent","lease","none"];
+const PLAN = ["none","none","none","urgent","watch"];
+
+let items=[], idSeq=0, timer=null, running=false, active=null;
+let doneCount=0, manualCount=0, startTs=0, tickMs=620;
+
+function rand(a){return a[Math.floor(Math.random()*a.length)];}
+function won(n){return n.toLocaleString("ko-KR");}
+
+function seed(){
+  items=[]; idSeq=0; doneCount=0; manualCount=0; active=null;
+  const dist=[10,7,6,5]; // 접수·선견적 / 승인 / 사정 / 지급 (총 28)
+  const now=new Date();
+  const ymd=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}${String(now.getDate()).padStart(2,"0")}`;
+  dist.forEach((cnt,stage)=>{
+    for(let i=0;i<cnt;i++){
+      const car=rand(CARS); idSeq++;
+      const est=(Math.floor(Math.random()*430)+70)*10000;
+      items.push({
+        id:idSeq, no:`${ymd}-${String(idSeq).padStart(3,"0")}`,
+        cust:rand(CUST), car:car[0], plate:car[1], mgr:rand(MGRS), shop:rand(SHOPS),
+        est, pay:Math.round(est*(0.82+Math.random()*0.15)/10000)*10000,
+        plan:rand(PLAN), stage, done:false, failed:false, processing:false,
+        willFail:false, failStage:-1, failReason:""
+      });
+    }
+  });
+  items.sort((a,b)=> b.stage-a.stage || a.id-b.id);
+}
+
+const $=s=>document.querySelector(s);
+const statBox=$("#statCards"), rowsBox=$("#rows"), sumLine=$("#summaryLine"), logBox=$("#log");
+
+function stageCount(s){return items.filter(i=>!i.done && !i.failed && i.stage===s).length;}
+function pendingCount(){return items.filter(i=>!i.done && !i.failed).length;}
+
+function renderStats(){
+  statBox.innerHTML=STAGES.map((name,s)=>`
+    <div class="cl-stat" data-stage="${s}">
+      <div class="cs-head"><span class="cs-no">${s+1}</span><span class="cs-name">${name}</span></div>
+      <div class="cs-count" id="cnt-${s}">${stageCount(s)}<small>건</small></div>
+    </div>`).join("");
+}
+function renderSummary(){
+  sumLine.innerHTML=`총 <b>${items.length}</b>건 <span class="cls-dim">·</span> 미결 <b>${pendingCount()}</b> <span class="cls-dim">·</span> 자동완료 <b style="color:var(--green)">${doneCount}</b> <span class="cls-dim">·</span> 사람확인 <b style="color:var(--red)">${manualCount}</b>`;
+}
+function stageBadge(it){
+  if(it.processing) return `<span class="stg proc pop"><span class="spin"></span>처리중</span>`;
+  if(it.failed) return `<span class="stg manualb pop"><svg class="warn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>미결·수동</span>`;
+  return `<span class="stg pop" data-s="${it.stage}">${STAGES[it.stage]}</span>`;
+}
+function rowHTML(it){
+  const star=it.plan==="urgent"?`<button class="plan-star urgent">★</button>`
+           :it.plan==="watch"?`<button class="plan-star watch">★</button>`
+           :`<button class="plan-star">☆</button>`;
+  const cust=it.cust==="rent"?`<span class="cust-badge rent">대차</span>`
+           :it.cust==="lease"?`<span class="cust-badge lease">리스</span>`:``;
+  const reason=it.failed?`<div class="man-reason">${it.failReason}</div>`:``;
+  return `<div class="row${it.processing?" processing":""}${it.failed?" manual":""}" data-id="${it.id}">
+    ${star}
+    <div class="no-wrap"><span class="rcv-no">${it.no}</span>${cust}</div>
+    <div><div class="car-name">${it.car}</div><div class="car-plate">${it.plate}</div></div>
+    <div class="mgr col-hide">${it.mgr}</div>
+    <div class="shop col-hide">${it.shop}</div>
+    <div class="num est col-hide">${won(it.est)}</div>
+    <div class="num pay col-hide">${won(it.pay)}</div>
+    <div>${stageBadge(it)}${reason}</div>
+  </div>`;
+}
+function renderRows(){
+  const visible=items.filter(i=>!i.done);
+  // 실패건을 상단으로
+  visible.sort((a,b)=> (b.failed?1:0)-(a.failed?1:0));
+  rowsBox.innerHTML=visible.map(rowHTML).join("");
+}
+function fullRender(){renderStats(); renderSummary(); renderRows();}
+
+function bump(el){ if(!el) return; el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); }
+function refreshCounts(){
+  STAGES.forEach((_,s)=>{ const el=$("#cnt-"+s); if(el){ const nv=stageCount(s); if(el.firstChild.textContent!=String(nv)){el.innerHTML=`${nv}<small>건</small>`; bump(el);} } });
+  setKpi("#kpiPend",pendingCount()); setKpi("#kpiAuto",doneCount); setKpi("#kpiMan",manualCount);
+  renderSummary();
+}
+function setKpi(sel,v){ const el=$(sel); if(!el) return; if(el.firstChild.textContent!=String(v)){ el.innerHTML=`${v}<small>건</small>`; bump(el);} }
+
+function nowStr(){const d=new Date(); return `${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}:${String(d.getSeconds()).padStart(2,"0")}`;}
+function pushLog(it,fail){
+  const li=document.createElement("li");
+  if(fail){
+    li.innerHTML=`<span class="t">${nowStr()}</span> #${it.no} · ${it.car} <span class="tag fail">미결·수동 (${it.failReason})</span>`;
+  }else{
+    li.innerHTML=`<span class="t">${nowStr()}</span> #${it.no} · ${it.car} <span class="tag">지급/정산 완료</span>`;
+  }
+  logBox.prepend(li);
+  while(logBox.children.length>7) logBox.lastChild.remove();
+}
+
+function setAuto(on){
+  const pill=$("#autoPill");
+  pill.classList.toggle("off",!on);
+  $("#autoPillTxt").textContent=on?"자동 처리 진행중":"자동 처리 대기";
+}
+function pickNext(){ return items.find(i=>!i.done && !i.failed) || null; }
+
+function setProcessing(it){
+  it.processing=true;
+  const el=rowsBox.querySelector(`.row[data-id="${it.id}"]`);
+  if(el){ el.classList.add("processing"); el.lastElementChild.innerHTML=stageBadge(it); }
+}
+function clearProcessingRender(it){
+  const el=rowsBox.querySelector(`.row[data-id="${it.id}"]`);
+  if(el){ el.classList.remove("processing"); el.lastElementChild.innerHTML=stageBadge(it); }
+}
+
+function tick(){
+  if(!running) return;
+  if(!active){
+    active=pickNext();
+    if(!active){ finish(); return; }
+    active.willFail=Math.random()<FAIL_RATE;
+    active.failStage=active.willFail?(active.stage+Math.floor(Math.random()*(STAGES.length-active.stage))):-1;
+    setProcessing(active);
+    return;
+  }
+  // 실패 분기
+  if(active.willFail && active.stage===active.failStage){ failActive(); return; }
+  // 정상 전진 / 완료
+  active.processing=false;
+  if(active.stage < STAGES.length-1){
+    active.stage++;
+    clearProcessingRender(active);
+    refreshCounts();
+    setProcessing(active);
+  }else{
+    completeActive();
+  }
+}
+function completeActive(){
+  const it=active; active=null;
+  it.done=true; it.processing=false; doneCount++;
+  const el=rowsBox.querySelector(`.row[data-id="${it.id}"]`);
+  if(el){
+    el.classList.remove("processing");
+    el.lastElementChild.innerHTML=`<span class="stg doneb pop"><svg class="chk" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>완료</span>`;
+    setTimeout(()=>{ el.classList.add("removing"); setTimeout(()=>el.remove(),460); },260);
+  }
+  pushLog(it,false); refreshCounts();
+}
+function failActive(){
+  const it=active; active=null;
+  it.processing=false; it.failed=true; it.failReason=rand(FAIL_REASONS); manualCount++;
+  const el=rowsBox.querySelector(`.row[data-id="${it.id}"]`);
+  if(el){
+    el.classList.remove("processing"); el.classList.add("manual");
+    el.lastElementChild.innerHTML=stageBadge(it)+`<div class="man-reason">${it.failReason}</div>`;
+    rowsBox.prepend(el); // 실패건 상단으로 쌓기
+  }
+  pushLog(it,true); refreshCounts();
+}
+function finish(){
+  running=false; clearInterval(timer); timer=null; setAuto(false);
+  $("#btnPlayTxt").textContent="자동 처리 시작";
+  const secs=Math.max(1,Math.round((Date.now()-startTs)/1000));
+  const total=doneCount+manualCount;
+  const rate=total?Math.round(doneCount/total*100):0;
+  const manualMin=doneCount*PER_CASE_MIN;
+  $("#rateBig").textContent=rate+"%";
+  $("#dsAutoN").textContent=doneCount;
+  $("#dsManN").textContent=manualCount;
+  $("#dsTime").textContent=secs+"s";
+  $("#dcManual").textContent=fmtMin(manualMin);
+  $("#dcAuto").textContent=secs+"초";
+  $("#dcManInline").textContent=manualCount;
+  $("#doneOverlay").classList.add("show");
+  if($("#loop").checked){ setTimeout(()=>{ reset(); setTimeout(play,400); },2800); }
+}
+function fmtMin(m){ if(m<60) return m+"분"; const h=Math.floor(m/60), mm=m%60; return mm?`${h}시간 ${mm}분`:`${h}시간`; }
+
+function play(){
+  if(running) return;
+  if(pendingCount()===0) reset();
+  running=true; if(!startTs) startTs=Date.now();
+  setAuto(true); $("#btnPlayTxt").textContent="처리 진행중…";
+  clearInterval(timer); timer=setInterval(tick,tickMs);
+}
+function pause(){ running=false; clearInterval(timer); timer=null; setAuto(false); $("#btnPlayTxt").textContent="이어서 재생"; }
+function reset(){
+  running=false; clearInterval(timer); timer=null; active=null; startTs=0;
+  $("#doneOverlay").classList.remove("show");
+  logBox.innerHTML=""; setAuto(false); $("#btnPlayTxt").textContent="자동 처리 시작";
+  seed(); fullRender(); refreshCounts();
+}
+
+$("#btnPlay").addEventListener("click",()=>{ running?pause():play(); });
+$("#btnReset").addEventListener("click",reset);
+$("#btnReplay").addEventListener("click",()=>{ reset(); setTimeout(play,150); });
+$("#speed").addEventListener("input",e=>{
+  tickMs=1280-Number(e.target.value);
+  $("#speedTxt").textContent=tickMs<380?"빠름":tickMs>800?"느림":"보통";
+  if(running){ clearInterval(timer); timer=setInterval(tick,tickMs); }
+});
+
+(function(){ const d=new Date(); $("#todayLabel").textContent=`${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,"0")}.${String(d.getDate()).padStart(2,"0")}`; })();
+seed(); fullRender(); refreshCounts();
+</script>
+</body>
+</html>

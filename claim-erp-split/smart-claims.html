@@ -113,6 +113,11 @@
     #viewClaims .clf-actions { margin-left: 0; }
   }
 
+  /* --- 모드변경(시연) 버튼 : 데모의 .mode-btn 톤과 동일한 아웃라인 버튼 --- */
+  .topbar-right .mode-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 13px; border-radius: 8px; border: 1px solid var(--line-strong); background: #fff; color: var(--text-sub); font-size: 12px; font-weight: 800; text-decoration: none; cursor: pointer; font-family: inherit; }
+  .topbar-right .mode-btn:hover { border-color: #232B39; color: #232B39; }
+  .topbar-right .mode-btn svg { width: 14px; height: 14px; }
+
   /* --- 기능 설명 툴팁 (버튼 hover 시 노출) --- */
   #clTooltip {
     position: fixed; z-index: 9999; max-width: 300px;
@@ -223,6 +228,10 @@
     <div class="brand-tag" id="viewName">미결일괄조회</div>
   </div>
   <div class="topbar-right">
+    <a class="mode-btn" href="smart-claims-demo.html" title="미결일괄조회 자동처리 시연 화면으로 전환">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M8 21H3v-5"/><path d="M21 3l-7 7"/><path d="M3 21l7-7"/></svg>
+      모드변경 · 시연
+    </a>
     <button type="button" class="btn-req" id="btnRequest" data-desc="고객 차량 수리 기간 동안 제공할 대차(렌트)·탑승 서비스를 신청합니다.">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14M5 17a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h9l5 4v5a2 2 0 0 1-2 2"/><circle cx="7.5" cy="17.5" r="1.6"/><circle cx="16.5" cy="17.5" r="1.6"/></svg>
       대차/탑승 신청
