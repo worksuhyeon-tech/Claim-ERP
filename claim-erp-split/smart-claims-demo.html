@@ -324,7 +324,7 @@
       <div class="ds"><div class="v" id="dsTime">0s</div><div class="k">소요 시간</div></div>
     </div>
     <div class="done-compare">자동 처리분 수작업 예상 <b id="dcManual">–</b> → 자동 처리 <b id="dcAuto">–</b></div>
-    <div class="done-note">남은 <b id="dcManInline">0</b>건은 전결 초과·서류 미비 등 판단이 필요한 건으로, 목록에 미결·수동으로 남아 담당자가 처리합니다.</div>
+    <div class="done-note">남은 <b id="dcManInline">0</b>건은 선견적·청구서·사진·지급한도 등 <b>단계별 예외</b>로, 해당 단계에 미결·수동으로 남아 담당자가 처리합니다.</div>
     <button class="dc-btn primary" id="btnReplay">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>다시 재생
     </button>
@@ -333,12 +333,11 @@
 
 <script>
 /* ===== 시연 파라미터 ===== */
-const PER_CASE_MIN = 12;      // 수작업 건당 예상 처리시간(분)
-const FAIL_RATE    = 0.06;    // N 플래그 외 랜덤 실패(→사람 확인) 비율
-const FAIL_REASONS = ["전결 한도 초과", "서류(사진) 미비", "AI 손해사정 신뢰도 낮음", "자동처리금지 대상"];
-const REASON_DRIVER   = "운전자 개인정보 동의 미확보"; // 운전자정보동의 N → 자동처리 실패
-const REASON_CONTRACT = "계약정보 확인 필요";          // 계약정보확인 N → 자동처리 실패
+const PER_CASE_MIN   = 12;        // 수작업 건당 예상 처리시간(분)
+const AUTO_PAY_LIMIT = 4000000;   // 자동 지급한도(원) — 초과 시 4단계 실패
 const STAGES = ["접수·선견적", "수리 승인", "손해사정", "지급 / 정산"];
+/* 단계별 실패 유발 확률 — 자동화율 ~80~85% 목표(단계당 실패 ~7%). 4단계는 claimOver/payLimit로 판정. */
+const FAILP = { driver: 0.04, contract: 0.03, preEst: 0.04, fault: 0.03, bill: 0.025, photo: 0.025, aiEst: 0.022, claimOver: 0.04, payLimit: 0.03 };
 
 /* ===== 더미데이터 풀 ===== */
 const CARS = [
@@ -386,7 +385,7 @@ const STATUS_CLASS = {
 };
 
 let items = [], seqNo = 0, timer = null, running = false, active = null;
-let doneCount = 0, manualCount = 0, startTs = 0, tickMs = 620;
+let doneCount = 0, manualCount = 0, startTs = 0, tickMs = 600;
 
 const $ = s => document.querySelector(s);
 function rand(a){ return a[Math.floor(Math.random() * a.length)]; }
@@ -415,47 +414,59 @@ function planStar(p){
   return `<button class="star-btn ${cls}" type="button" aria-label="계획">★</button>`;
 }
 
-/* ===== 시드 (실제 데이터 형태) ===== */
+/* ===== 시드 (4단계 분산 배치: 각 건이 자기 단계부터 순차 흐름) ===== */
 function seed(){
   items = []; seqNo = 0; doneCount = 0; manualCount = 0; active = null;
-  const dist = [10, 7, 6, 5]; // 접수·선견적 / 수리 승인 / 손해사정 / 지급·정산 (총 28)
+  const dist = [10, 7, 6, 5]; // 접수·선견적 / 수리 승인 / 손해사정 / 지급·정산 = 28
   dist.forEach((cnt, stage) => {
     for (let i = 0; i < cnt; i++){
       seqNo++;
       const car = rand(CARS);
       const est = (Math.floor(Math.random() * 430) + 70) * 10000;
-      const showPay = stage >= 2;
+      // 지급(청구)액: 대부분 정상(추산 이하·한도 이하), 소수만 4단계 실패(청구 과다 / 한도 초과)
+      let pay;
+      const r3 = Math.random();
+      if (r3 < FAILP.claimOver) {                          // 청구 과다: 지급 > 추산×1.15
+        pay = Math.round(est * (1.2 + Math.random() * 0.3) / 10000) * 10000;
+      } else if (r3 < FAILP.claimOver + FAILP.payLimit) {  // 자동 지급한도 초과
+        pay = AUTO_PAY_LIMIT + (Math.floor(Math.random() * 200) + 50) * 10000;
+      } else {                                             // 정상: 추산의 78~98%, 한도 이하로 클램프(오탐 방지)
+        pay = Math.round(est * (0.78 + Math.random() * 0.20) / 10000) * 10000;
+        if (pay > AUTO_PAY_LIMIT) pay = AUTO_PAY_LIMIT;
+      }
       items.push({
         id: `CLM-2026-${String(seqNo).padStart(4, "0")}`,
-        seq: seqNo, stage,
+        seq: seqNo, stage, status: "wait", done: false, failReason: "",
         repairShop: rand(SHOPS), carModel: car[0], car: car[1],
-        custType: rand(CUST),
-        work: {
-          repair: rand(REPAIR), part: rand(PART), approval: rand(APPROVAL),
-          estimate: won(est),
-          payment: showPay ? won(Math.round(est * (0.82 + Math.random() * 0.15) / 10000) * 10000) : "-"
-        },
-        driverInfo: Math.random() > 0.12,
-        contractOk: stage > 0 ? true : Math.random() > 0.25,
-        plan: rand(PLAN),
-        done: false, failed: false, processing: false, failReason: ""
+        custType: rand(CUST), plan: rand(PLAN),
+        work: { repair: rand(REPAIR), part: rand(PART), approval: rand(APPROVAL), estimate: won(est), payment: won(pay) },
+        estN: est, payN: pay,
+        // 1단계 검증값은 표에 Y/N 노출 — 이후 단계 시드 건은 이미 통과했으므로 Y로 표기. 2~3단계=히든플래그, 4단계=금액
+        driverInfo: stage > 0 ? true : Math.random() > FAILP.driver,
+        contractOk: stage > 0 ? true : Math.random() > FAILP.contract,
+        preEstimate: Math.random() > FAILP.preEst,
+        faultConfirmed: Math.random() > FAILP.fault,
+        billReceived: Math.random() > FAILP.bill,
+        photoOk: Math.random() > FAILP.photo,
+        aiEstimateOk: Math.random() > FAILP.aiEst
       });
     }
   });
 }
 
 /* ===== 카운트 ===== */
-function stageCount(s){ return items.filter(i => !i.done && !i.failed && i.stage === s).length; }
-function pendingCount(){ return items.filter(i => !i.done && !i.failed).length; }
+function stageCount(s){ return items.filter(i => !i.done && i.stage === s).length; }         // 대기+진행+막힘(미결) 모두 그 단계에 집계
+function pendingCount(){ return items.filter(i => !i.done && i.status !== "manual").length; } // 아직 자동 흐름 중(대기/진행)
 
 /* ===== 행 렌더 (claims.js claimRowHtml 복제, 15셀 + 데모 전용 처리결과 열) ===== */
 function resultHtml(c){
-  if (c.failed) return `<span class="rz rz-manual">⚠ 미결·수동</span><span class="rz-reason">${c.failReason}</span>`;
+  if (c.status === "manual") return `<span class="rz rz-manual">⚠ 미결·수동</span><span class="rz-reason">${STAGES[c.stage]} · ${c.failReason}</span>`;
+  if (c.status === "proc") return `<span class="rz rz-proc"><span class="spin"></span>처리중 · ${STAGES[c.stage]}</span>`;
   return `<span class="rz rz-wait">자동 대기</span>`;
 }
 function claimRowHtml(c){
   return `
-    <tbody class="row${c.processing ? " processing" : ""}${c.failed ? " manual" : ""}" data-id="${c.id}">
+    <tbody class="row${c.status === "proc" ? " processing" : ""}${c.status === "manual" ? " manual" : ""}" data-id="${c.id}">
       <tr>
         <td class="col-check"><input type="checkbox" class="row-check" aria-label="선택" /></td>
         <td class="col-plan">${planStar(c.plan)}</td>
@@ -486,7 +497,7 @@ function renderStats(){
 }
 function renderRows(){
   const visible = items.filter(i => !i.done);
-  visible.sort((a, b) => (b.failed ? 1 : 0) - (a.failed ? 1 : 0) || a.stage - b.stage || a.seq - b.seq);
+  visible.sort((a, b) => a.seq - b.seq);
   rowsBox.innerHTML = `<table class="claim-table cl-table">${LIST_COLGROUP}${LIST_THEAD}` +
     visible.map(claimRowHtml).join("") + `</table>`;
 }
@@ -508,12 +519,12 @@ function refreshCounts(){
 
 /* ===== 처리결과 열 상태 표시 ===== */
 function rowEl(id){ return rowsBox.querySelector(`tbody.row[data-id="${id}"]`); }
-function setResult(el, kind, reason){
+function setResult(el, kind, arg){
   const cell = el && el.querySelector(".col-result");
   if (!cell) return;
-  if (kind === "proc") cell.innerHTML = `<span class="rz rz-proc"><span class="spin"></span>처리중</span>`;
-  else if (kind === "done") cell.innerHTML = `<span class="rz rz-done">✓ 완료</span>`;
-  else if (kind === "manual") cell.innerHTML = `<span class="rz rz-manual">⚠ 미결·수동</span><span class="rz-reason">${reason || ""}</span>`;
+  if (kind === "proc") cell.innerHTML = `<span class="rz rz-proc"><span class="spin"></span>처리중 · ${STAGES[arg] || ""}</span>`;
+  else if (kind === "done") cell.innerHTML = `<span class="rz rz-done">✓ 자동완료</span>`;
+  else if (kind === "manual") cell.innerHTML = `<span class="rz rz-manual">⚠ 미결·수동</span><span class="rz-reason">${arg || ""}</span>`;
   else cell.innerHTML = `<span class="rz rz-wait">자동 대기</span>`;
 }
 
@@ -524,47 +535,64 @@ function setAuto(on){
   $("#autoPillTxt").textContent = on ? "자동 처리 진행중" : "자동 처리 대기";
 }
 
-/* ===== 처리 루프 ===== */
-function pickNext(){ return items.find(i => !i.done && !i.failed && !i.processing) || null; }
-
-function tick(){
-  if (!running) return;
-  if (!active){
-    active = pickNext();
-    if (!active){ finish(); return; }
-    active.processing = true;
-    const el = rowEl(active.id);
-    if (el){ el.classList.add("processing"); setResult(el, "proc"); }
-    return;
+/* ===== 단계별 실패 판정 (사용자 지정 규칙) ===== */
+function evalStage(it, stage){
+  if (stage === 0){                                   // 접수·선견적
+    if (!it.driverInfo) return "운전자 개인정보 동의 미확보";
+    if (!it.contractOk) return "계약정보 확인 필요";
+  } else if (stage === 1){                            // 수리 승인
+    if (!it.preEstimate) return "선견적 미수신";
+    if (!it.faultConfirmed) return "과실 미확정";
+  } else if (stage === 2){                            // 손해사정
+    if (!it.billReceived) return "청구서 미수신";
+    if (!it.photoOk) return "파손부위 사진 확인 불가";
+    if (!it.aiEstimateOk) return "AI 손해사정 견적 과다";
+  } else if (stage === 3){                            // 지급 / 정산
+    if (it.payN > it.estN * 1.15) return "선견적 대비 청구금액 과다";
+    if (it.payN > AUTO_PAY_LIMIT) return "자동 지급한도 초과";
   }
-  const it = active; active = null; it.processing = false;
-  // 데모 규칙: 운전자 개인정보 동의 N / 계약정보 확인 N 은 자동처리 실패(미결·수동)
-  let reason = null;
-  if (!it.driverInfo) reason = REASON_DRIVER;
-  else if (!it.contractOk) reason = REASON_CONTRACT;
-  else if (Math.random() < FAIL_RATE) reason = rand(FAIL_REASONS);
-  if (reason) failItem(it, reason);
-  else completeItem(it);
+  return null;
 }
-function completeItem(it){
+function completeRow(it){
   it.done = true; doneCount++;
   const el = rowEl(it.id);
   if (el){
     el.classList.remove("processing");
     setResult(el, "done");
-    setTimeout(() => { el.classList.add("removing"); setTimeout(() => el.remove(), 420); }, 240);
+    setTimeout(() => { el.classList.add("removing"); setTimeout(() => el.remove(), 420); }, 200);
   }
-  refreshCounts();
 }
-function failItem(it, reason){
-  it.failed = true; it.failReason = reason; manualCount++;
+function failRow(it, stage, reason){
+  it.status = "manual"; it.stage = stage; it.failReason = reason; manualCount++;
   const el = rowEl(it.id);
-  if (el){
-    el.classList.remove("processing"); el.classList.add("manual");
-    setResult(el, "manual", it.failReason);
-    const tbl = el.closest("table");
-    const firstBody = tbl && tbl.querySelector("tbody.row");
-    if (firstBody && firstBody !== el) tbl.insertBefore(el, firstBody); // 예외건 상단으로
+  if (el){ el.classList.remove("processing"); el.classList.add("manual"); setResult(el, "manual", `${STAGES[stage]} · ${reason}`); }
+}
+
+/* ===== 순차 루프: 항상 딱 한 건(active)만 처리, 한 tick에 바뀌는 행은 최대 1개 ===== */
+function tick(){
+  if (!running) return;
+  if (!active){
+    // 대기열에서 다음 한 건을 꺼내 처리 시작 (없으면 종료 — 남는 건 붉은 미결·수동뿐)
+    active = items.find(i => i.status === "wait" && !i.done) || null;
+    if (!active){ finish(); return; }
+    active.status = "proc";
+    const el = rowEl(active.id);
+    if (el){ el.classList.add("processing"); setResult(el, "proc", active.stage); }
+    return;
+  }
+  // active 처리: 현재 단계 검증
+  const it = active;
+  const reason = evalStage(it, it.stage);
+  if (reason){                                 // 실패 → 그 단계에서 미결·수동 정지
+    failRow(it, it.stage, reason);
+    active = null;
+  } else if (it.stage >= STAGES.length - 1){   // 마지막 단계 통과 → 자동완료
+    completeRow(it);
+    active = null;
+  } else {                                     // 통과 → 다음 단계로 (같은 건 계속 처리)
+    it.stage++;
+    const el = rowEl(it.id);
+    if (el) setResult(el, "proc", it.stage);
   }
   refreshCounts();
 }
