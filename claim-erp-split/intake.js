@@ -2224,7 +2224,6 @@ function renderIntake() {
     <button class="lg-back" type="button" id="intakeBack" data-desc="미결일괄조회 목록 화면으로 돌아갑니다.">← 목록으로</button>
     <div class="lg">
       <div class="lg-window">
-        <div class="lg-titlebar"><span class="t">Smart업무처리</span><span class="r"><span class="lg-x">✕</span></span></div>
         <div class="lg-search">
           <span class="lk">조회구분</span>
           <select class="lg-select" id="intakeQueryType" data-desc="조회 기준(사고번호·차량번호·휴대폰 등)을 선택합니다. 선택한 기준에 맞춰 아래 입력칸이 바뀝니다.">${INTAKE_QUERY_TYPES.map(t => `<option value="${iEsc(t)}" ${t === queryType ? "selected" : ""}>${iEsc(t)}</option>`).join("")}</select>
