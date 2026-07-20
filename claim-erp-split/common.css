@@ -1471,17 +1471,11 @@
   }
   .lg-back:hover { background: #F0F3FA; border-color: #9FB6DE; color: var(--lg-blue); }
 
-  .lg-window { border: 1px solid var(--lg-line); border-radius: 6px; overflow: hidden;
-    background: var(--lg-bg); box-shadow: 0 8px 24px rgba(20, 30, 54, .10); }
-  .lg-titlebar { display: flex; align-items: center; justify-content: space-between; gap: 10px;
-    background: linear-gradient(#5F8FD8, #3F72BF); color: #fff; padding: 7px 12px; }
-  .lg-titlebar .t { font-weight: 800; font-size: 13px; letter-spacing: .2px; }
-  .lg-titlebar .r { display: flex; align-items: center; gap: 8px; }
-  .lg-secret { background: #fff; color: #E0402A; font-weight: 800; font-size: 11px; padding: 1px 7px; border-radius: 3px; }
-  .lg-x { color: #fff; font-size: 14px; font-weight: 800; line-height: 1; }
+  .lg-window { border: 1px solid var(--lg-line2); border-radius: 8px; overflow: hidden;
+    background: var(--lg-bg); box-shadow: 0 1px 3px rgba(20, 30, 54, .07); }
 
   .lg-search { display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-    padding: 8px 12px; background: #ECECF2; border-bottom: 1px solid var(--lg-line2); }
+    padding: 10px 12px; background: #fff; border-bottom: 1px solid var(--lg-line2); }
   .lg-search .lk { color: #3C4050; font-weight: 700; }
   .lg-select, .lg-input { border: 1px solid var(--lg-line); background: #fff; color: #262A33;
     font: inherit; font-size: 12px; height: 26px; padding: 0 6px; border-radius: 3px; }
