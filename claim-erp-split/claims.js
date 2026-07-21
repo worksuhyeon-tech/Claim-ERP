@@ -530,6 +530,8 @@ let checkedTypes = new Set();   // 체크된 조치유형 (allTypes=false일 때
 let planFilter = "전체";        // 계획 필터: 전체 / 긴급 / 관심
 let shopQuery = "";             // 정비공장명 검색
 let searchQuery = "";           // 통합 검색어 (접수번호/차량명/차량번호/담당자/고객명)
+let estMin = null;              // 추산금액 구간 하한(이상). null = 제한없음
+let estMax = null;              // 추산금액 구간 상한(이하). null = 제한없음
 let pageSize = 20;              // 페이지당 표시 건수
 let currentPage = 1;            // 현재 페이지 (1-base)
 
@@ -596,12 +598,24 @@ function numCell(v, cls) {
   if (!v || v === "-") return '<span class="dash">-</span>';
   return `<span class="num ${cls || ""}">${v}</span>`;
 }
+/* 추산금액(표시 문자열) → 숫자. 추산 미확정("-"/빈값)은 0원으로 간주 */
+function estValue(c) {
+  const raw = c.work && c.work.estimate;
+  if (!raw || raw === "-") return 0;
+  const n = parseInt(String(raw).replace(/[^0-9]/g, ""), 10);
+  return isNaN(n) ? 0 : n;
+}
 function scopeClaims() {
   let list = stageClaims(activeStage);                       // 단계 (단일 선택)
   if (!allTypes) list = list.filter(c => checkedTypes.has(c.actionType)); // 조치유형 체크박스
   if (planFilter !== "전체") list = list.filter(c => planOf(c.id) === planFilter); // 계획(별점)
   const sq = shopQuery.trim().toLowerCase();                 // 정비공장명
   if (sq) list = list.filter(c => String(c.repairShop || "").toLowerCase().includes(sq));
+  if (estMin != null || estMax != null) {                    // 추산금액 구간 (이상 ~ 이하)
+    const lo = estMin == null ? 0 : estMin;
+    const hi = estMax == null ? Infinity : estMax;
+    list = list.filter(c => { const v = estValue(c); return v >= lo && v <= hi; });
+  }
   const q = searchQuery.trim().toLowerCase();                // 통합 검색어
   if (q) {
     list = list.filter(c => [c.id, c.carModel, c.car, c.manager, c.name, c.actionType]
@@ -1338,6 +1352,17 @@ $("#planFilter").addEventListener("click", e => {
   renderList();
 });
 
+/* 추산 금액대 구간 (실시간) — 입력값에 천단위 콤마를 붙이고 숫자 상태를 갱신 */
+function onEstInput(el, setValue) {
+  const digits = el.value.replace(/[^0-9]/g, "");
+  el.value = digits ? Number(digits).toLocaleString("ko-KR") : "";
+  setValue(digits ? parseInt(digits, 10) : null);
+  currentPage = 1;
+  renderList();
+}
+$("#estMin").addEventListener("input", e => onEstInput(e.target, v => { estMin = v; }));
+$("#estMax").addEventListener("input", e => onEstInput(e.target, v => { estMax = v; }));
+
 /* 정비공장명 · 검색어 (실시간) */
 $("#shopInput").addEventListener("input", e => { shopQuery = e.target.value; currentPage = 1; renderList(); });
 $("#searchInput").addEventListener("input", e => { searchQuery = e.target.value; currentPage = 1; renderList(); });
@@ -1351,8 +1376,12 @@ $("#btnReset").addEventListener("click", () => {
   planFilter = "전체";
   shopQuery = "";
   searchQuery = "";
+  estMin = null;
+  estMax = null;
   $("#shopInput").value = "";
   $("#searchInput").value = "";
+  $("#estMin").value = "";
+  $("#estMax").value = "";
   currentPage = 1;
   selectFirst();
   renderAll();

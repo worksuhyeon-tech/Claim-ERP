@@ -46,6 +46,13 @@
   #viewClaims .clf-search input { flex: 1; padding-right: 34px; }
   #viewClaims .clf-search svg { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--text-dim); pointer-events: none; }
   #viewClaims #shopInput:focus, #viewClaims #searchInput:focus, #viewClaims #stageSelect:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
+  /* 추산 금액대 구간 입력 */
+  #viewClaims .clf-amount { display: inline-flex; align-items: center; gap: 6px; }
+  #viewClaims .clf-amount input { width: 108px; padding: 8px 10px; border: 1px solid var(--line-strong); border-radius: 8px; background: #fff; font-size: 13px; color: var(--text); text-align: right; }
+  #viewClaims .clf-amount input::placeholder { color: var(--text-dim); font-weight: 400; }
+  #viewClaims .clf-amount input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
+  #viewClaims .clf-amount .clf-amount-sep { color: var(--text-dim); font-weight: 700; }
+  #viewClaims .clf-amount .clf-amount-unit { font-size: 12.5px; color: var(--text-sub); font-weight: 700; }
 
   /* 액션 버튼 */
   #viewClaims .clf-actions { display: inline-flex; gap: 8px; margin-left: auto; }
@@ -282,6 +289,15 @@
       <div class="clf-field">
         <label for="shopInput">정비공장명</label>
         <input type="text" id="shopInput" autocomplete="off" placeholder="협력업체명 like검색" data-desc="정비공장(협력업체)명 일부만 입력해도 해당 공장 건이 실시간으로 필터링됩니다." />
+      </div>
+      <div class="clf-field">
+        <label for="estMin">추산 금액대</label>
+        <div class="clf-amount" data-desc="추산금액 구간으로 조회합니다. 한쪽만 입력해도 됩니다. 예) 뒤칸만 2,000,000 → 200만원 이하 / 앞칸만 10,000 → 1만원 이상">
+          <input type="text" id="estMin" inputmode="numeric" autocomplete="off" placeholder="이상" aria-label="추산금액 하한(이상)" />
+          <span class="clf-amount-sep">~</span>
+          <input type="text" id="estMax" inputmode="numeric" autocomplete="off" placeholder="이하" aria-label="추산금액 상한(이하)" />
+          <span class="clf-amount-unit">원</span>
+        </div>
       </div>
       <div class="clf-field clf-grow">
         <label for="searchInput">검색어</label>
