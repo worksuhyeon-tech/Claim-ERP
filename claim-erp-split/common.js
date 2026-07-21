@@ -228,6 +228,25 @@ function deriveWork(c) {
   return { repair, part, glass, sealant, rent, exemption, approval, estimate, payment, receive };
 }
 
+/* 미결 속성(스마트업무처리 화면에서 담당자가 남긴 메모) 데모 시드 풀 — "속성명, 메모" 형식 */
+const ATTR_SEED_POOL = [
+  "렌트, 3일 대차 제공 예정",
+  "재통화, 07/24 14시 재확인 예정",
+  "VOC, 사고내용 상이 주장 접수",
+  "탁송, 공업사 → 자택 탁송 요청",
+  "기타, 견인비 별도 청구 예정",
+  "재통화, 07/22 오전 통화 예정",
+  "렌트, 동급 차량 배정 요청",
+  "기타, 렌트 연장 문의 회신 대기",
+];
+/* 접수번호 기반 결정적 시드 — 일부 건은 미결속성 없음(-), 일부는 1개, 일부는 2개 */
+function seedUnresolvedProps(n) {
+  const k = n % 5;
+  if (k === 0) return [];                                                    // 미결속성 없음
+  if (k === 2) return [ATTR_SEED_POOL[n % ATTR_SEED_POOL.length], ATTR_SEED_POOL[(n + 3) % ATTR_SEED_POOL.length]];
+  return [ATTR_SEED_POOL[n % ATTR_SEED_POOL.length]];
+}
+
 CLAIMS.forEach(c => {
   const n = parseInt((c.id.replace(/\D/g, "").slice(-4) || "0"), 10);
   // 정비공장 — 입고된 건만 표시, 입고 전이면 공백
@@ -250,6 +269,16 @@ CLAIMS.forEach(c => {
     c.submitState = c.procStatus === "완료" ? "완료" : (c.procStatus === "처리중" ? "상신" : "대기");
   // 업무 항목별 상태값 — 리스트 상태열 렌더링 기준
   if (c.work == null) c.work = deriveWork(c);
+  // 미결 속성(스마트업무처리 메모) — 접수번호 기반 결정적 시드
+  if (c.unresolvedProps == null) c.unresolvedProps = seedUnresolvedProps(n);
+  // 사고접수일(데모) — 단계가 진행될수록 접수경과일이 커지도록 단계 인덱스 기반 배정 (3~35일 전)
+  if (c.receivedDate == null) {
+    const si = STAGES.indexOf(c.flowStage);
+    const daysAgo = (si < 0 ? 0 : si) * 9 + (n % 8) + 3;
+    const d = new Date(); d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - daysAgo);
+    c.receivedDate = d;
+  }
 });
 // 청구미수신 → 면책 처리 후보 (좌측 필터 노출용)
 ["CLM-2026-0032", "CLM-2026-0029"].forEach(id => {

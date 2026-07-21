@@ -704,16 +704,36 @@ function ynCell(yes) {
     ? '<span class="yn yn-y">Y</span>'
     : '<span class="yn yn-n">N</span>';
 }
+/* 미결속성 셀 — i번째 속성을 "속성명, 메모" 형태로 표시. 길면 말줄임 + 마우스오버 전체보기(title) */
+function attrCell(c, i) {
+  const v = (c.unresolvedProps || [])[i];
+  if (!v) return '<span class="dash">-</span>';
+  return `<span class="cattr-v" title="${escapeHtml(v)}">${escapeHtml(v)}</span>`;
+}
+/* 접수경과일 — 사고접수일로부터 오늘까지의 경과 일수 */
+function elapsedDays(c) {
+  if (!c.receivedDate) return null;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const diff = Math.floor((today - c.receivedDate) / 86400000);
+  return diff < 0 ? 0 : diff;
+}
+function elapsedDaysCell(c) {
+  const d = elapsedDays(c);
+  if (d == null) return '<span class="dash">-</span>';
+  return `<span class="cdays">${d}<small>일</small></span>`;
+}
 
-/* 리스트 표 고정 구조 — 15열 colgroup + 1줄 헤더 (체크·계획·순번·고객구분 추가) */
+/* 리스트 표 고정 구조 — 19열 colgroup + 1줄 헤더
+   (계약 정보확인 우측에 미결속성1·미결속성2·접수경과일·담당자 추가, 타 열 폭 축소) */
 const LIST_COLGROUP =
   '<colgroup>' +
-  '<col style="width:3%"><col style="width:3%"><col style="width:3%">' +
-  '<col style="width:11%"><col style="width:13%"><col style="width:8%"><col style="width:7%">' +
-  '<col style="width:6%">' +
-  '<col style="width:6%"><col style="width:6%"><col style="width:6%">' +
-  '<col style="width:8%"><col style="width:8%">' +
-  '<col style="width:5%"><col style="width:5%">' +
+  '<col style="width:2.5%"><col style="width:2.5%"><col style="width:2.5%">' +
+  '<col style="width:9%"><col style="width:9%"><col style="width:6%"><col style="width:6%">' +
+  '<col style="width:4.5%">' +
+  '<col style="width:4.5%"><col style="width:4.5%"><col style="width:4.5%">' +
+  '<col style="width:6%"><col style="width:6%">' +
+  '<col style="width:4.5%"><col style="width:4.5%">' +
+  '<col style="width:7.5%"><col style="width:7.5%"><col style="width:4.5%"><col style="width:4.5%">' +
   '</colgroup>';
 const LIST_THEAD =
   '<thead>' +
@@ -725,6 +745,8 @@ const LIST_THEAD =
       '<th>정비 상태</th><th>부품 상태</th><th>승인 상태</th>' +
       '<th>추산</th><th>지급</th>' +
       '<th>운전자<br>정보동의</th><th>계약<br>정보확인</th>' +
+      '<th>미결속성1</th><th>미결속성2</th><th>접수<br>경과일</th>' +
+      '<th data-desc="현재 데모는 담당자 구분 없이 전체 조회되지만, 실제 구현 모드에서는 본인 미결 리스트만 조회되는 것이 기본값입니다.">담당자</th>' +
     '</tr>' +
   '</thead>';
 
@@ -768,6 +790,10 @@ function claimRowHtml(c, seq) {
         <td>${numCell(w.payment, "pay")}</td>
         <td>${ynCell(c.driverInfo !== false)}</td>
         <td>${ynCell(contractConfirmed(c))}</td>
+        <td class="cattr">${attrCell(c, 0)}</td>
+        <td class="cattr">${attrCell(c, 1)}</td>
+        <td>${elapsedDaysCell(c)}</td>
+        <td class="cmgr">${escapeHtml(c.manager || "-")}</td>
       </tr>
     </tbody>`;
 }
@@ -809,7 +835,7 @@ function renderList() {
     const msg = q
       ? `<b>'${escapeHtml(q)}'</b>에 해당하는 조치대상 건이 없습니다.`
       : `조건에 해당하는 조치대상 건이 없습니다.`;
-    $("#rows").innerHTML = `${head}<tbody><tr><td colspan="15" class="rows-empty">${msg}</td></tr></tbody></table>`;
+    $("#rows").innerHTML = `${head}<tbody><tr><td colspan="19" class="rows-empty">${msg}</td></tr></tbody></table>`;
     renderPager(1, 1);
     return;
   }

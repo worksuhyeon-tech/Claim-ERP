@@ -92,6 +92,16 @@
   #viewClaims .cust-badge.lease { color: var(--amber); background: var(--amber-soft); }
   #viewClaims .cl-table .num.est { color: var(--text); }   /* 추산 = 검정 */
   #viewClaims .cl-table .num.pay { color: var(--red); }     /* 지급 = 빨강 */
+  /* 추가 열(19열)로 밀도 상승 — 셀 좌우 여백 축소 */
+  #viewClaims .cl-table th, #viewClaims .cl-table td { padding-left: 6px; padding-right: 6px; }
+  /* 미결속성 셀 — 좌측 정렬 메모, 넘치면 말줄임(td의 ellipsis 상속) + title 마우스오버 */
+  #viewClaims .cl-table .cattr { text-align: left; }
+  #viewClaims .cl-table .cattr .cattr-v { color: var(--text-sub); }
+  /* 접수경과일 */
+  #viewClaims .cl-table .cdays { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--text); }
+  #viewClaims .cl-table .cdays small { font-size: 10.5px; font-weight: 600; color: var(--text-dim); margin-left: 1px; }
+  /* 담당자 */
+  #viewClaims .cl-table .cmgr { font-weight: 600; color: var(--text-sub); }
   #viewClaims .cl-table tbody.row.plan-urgent td { background: #FEF2F2; }
   #viewClaims .cl-table tbody.row.plan-watch  td { background: #EFF5FF; }
   #viewClaims .cl-table tbody.row.plan-urgent:hover td { background: #FDE8E8; }
