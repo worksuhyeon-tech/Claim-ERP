@@ -1991,8 +1991,18 @@ function bindIntakeWorkbench(d) {
     intakePropertyState[d.id] = { attrs, fields, custom, note };
     const detail = INTAKE_DETAIL[d.id] || (INTAKE_DETAIL[d.id] = {});
     detail.unresolved = attrs;
+    // 미결일괄조회 목록용 표시값 — 체크한 속성을 "속성명 - 메모"(메모 있을 때) 형태로 구성.
+    // 표준 속성(INTAKE_ATTRS 순서) → 담당자 자유입력 순으로 정렬한다.
+    const props = [];
+    INTAKE_ATTRS.forEach(a => {
+      if (!attrs.includes(a.key)) return;
+      const memo = (fields[a.key] || "").trim();
+      props.push(memo ? `${a.key} - ${memo}` : a.key);
+    });
+    custom.forEach(row => { if (row.checked && row.text) props.push(row.text); });
     const claim = CLAIMS.find(x => x.id === d.id);
     if (claim) {
+      claim.unresolvedProps = props;   // 미결일괄조회 리스트(미결속성1·2·3)에 반영
       if (attrs.length) claim.actionType = attrs[0];
       if (note) {
         claim.actionDesc = note;
