@@ -46,6 +46,13 @@
   #viewClaims .clf-search input { flex: 1; padding-right: 34px; }
   #viewClaims .clf-search svg { position: absolute; right: 11px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--text-dim); pointer-events: none; }
   #viewClaims #shopInput:focus, #viewClaims #searchInput:focus, #viewClaims #stageSelect:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
+  /* 추산 금액대 구간 입력 */
+  #viewClaims .clf-amount { display: inline-flex; align-items: center; gap: 6px; }
+  #viewClaims .clf-amount input { width: 108px; padding: 8px 10px; border: 1px solid var(--line-strong); border-radius: 8px; background: #fff; font-size: 13px; color: var(--text); text-align: right; }
+  #viewClaims .clf-amount input::placeholder { color: var(--text-dim); font-weight: 400; }
+  #viewClaims .clf-amount input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-soft); }
+  #viewClaims .clf-amount .clf-amount-sep { color: var(--text-dim); font-weight: 700; }
+  #viewClaims .clf-amount .clf-amount-unit { font-size: 12.5px; color: var(--text-sub); font-weight: 700; }
 
   /* 액션 버튼 */
   #viewClaims .clf-actions { display: inline-flex; gap: 8px; margin-left: auto; }
@@ -85,6 +92,16 @@
   #viewClaims .cust-badge.lease { color: var(--amber); background: var(--amber-soft); }
   #viewClaims .cl-table .num.est { color: var(--text); }   /* 추산 = 검정 */
   #viewClaims .cl-table .num.pay { color: var(--red); }     /* 지급 = 빨강 */
+  /* 추가 열(19열)로 밀도 상승 — 셀 좌우 여백 축소 */
+  #viewClaims .cl-table th, #viewClaims .cl-table td { padding-left: 6px; padding-right: 6px; }
+  /* 미결속성 셀 — 좌측 정렬 메모, 넘치면 말줄임(td의 ellipsis 상속) + title 마우스오버 */
+  #viewClaims .cl-table .cattr { text-align: left; }
+  #viewClaims .cl-table .cattr .cattr-v { color: var(--text-sub); }
+  /* 접수경과일 */
+  #viewClaims .cl-table .cdays { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--text); }
+  #viewClaims .cl-table .cdays small { font-size: 10.5px; font-weight: 600; color: var(--text-dim); margin-left: 1px; }
+  /* 담당자 */
+  #viewClaims .cl-table .cmgr { font-weight: 600; color: var(--text-sub); }
   #viewClaims .cl-table tbody.row.plan-urgent td { background: #FEF2F2; }
   #viewClaims .cl-table tbody.row.plan-watch  td { background: #EFF5FF; }
   #viewClaims .cl-table tbody.row.plan-urgent:hover td { background: #FDE8E8; }
@@ -257,9 +274,10 @@
     <div class="clf-row">
       <div class="clf-field clf-stage">
         <label for="stageSelect">단계</label>
-        <div class="clf-select-wrap" data-desc="업무 Flow 단계를 선택합니다. 선택한 단계에 속한 사고건만 목록에 표시됩니다.">
+        <div class="clf-select-wrap" data-desc="업무 Flow 단계를 선택합니다. 선택한 단계에 속한 사고건만 목록에 표시되며, '전체'를 선택하면 모든 단계의 사고건을 한 번에 조회합니다.">
           <svg class="clf-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
           <select id="stageSelect" aria-label="단계 선택">
+            <option value="전체">전체</option>
             <option value="접수·선견적">접수·선견적</option>
             <option value="수리 승인">수리 승인</option>
             <option value="손해사정">손해사정</option>
@@ -281,6 +299,15 @@
       <div class="clf-field">
         <label for="shopInput">정비공장명</label>
         <input type="text" id="shopInput" autocomplete="off" placeholder="협력업체명 like검색" data-desc="정비공장(협력업체)명 일부만 입력해도 해당 공장 건이 실시간으로 필터링됩니다." />
+      </div>
+      <div class="clf-field">
+        <label for="estMin">추산 금액대</label>
+        <div class="clf-amount" data-desc="추산금액 구간으로 조회합니다. 한쪽만 입력해도 됩니다. 예) 뒤칸만 2,000,000 → 200만원 이하 / 앞칸만 10,000 → 1만원 이상">
+          <input type="text" id="estMin" inputmode="numeric" autocomplete="off" placeholder="이상" aria-label="추산금액 하한(이상)" />
+          <span class="clf-amount-sep">~</span>
+          <input type="text" id="estMax" inputmode="numeric" autocomplete="off" placeholder="이하" aria-label="추산금액 상한(이하)" />
+          <span class="clf-amount-unit">원</span>
+        </div>
       </div>
       <div class="clf-field clf-grow">
         <label for="searchInput">검색어</label>
