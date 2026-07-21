@@ -1,6 +1,7 @@
 "use strict";
 
 const STAGES = ["접수·선견적", "수리 승인", "손해사정", "지급 / 정산"];
+const STAGE_ALL = "전체";   // 단계 필터: 모든 단계 통합 조회
 const STAGE_SHORT = { "접수·선견적":"접수", "수리 승인":"승인", "손해사정":"사정", "지급 / 정산":"정산" };
 
 const URGENCY_CLASS = { "긴급":"u-urgent", "주의":"u-warn", "정상":"u-normal" };

@@ -554,7 +554,10 @@ const DEFAULT_MESSAGE_TEMPLATES = [
 ];
 let messageTemplates = loadMessageTemplates();
 
-function stageClaims(stage) { return CLAIMS.filter(c => c.flowStage === stage); }
+function stageClaims(stage) {
+  if (stage === STAGE_ALL) return CLAIMS.slice();   // '전체' = 모든 단계 통합
+  return CLAIMS.filter(c => c.flowStage === stage);
+}
 
 /* 운전자 정보 유무 도형 (원=있음 / 삼각형=없음) */
 function driverShape(c) {
@@ -1285,7 +1288,7 @@ function renderAll() {
 
 /* 단계 전환 (통계 카드 클릭 / 드롭다운) */
 function setStage(stage) {
-  if (!STAGES.includes(stage)) return;
+  if (stage !== STAGE_ALL && !STAGES.includes(stage)) return;
   activeStage = stage;
   allTypes = true;                               // 단계 변경 시 조치유형 전체로 초기화
   checkedTypes = new Set(typesForStage(stage));
