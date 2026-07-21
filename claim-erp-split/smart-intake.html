@@ -118,6 +118,14 @@
   .lg-csel { cursor: pointer; }
   .lg-cin:focus, .lg-csel:focus { outline: none; border-color: #2F5BB7; box-shadow: 0 0 0 2px rgba(47,91,183,.15); }
   .lg-tbl td:has(> .lg-cin), .lg-tbl td:has(> .lg-csel) { padding: 3px 6px; }
+  /* 생년월일 3분할 — 주민번호 앞자리 / 뒷자리 첫1자리 / 만 나이(자동계산·비활성) */
+  .lg-birth { display: flex; align-items: center; gap: 4px 6px; flex-wrap: wrap; }
+  .lg-birth .lg-birth-front { width: 82px; text-align: center; letter-spacing: .5px; }
+  .lg-birth .lg-birth-back { width: 30px; text-align: center; }
+  .lg-birth-sep { color: #9AA0B0; }
+  .lg-birth-mask { letter-spacing: 2px; color: #B9C0CE; font-size: 11px; user-select: none; }
+  .lg-birth-age { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #3A3F4E; white-space: nowrap; margin-left: 2px; }
+  .lg-birth .lg-birth-ageval { width: 42px; text-align: center; background: #EEF1F6; color: #242832; font-weight: 700; cursor: default; -webkit-text-fill-color: #242832; opacity: 1; }
   /* 조사 Task 체크박스 */
   .lg-ctchecks { display: flex; flex-wrap: wrap; gap: 4px 12px; }
   .lg-ctchk { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #3A3F4E; cursor: pointer; }

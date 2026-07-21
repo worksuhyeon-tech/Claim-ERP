@@ -724,8 +724,10 @@ const intakeContractState = {};
 function getContractState(id, d) {
   if (!intakeContractState[id]) {
     const P = d.parties || {}, A = d.accident || {}, dr = (P.driver || {});
+    const bp = parseBirth(dr.birth);
     intakeContractState[id] = {
-      driverName: dr.name || "", driverRel: dr.rel || "", birth: dr.birth || "", phone: dr.phone || "",
+      driverName: dr.name || "", driverRel: dr.rel || "", birth: dr.birth || "",
+      birthFront: bp.front, birthBack: bp.back, birthAge: bp.age, phone: dr.phone || "",
       licenseNo: dr.licenseNo || "", licenseType: (dr.license || "").split("/")[0].trim() || "2종보통",
       datetime: A.datetime || "", place: A.place || "", placeDetail: A.placeDetail || "",
       content: A.content || "", note: A.note || "",
@@ -742,6 +744,47 @@ function ctText(field, val, ph) {
 }
 function ctSel(field, val, opts) {
   return `<select class="lg-csel" data-ct="${iEsc(field)}">${opts.map(o => `<option ${o === val ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>`;
+}
+/* 생년월일(주민번호) 문자열 파싱 — "64****-2 (만61세)" → { front:"64****", back:"2", age:"61" } */
+function parseBirth(raw) {
+  raw = String(raw || "");
+  const ageM = raw.match(/만\s*(\d+)\s*세/);
+  const resident = raw.split("(")[0].trim();          // "64****-2"
+  const parts = resident.split("-");
+  return {
+    front: (parts[0] || "").trim().slice(0, 6),
+    back: (parts[1] || "").trim().slice(0, 1),
+    age: ageM ? ageM[1] : "",
+  };
+}
+/* 주민번호 앞 6자리 + 뒷 1자리(성별·세기 구분)로 만 나이 자동계산 — 계산 불가 시 null */
+function calcManAge(front, back) {
+  if (!/^\d{6}$/.test(front || "")) return null;      // 앞 6자리가 모두 숫자일 때만 계산
+  const yy = +front.slice(0, 2), mm = +front.slice(2, 4), dd = +front.slice(4, 6);
+  if (mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+  let century;
+  if (back === "1" || back === "2" || back === "5" || back === "6") century = 1900;
+  else if (back === "3" || back === "4" || back === "7" || back === "8") century = 2000;
+  else if (back === "9" || back === "0") century = 1800;
+  else return null;
+  const birthY = century + yy;
+  const today = new Date();
+  let age = today.getFullYear() - birthY;
+  const tm = today.getMonth() + 1, td = today.getDate();
+  if (tm < mm || (tm === mm && td < dd)) age--;        // 올해 생일이 아직 안 지났으면 -1
+  return (age >= 0 && age <= 130) ? age : null;
+}
+/* 생년월일 입력 셀 — 주민번호 앞자리 / 뒷자리 첫 1자리 / 만 나이(자동계산·비활성) 3개 필드 */
+function ctBirthHtml(st) {
+  const age = calcManAge(st.birthFront, st.birthBack);
+  const ageVal = age != null ? String(age) : (st.birthAge || "");
+  return `<div class="lg-birth">`
+    + `<input type="text" inputmode="numeric" maxlength="6" class="lg-cin lg-birth-front" data-ct="birthFront" value="${iEsc(st.birthFront)}" placeholder="앞 6자리" data-desc="주민등록번호 앞 6자리(생년월일 YYMMDD)를 입력합니다.">`
+    + `<span class="lg-birth-sep">-</span>`
+    + `<input type="text" inputmode="numeric" maxlength="1" class="lg-cin lg-birth-back" data-ct="birthBack" value="${iEsc(st.birthBack)}" placeholder="●" data-desc="주민등록번호 뒷자리의 첫 1자리(성별·세기 구분)까지만 입력합니다.">`
+    + `<span class="lg-birth-mask">●●●●●●</span>`
+    + `<span class="lg-birth-age">만 <input type="text" class="lg-cin lg-birth-ageval" id="ctBirthAge" value="${iEsc(ageVal)}" disabled aria-label="만 나이 자동계산" data-desc="생년월일을 입력하면 만 나이가 자동으로 계산됩니다. 담당자가 직접 입력할 수 없습니다."> 세</span>`
+    + `</div>`;
 }
 function ctTaskChecksHtml(st) {
   return `<div class="lg-ctchecks">` + CT_TASKS.map(t =>
@@ -765,7 +808,7 @@ function intakeContractTab(d) {
     + lgTable([
       { k: "운전자", raw: ctText("driverName", st.driverName, "운전자명") },
       { k: "연락처", raw: ctText("phone", st.phone, "010-0000-0000") },
-      { k: "생년월일", raw: ctText("birth", st.birth, "YYMMDD-0") },
+      { k: "생년월일", raw: ctBirthHtml(st) },
       { k: "관계", raw: ctText("driverRel", st.driverRel, "예: 피보험자 본인") },
       { k: "면허종류", raw: ctSel("licenseType", st.licenseType, CT_LICENSE_TYPES) },
       { k: "면허번호", raw: ctText("licenseNo", st.licenseNo, "00-00-000000-00") },
@@ -844,7 +887,19 @@ function bindIntakeContract(d) {
   body.querySelectorAll("[data-ct]").forEach(el => {
     const ev = el.tagName === "SELECT" ? "change" : "input";
     el.addEventListener(ev, () => {
+      const isBirth = el.dataset.ct === "birthFront" || el.dataset.ct === "birthBack";
+      if (isBirth) {                               // 생년월일 필드는 숫자만 허용
+        const clean = el.value.replace(/\D/g, "");
+        if (clean !== el.value) el.value = clean;
+      }
       ctSetField(st, el.dataset.ct, el.value);
+      if (isBirth) {                               // 앞/뒷자리 변경 시 만 나이 자동 재계산
+        const ageEl = body.querySelector("#ctBirthAge");
+        if (ageEl) {
+          const age = calcManAge(st.birthFront, st.birthBack);
+          ageEl.value = age != null ? String(age) : "";
+        }
+      }
       if (el.dataset.ct === "accMajor") {          // 대분류 변경 → 세부분류 옵션 갱신
         const opts = CT_ACC_DETAILS[el.value] || [];
         st.accDetail = opts[0] || "";
