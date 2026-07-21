@@ -786,6 +786,14 @@ function ctBirthHtml(st) {
     + `<span class="lg-birth-age">만 <input type="text" class="lg-cin lg-birth-ageval" id="ctBirthAge" value="${iEsc(ageVal)}" disabled aria-label="만 나이 자동계산" data-desc="생년월일을 입력하면 만 나이가 자동으로 계산됩니다. 담당자가 직접 입력할 수 없습니다."> 세</span>`
     + `</div>`;
 }
+/* 개인정보동의 값 + 알림톡·문자 발송 아이콘 버튼 */
+function ctAgreeMsgHtml(d, st) {
+  const msgIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>`;
+  return `<div class="lg-agree">`
+    + `<span class="lg-agree-v">운전 Y / 소유 Y</span>`
+    + `<button type="button" class="lg-msgbtn" id="ctMsgBtn" title="알림톡·문자메세지 발송" aria-label="알림톡·문자메세지 발송" data-desc="운전자에게 개인정보 수집·이용 동의 안내 등 알림톡/문자메세지를 발송하는 창을 엽니다.">${msgIcon}</button>`
+    + `</div>`;
+}
 function ctTaskChecksHtml(st) {
   return `<div class="lg-ctchecks">` + CT_TASKS.map(t =>
     `<label class="lg-ctchk" data-desc="${t === "Moral사고" ? "Moral(모럴) 의심 사고로 지정하면 조사내용 입력 팝업이 열립니다." : `'${iEsc(t)}' 조사 항목으로 표시합니다.`}"><input type="checkbox" data-cttask="${iEsc(t)}" ${st.tasks.includes(t) ? "checked" : ""}><span>${iEsc(t)}</span></label>`
@@ -816,7 +824,7 @@ function intakeContractTab(d) {
       { k: "피보험자", v: P.insured.name }, { k: "연락처", v: P.insured.phone, blue: true },
       { k: "통보자", v: `${P.notifier.name || ""} ${P.notifier.rel ? "(" + P.notifier.rel + ")" : ""}`.trim() },
       { k: "연락처", v: P.notifier.phone, blue: true },
-      { k: "개동", v: "운전 Y / 소유 Y", full: true },
+      { k: "개동", raw: ctAgreeMsgHtml(d, st), full: true },
     ])
     + lgSect("사고 정보", "※ 담당자 수정 가능")
     + lgTable([
@@ -921,6 +929,8 @@ function bindIntakeContract(d) {
   }));
   const fb = body.querySelector("#ctCompFetch");
   if (fb) fb.addEventListener("click", () => fetchCompetitorInfo(d, st));
+  const mb = body.querySelector("#ctMsgBtn");
+  if (mb) mb.addEventListener("click", () => openMsgModal(d, st));
 }
 // 타사(경합 보험사) 정보 조회 — 데모: 임의 접수정보를 끌어와 채운다.
 function fetchCompetitorInfo(d, st) {
@@ -972,6 +982,61 @@ function openMoralModal(st) {
     st.moralNote = document.getElementById("ctMoralText").value;
     close(false);
     showToast("Moral 사고 조사내용을 저장했습니다.");
+  });
+}
+
+// 알림톡·문자메세지 발송 팝업 — 기본 문안 템플릿 (세부 문안은 추후 정의)
+const MSG_TEMPLATES = {
+  "개인정보 수집·이용 동의 안내": "[SK렌탈] {name} 고객님, 사고 처리를 위한 개인정보 수집·이용 동의가 필요합니다. 안내드린 링크에서 동의를 완료해 주세요. 감사합니다.",
+  "사고 접수 안내": "[SK렌탈] {name} 고객님, 접수하신 사고 건이 정상 접수되었습니다. 담당자가 순차적으로 진행 상황을 안내드리겠습니다.",
+  "직접 입력": "",
+};
+function ctMsgFillTemplate(t, name) {
+  return String(t || "").replace(/\{name\}/g, name || "고객");
+}
+// 운전자에게 알림톡/문자메세지를 발송하는 팝업 (개인정보동의 여부 옆 아이콘에서 호출)
+function openMsgModal(d, st) {
+  const dr = (d.parties && d.parties.driver) || {};
+  const name = st.driverName || dr.name || "";
+  const phone = st.phone || dr.phone || "";
+  const tplKeys = Object.keys(MSG_TEMPLATES);
+  const firstTpl = tplKeys[0];
+  let root = document.getElementById("ctMsgRoot");
+  if (!root) { root = document.createElement("div"); root.id = "ctMsgRoot"; document.body.appendChild(root); }
+  root.className = "ct-modal-root open";
+  root.innerHTML = `
+    <div class="ct-modal-bd"></div>
+    <div class="ct-modal ct-msg-modal" role="dialog" aria-modal="true" aria-label="알림톡·문자메세지 발송">
+      <div class="ct-modal-h"><b>알림톡 · 문자메세지 발송</b><button type="button" class="ct-modal-x" aria-label="닫기">×</button></div>
+      <div class="ct-modal-b">
+        <div class="lg-msg-ch">
+          <label class="lg-msg-chopt on"><input type="radio" name="ctMsgCh" value="알림톡" checked> 알림톡</label>
+          <label class="lg-msg-chopt"><input type="radio" name="ctMsgCh" value="문자메세지"> 문자메세지(SMS)</label>
+        </div>
+        <div class="lg-msg-to"><span class="k">수신자</span><span class="v">${iEsc(name || "-")} <b>${iEsc(phone || "번호 없음")}</b></span></div>
+        <div class="lg-msg-row"><span class="k">템플릿</span><select class="lg-sel" id="ctMsgTpl">${tplKeys.map(k => `<option value="${iEsc(k)}">${iEsc(k)}</option>`).join("")}</select></div>
+        <textarea id="ctMsgText" rows="6" placeholder="발송할 내용을 입력하세요.">${iEsc(ctMsgFillTemplate(MSG_TEMPLATES[firstTpl], name))}</textarea>
+        <p class="ct-modal-guide">※ 알림톡은 사전 승인된 템플릿, 문자메세지는 자유 문안으로 발송됩니다. (데모 화면으로 실제 발송되지 않습니다.)</p>
+      </div>
+      <div class="ct-modal-f"><button type="button" class="lg-abtn" id="ctMsgCancel">취소</button><button type="button" class="lg-abtn primary" id="ctMsgSend">발송</button></div>
+    </div>`;
+  const close = () => { root.classList.remove("open"); root.innerHTML = ""; };
+  root.querySelector(".ct-modal-bd").addEventListener("click", close);
+  root.querySelector(".ct-modal-x").addEventListener("click", close);
+  root.querySelector("#ctMsgCancel").addEventListener("click", close);
+  root.querySelectorAll('input[name="ctMsgCh"]').forEach(r => r.addEventListener("change", () => {
+    root.querySelectorAll(".lg-msg-chopt").forEach(l => l.classList.toggle("on", l.querySelector("input").checked));
+  }));
+  root.querySelector("#ctMsgTpl").addEventListener("change", e => {
+    root.querySelector("#ctMsgText").value = ctMsgFillTemplate(MSG_TEMPLATES[e.target.value] || "", name);
+  });
+  root.querySelector("#ctMsgSend").addEventListener("click", () => {
+    const ch = (root.querySelector('input[name="ctMsgCh"]:checked') || {}).value || "알림톡";
+    const text = (root.querySelector("#ctMsgText").value || "").trim();
+    if (!phone) { showToast("수신자 연락처가 없어 발송할 수 없습니다."); return; }
+    if (!text) { showToast("발송할 내용을 입력하세요."); return; }
+    close();
+    showToast(`${name || "수신자"}님에게 ${ch}을(를) 발송했습니다.`);
   });
 }
 

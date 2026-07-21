@@ -154,6 +154,28 @@
   .ct-modal-b textarea:focus { outline: none; border-color: #2F5BB7; box-shadow: 0 0 0 3px rgba(47,91,183,.15); }
   .ct-modal-f { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px 16px; }
 
+  /* 개인정보동의 옆 알림톡·문자 발송 아이콘 */
+  .lg-agree { display: inline-flex; align-items: center; gap: 8px; }
+  .lg-agree-v { color: #242832; }
+  .lg-msgbtn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 24px;
+    border: 1px solid #C6D7F2; border-radius: 6px; background: #EAF0FB; color: #2F5BB7; cursor: pointer; flex: none; padding: 0; }
+  .lg-msgbtn:hover { background: #DCE7FA; border-color: #2F5BB7; }
+  .lg-msgbtn svg { width: 15px; height: 15px; }
+  /* 알림톡·문자 발송 팝업 */
+  .lg-msg-ch { display: inline-flex; border: 1px solid #C9D0DE; border-radius: 8px; overflow: hidden; margin-bottom: 12px; }
+  .lg-msg-chopt { display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px; font-size: 12.5px; font-weight: 700;
+    color: #5B6273; background: #fff; cursor: pointer; border-left: 1px solid #C9D0DE; }
+  .lg-msg-chopt:first-child { border-left: none; }
+  .lg-msg-chopt.on { background: #2F5BB7; color: #fff; }
+  .lg-msg-chopt input { display: none; }
+  .lg-msg-to { display: flex; align-items: center; gap: 10px; font-size: 12.5px; margin-bottom: 10px; }
+  .lg-msg-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .lg-msg-to .k, .lg-msg-row .k { width: 52px; flex: none; color: #3A3F4E; font-weight: 700; }
+  .lg-msg-to .v { color: #242832; }
+  .lg-msg-to .v b { color: #2F5BB7; }
+  .lg-msg-row .lg-sel { flex: 1; }
+  .ct-msg-modal .ct-modal-guide { margin: 10px 0 0; }
+
   /* ===== 피해 진행 정보 탭 — 편집 컨트롤 ===== */
   .lg-cin.ta-r { text-align: right; }
   .lg-skval { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: #242832; }
