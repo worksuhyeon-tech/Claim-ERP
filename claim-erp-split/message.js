@@ -190,7 +190,7 @@ function headerHtml() {
     <span class="meta">사고번호 <b>${esc(CTX.claimId)}</b>${CTX.custName ? ` · 고객 <b>${esc(CTX.custName)}</b>` : ""}${CTX.carNo ? ` · ${esc(CTX.carNo)}` : ""}</span>
     <span class="sp"></span>
     <span class="role">권한(데모)
-      <select id="roleSel">
+      <select id="roleSel" data-desc="데모용 권한 전환입니다. '시스템담당자'를 선택하면 표준문구설정 버튼이 추가로 표시됩니다.">
         <option value="STAFF" ${state.role === "STAFF" ? "selected" : ""}>담당자(직원)</option>
         <option value="ADMIN" ${state.role === "ADMIN" ? "selected" : ""}>시스템담당자</option>
       </select>
@@ -204,7 +204,7 @@ function noticeHtml() {
 function leftTopCard() {
   const rows = repTplList().map(t => tplRow("ALIMTALK", t.id, t.cat, t.title, "at")).join("");
   return `<div class="card">
-    <div class="card-h"><span class="no">1</span><span class="ti">대표 템플릿</span><span class="hint">알림톡 · SK 대표번호로 발송</span></div>
+    <div class="card-h" data-desc="시스템담당자가 등록한 승인 알림톡 목록입니다. 선택하면 SK 대표번호로 발송되며 내용은 수정할 수 없습니다."><span class="no">1</span><span class="ti">대표 템플릿</span><span class="hint">알림톡 · SK 대표번호로 발송</span></div>
     <div class="card-b">
       <div class="sender-note">이 목록은 시스템담당자가 등록한 <b>승인 알림톡</b>입니다. <b>${esc(ALIMTALK_SENDER.no)}</b>(SK 대표번호)로 발송되며 <b>내용은 수정할 수 없습니다.</b></div>
       <div class="tpl-list">${rows || `<div class="empty">등록된 대표 템플릿이 없습니다.</div>`}</div>
@@ -217,7 +217,7 @@ function leftBottomCard() {
     return tplRow("LMS", t.id, t.kind, t.title, cls);
   }).join("");
   return `<div class="card">
-    <div class="card-h"><span class="no">2</span><span class="ti">문자(LMS) 템플릿</span><span class="hint">표준문구 + 내 문구 · 내용 수정 가능</span></div>
+    <div class="card-h" data-desc="표준문구(시스템)와 내가 만든 개인문구 목록입니다. 선택하면 문자(LMS)로 발송되고, 발송내용을 자유롭게 수정할 수 있습니다."><span class="no">2</span><span class="ti">문자(LMS) 템플릿</span><span class="hint">표준문구 + 내 문구 · 내용 수정 가능</span></div>
     <div class="card-b">
       <div class="sender-note">문자(LMS)는 <b>${esc(ME_MOBILE || "내 번호 미등록")}</b>${ME_MOBILE ? ` (${esc(ME_NAME)} 담당자 번호)` : ""}로 발송됩니다. 선택 후 <b>내용을 수정</b>할 수 있습니다.${ME_MOBILE ? "" : ` <span class="miss">발신번호가 없어 문자 발송이 제한됩니다.</span>`}</div>
       <div class="tpl-list">${rows || `<div class="empty">템플릿이 없습니다.</div>`}</div>
@@ -226,17 +226,20 @@ function leftBottomCard() {
 }
 function tplRow(channel, id, cat, title, catCls) {
   const on = (state.channel === channel && state.tplId === id) ? " on" : "";
-  return `<button type="button" class="tpl${on}" data-ch="${channel}" data-tpl="${esc(id)}">
+  const desc = channel === "ALIMTALK"
+    ? "알림톡 승인 템플릿입니다. 선택하면 SK 대표번호로 발송되며 내용은 수정할 수 없습니다."
+    : (catCls === "free" ? "빈 문서로 시작해 직접 작성하는 자유문구입니다. 문자(LMS)로 발송됩니다." : "선택하면 발송내용에 채워지고, 문자(LMS)로 수정·발송할 수 있습니다.");
+  return `<button type="button" class="tpl${on}" data-ch="${channel}" data-tpl="${esc(id)}" data-desc="${esc(desc)}">
     <span class="cat ${catCls}">${esc(cat)}</span>
     <span class="body"><span class="tt">${esc(title)}</span></span>
   </button>`;
 }
 
 function leftBtns() {
-  const admin = state.role === "ADMIN" ? `<button type="button" class="lbtn admin" data-open="std">표준문구설정</button>` : "";
+  const admin = state.role === "ADMIN" ? `<button type="button" class="lbtn admin" data-open="std" data-desc="시스템 공용 표준문구를 등록·수정·삭제합니다. (시스템담당자 전용)">표준문구설정</button>` : "";
   return `<div class="lbtns">
-    <button type="button" class="lbtn" data-open="addr">주소록</button>
-    <button type="button" class="lbtn" data-open="tpl">템플릿설정</button>
+    <button type="button" class="lbtn" data-open="addr" data-desc="자주 쓰는 지급처 연락처(정비·부품·렌트 등)를 등록·관리합니다. 저장하면 '받는 사람'에 나타납니다.">주소록</button>
+    <button type="button" class="lbtn" data-open="tpl" data-desc="개인 문구를 등록하고 단축키(Alt+숫자)를 지정합니다. 발송 화면에서 Alt+숫자로 바로 불러옵니다.">템플릿설정</button>
     ${admin}
   </div>`;
 }
@@ -245,9 +248,9 @@ function rightCard(c) {
   const head = `<div class="rc-head"><span></span><span>구분</span><span>고객명</span><span>연락처</span></div>`;
   const list = state.contacts.map(rcRow).join("") || `<div class="empty">등록된 연락처가 없습니다.</div>`;
   const manual = `<div class="rc-manual">
-      <input class="mn" id="mName" type="text" placeholder="이름" />
-      <input class="mp" id="mPhone" type="text" inputmode="numeric" placeholder="휴대폰번호 (예: 010-1234-5678)" />
-      <button type="button" class="add" id="mAdd">번호 추가</button>
+      <input class="mn" id="mName" type="text" placeholder="이름" data-desc="목록에 없는 사람에게 보낼 때 이름을 입력합니다.(선택)" />
+      <input class="mp" id="mPhone" type="text" inputmode="numeric" placeholder="휴대폰번호 (예: 010-1234-5678)" data-desc="직접 보낼 휴대폰번호를 입력합니다. 형식이 맞으면 '번호 추가'로 수신자에 등록됩니다." />
+      <button type="button" class="add" id="mAdd" data-desc="입력한 이름·번호를 수신자 목록에 추가합니다.">번호 추가</button>
     </div>`;
 
   const chLabel = state.channel === "ALIMTALK" ? "알림톡" : state.channel === "LMS" ? "문자(LMS)" : "";
@@ -260,7 +263,7 @@ function rightCard(c) {
     : `<span class="len">왼쪽에서 템플릿을 먼저 선택하세요.</span>`;
 
   return `<div class="card">
-    <div class="card-h"><span class="no">3</span><span class="ti">받는 사람</span><span class="hint">보낼 사람을 선택하세요 (여러 명 가능)</span></div>
+    <div class="card-h" data-desc="사고 관련자(피보험자·계약자·통보자·운전자)와 지급처 연락처입니다. 보낼 사람을 체크로 선택하세요(여러 명 가능). 번호 형식이 잘못되면 발송 대상에서 제외됩니다."><span class="no">3</span><span class="ti">받는 사람</span><span class="hint">보낼 사람을 선택하세요 (여러 명 가능)</span></div>
     <div class="card-b">
       ${head}
       <div class="rc-list">${list}</div>
@@ -268,15 +271,15 @@ function rightCard(c) {
     </div>
   </div>
   <div class="card">
-    <div class="card-h"><span class="no">4</span><span class="ti">발송 내용</span>${chLabel ? `<span class="hint">${esc(chLabel)}${c.senderNo ? " · 발신 " + esc(c.senderNo) : ""}</span>` : ""}</div>
+    <div class="card-h" data-desc="실제 발송될 내용입니다. 알림톡은 수정할 수 없고, 문자(LMS)는 수정할 수 있습니다. #{변수}는 발송 시 사고건 정보로 자동 치환됩니다."><span class="no">4</span><span class="ti">발송 내용</span>${chLabel ? `<span class="hint">${esc(chLabel)}${c.senderNo ? " · 발신 " + esc(c.senderNo) : ""}</span>` : ""}</div>
     <div class="card-b">
-      <textarea class="content-ta" id="contentTa" ${locked ? "readonly" : ""} placeholder="${locked ? "알림톡은 승인 템플릿 내용으로 발송되어 수정할 수 없습니다." : "보낼 내용을 입력하세요. 위 템플릿을 선택하면 자동으로 채워집니다."}">${esc(state.content)}</textarea>
+      <textarea class="content-ta" id="contentTa" data-desc="실제 발송 내용입니다. 알림톡은 수정 불가, 문자(LMS)는 수정 가능합니다. #{...} 변수가 남아 있으면 발송할 수 없습니다." ${locked ? "readonly" : ""} placeholder="${locked ? "알림톡은 승인 템플릿 내용으로 발송되어 수정할 수 없습니다." : "보낼 내용을 입력하세요. 위 템플릿을 선택하면 자동으로 채워집니다."}">${esc(state.content)}</textarea>
       <div class="content-meta">${metaTag}</div>
       ${locked ? `<div class="sender-note" style="margin-top:10px">알림톡은 사전 승인된 템플릿만 발송할 수 있어 내용을 바꿀 수 없습니다.</div>` : ""}
       <div class="send-row">
         <span class="len">${c.recipOk ? selectedContacts().length + "명 선택됨" : "받는 사람을 1명 이상 선택하세요."}</span>
         <span class="sp"></span>
-        <button type="button" class="send-btn" id="sendBtn" ${c.canSend ? "" : "disabled"}>${esc(sendLabel)}</button>
+        <button type="button" class="send-btn" id="sendBtn" data-desc="선택한 수신자에게 발송합니다. 발송 전 확인 창에서 수신자 수와 미리보기를 확인합니다." ${c.canSend ? "" : "disabled"}>${esc(sendLabel)}</button>
       </div>
     </div>
   </div>`;
@@ -387,8 +390,8 @@ function openConfirm() {
       <div class="dlg-note">데모 화면으로 실제 발송되지 않으며, 받는 사람별로 성공/실패 결과가 임의 생성됩니다.</div>
     </div>
     <div class="dlg-f">
-      <button type="button" class="dlg-btn" id="cCancel">취소</button>
-      <button type="button" class="dlg-btn primary" id="cGo">발송하기</button>
+      <button type="button" class="dlg-btn" id="cCancel" data-desc="발송을 취소하고 이전 화면으로 돌아갑니다.">취소</button>
+      <button type="button" class="dlg-btn primary" id="cGo" data-desc="표시된 수신자에게 발송합니다.(데모: 실제 발송되지 않음)">발송하기</button>
     </div>`;
   document.getElementById("confirmOv").classList.add("open");
   document.getElementById("cCancel").addEventListener("click", closeConfirm);
@@ -453,17 +456,17 @@ function openStdSettings() {
           <label class="fld"><span class="k">상담유형</span><select id="dConsult">${STD_CONSULT.map(o => `<option ${o === draft.consultType ? "selected" : ""}>${o}</option>`).join("")}</select></label>
           <label class="fld"><span class="k">메시지유형</span><input id="dMsgType" value="${esc(draft.msgType)}"></label>
           <label class="fld"><span class="k">송신내용</span><input id="dSend" value="${esc(draft.sendType)}"></label>
-          <div class="fld var"><span class="k">문구변수</span><select id="dVar">${VAR_KEYS.map(k => `<option value="${esc(k)}">#{${esc(k)}}</option>`).join("")}</select><button class="set-mini" id="dVarCopy">변수복사(문구에 삽입)</button></div>
+          <div class="fld var"><span class="k">문구변수</span><select id="dVar" data-desc="문구에 넣을 변수를 고릅니다. 발송 시 사고건 정보로 자동 치환됩니다.">${VAR_KEYS.map(k => `<option value="${esc(k)}">#{${esc(k)}}</option>`).join("")}</select><button class="set-mini" id="dVarCopy" data-desc="선택한 변수를 아래 문구의 커서 위치에 #{변수} 형태로 삽입합니다.">변수복사(문구에 삽입)</button></div>
           <label class="fld full"><span class="k">문구</span><textarea id="dContent" rows="6" placeholder="문구를 입력하세요. 변수는 #{고객명} 처럼 넣으면 발송 시 자동 치환됩니다.">${esc(draft.content)}</textarea></label>
         </div>
       </div>
       <div class="set-f">
-        <button class="dlg-btn" id="stdNew">신규</button>
-        <button class="dlg-btn" id="stdApply">반영</button>
-        <button class="dlg-btn" id="stdDel">삭제</button>
+        <button class="dlg-btn" id="stdNew" data-desc="상세 입력란을 비우고 새 표준문구를 작성합니다.">신규</button>
+        <button class="dlg-btn" id="stdApply" data-desc="상세 편집 내용을 위 리스트의 선택 행에 반영합니다.(아직 저장 전)">반영</button>
+        <button class="dlg-btn" id="stdDel" data-desc="체크한 표준문구를 리스트에서 삭제합니다.(저장 시 확정)">삭제</button>
         <span style="flex:1"></span>
-        <button class="dlg-btn primary" id="stdSave">저장</button>
-        <button class="dlg-btn" id="stdClose">닫기</button>
+        <button class="dlg-btn primary" id="stdSave" data-desc="변경 내용을 최종 저장하고 발송 화면의 표준문구 목록에 반영합니다.">저장</button>
+        <button class="dlg-btn" id="stdClose" data-desc="저장하지 않고 창을 닫습니다.">닫기</button>
       </div>`);
     const dlg = document.getElementById("setDlg");
     document.getElementById("stdX").onclick = closeSet;
@@ -522,9 +525,9 @@ function openAddressBook() {
           <div class="set-tbl-h addr"><span></span><span>구분</span><span>고객구분</span><span>성명</span><span>전화번호</span></div>
           <div class="set-tbl-b" style="max-height:340px">${body}</div>
         </div>
-        <div class="set-rowbtns"><button class="set-mini" id="adAdd">＋ 행 추가</button><button class="set-mini" id="adDel">－ 선택 삭제</button></div>
+        <div class="set-rowbtns"><button class="set-mini" id="adAdd" data-desc="빈 연락처 행을 추가합니다.">＋ 행 추가</button><button class="set-mini" id="adDel" data-desc="체크한 행을 삭제합니다.">－ 선택 삭제</button></div>
       </div>
-      <div class="set-f"><span style="flex:1"></span><button class="dlg-btn primary" id="adSave">저장</button><button class="dlg-btn" id="adClose">닫기</button></div>`);
+      <div class="set-f"><span style="flex:1"></span><button class="dlg-btn primary" id="adSave" data-desc="주소록을 저장하고 발송 화면의 '받는 사람'에 반영합니다. 번호 형식 오류 행은 제외됩니다.">저장</button><button class="dlg-btn" id="adClose" data-desc="저장하지 않고 창을 닫습니다.">닫기</button></div>`);
     const dlg = document.getElementById("setDlg");
     document.getElementById("adX").onclick = closeSet; document.getElementById("adClose").onclick = closeSet;
     dlg.querySelectorAll("[data-ad]").forEach(el => el.addEventListener("input", () => { const a = el.dataset.ad.split("|"); rows[+a[1]][a[0]] = el.value; }));
@@ -553,10 +556,10 @@ function openTplSettings() {
   function paint() {
     const body = rows.map((r, i) => `
       <div class="set-row tpl">
-        <span class="slot">${i + 1}</span>
-        <span><input data-tp="title|${i}" value="${esc(r.title)}" placeholder="제목(선택)"></span>
-        <span><textarea data-tp="content|${i}" rows="2" placeholder="내용을 입력하세요">${esc(r.content)}</textarea></span>
-        <span class="ord"><button class="set-mini" data-tp-up="${i}" ${i === 0 ? "disabled" : ""}>▲</button><button class="set-mini" data-tp-dn="${i}" ${i === rows.length - 1 ? "disabled" : ""}>▼</button><button class="set-mini del" data-tp-del="${i}">×</button></span>
+        <span class="slot" data-desc="이 번호가 단축키입니다. 발송 화면에서 Alt+${i + 1}을 누르면 이 템플릿이 세팅됩니다.">${i + 1}</span>
+        <span><input data-tp="title|${i}" value="${esc(r.title)}" placeholder="제목(선택)" data-desc="목록에 표시될 제목입니다.(비우면 내용 첫 줄이 제목이 됩니다)"></span>
+        <span><textarea data-tp="content|${i}" rows="2" placeholder="내용을 입력하세요" data-desc="문자(LMS) 본문입니다. #{고객명} 같은 변수를 넣으면 발송 시 자동 치환됩니다.">${esc(r.content)}</textarea></span>
+        <span class="ord"><button class="set-mini" data-tp-up="${i}" ${i === 0 ? "disabled" : ""} data-desc="위로 이동(단축키 번호가 바뀝니다).">▲</button><button class="set-mini" data-tp-dn="${i}" ${i === rows.length - 1 ? "disabled" : ""} data-desc="아래로 이동(단축키 번호가 바뀝니다).">▼</button><button class="set-mini del" data-tp-del="${i}" data-desc="이 템플릿을 삭제합니다.">×</button></span>
       </div>`).join("") || `<div class="empty">등록된 개인 템플릿이 없습니다. [＋ 행 추가]로 등록하세요.</div>`;
     openSet(`
       <div class="set-h"><b>템플릿설정 · 단축키 관리</b><button class="set-x" id="tpX">×</button></div>
@@ -566,9 +569,9 @@ function openTplSettings() {
           <div class="set-tbl-h tpl"><span>순번</span><span>제목</span><span>내용</span><span>정렬</span></div>
           <div class="set-tbl-b" style="max-height:360px">${body}</div>
         </div>
-        <div class="set-rowbtns"><button class="set-mini" id="tpAdd" ${rows.length >= 9 ? "disabled" : ""}>＋ 행 추가 (최대 9)</button></div>
+        <div class="set-rowbtns"><button class="set-mini" id="tpAdd" ${rows.length >= 9 ? "disabled" : ""} data-desc="개인 템플릿 행을 추가합니다.(최대 9개)">＋ 행 추가 (최대 9)</button></div>
       </div>
-      <div class="set-f"><span style="flex:1"></span><button class="dlg-btn primary" id="tpOk">확인</button><button class="dlg-btn" id="tpCancel">취소</button></div>`);
+      <div class="set-f"><span style="flex:1"></span><button class="dlg-btn primary" id="tpOk" data-desc="개인 템플릿을 저장하고 발송 화면의 개인문구 목록·단축키에 반영합니다.">확인</button><button class="dlg-btn" id="tpCancel" data-desc="변경을 취소하고 창을 닫습니다.">취소</button></div>`);
     const dlg = document.getElementById("setDlg");
     document.getElementById("tpX").onclick = closeSet; document.getElementById("tpCancel").onclick = closeSet;
     dlg.querySelectorAll("[data-tp]").forEach(el => el.addEventListener("input", () => { const a = el.dataset.tp.split("|"); rows[+a[1]][a[0]] = el.value; }));
@@ -583,5 +586,43 @@ function openTplSettings() {
   }
   paint();
 }
+
+/* [data-desc] 요소에 마우스를 올리면(또는 포커스하면) 기능 설명을 말풍선으로 노출 */
+(function initDescTooltips() {
+  const tip = document.createElement("div");
+  tip.id = "clTooltip";
+  document.body.appendChild(tip);
+  let current = null;
+  function place(el) {
+    const text = el.getAttribute("data-desc");
+    if (!text) return;
+    current = el;
+    tip.textContent = text;
+    tip.classList.remove("above", "below");
+    tip.style.visibility = "hidden";
+    tip.classList.add("show");
+    const r = el.getBoundingClientRect();
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    const vw = document.documentElement.clientWidth;
+    const gap = 10;
+    let left = r.left + r.width / 2 - tw / 2;
+    left = Math.max(8, Math.min(left, vw - tw - 8));
+    let top = r.top - th - gap;
+    if (top < 8) { top = r.bottom + gap; tip.classList.add("below"); }
+    else { tip.classList.add("above"); }
+    const arrow = r.left + r.width / 2 - left;
+    tip.style.setProperty("--tip-arrow", Math.max(12, Math.min(arrow, tw - 12)) + "px");
+    tip.style.left = left + "px";
+    tip.style.top = top + "px";
+    tip.style.visibility = "visible";
+  }
+  function hide() { current = null; tip.classList.remove("show"); }
+  document.addEventListener("mouseover", e => { const el = e.target.closest("[data-desc]"); if (el && el !== current) place(el); });
+  document.addEventListener("mouseout", e => { const el = e.target.closest("[data-desc]"); if (el && el === current && !el.contains(e.relatedTarget)) hide(); });
+  document.addEventListener("focusin", e => { const el = e.target.closest("[data-desc]"); if (el) place(el); });
+  document.addEventListener("focusout", hide);
+  window.addEventListener("scroll", hide, true);
+  document.addEventListener("click", hide, true);
+})();
 
 document.addEventListener("DOMContentLoaded", render);
