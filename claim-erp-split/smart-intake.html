@@ -175,6 +175,73 @@
   .lg-msg-to .v b { color: #2F5BB7; }
   .lg-msg-row .lg-sel { flex: 1; }
   .ct-msg-modal .ct-modal-guide { margin: 10px 0 0; }
+  /* ===== 알림톡·LMS 발송 모달 (작업지시서 데모) ===== */
+  .ct-msg-modal { width: 560px; }
+  .ct-msg-modal .ct-modal-b { max-height: 72vh; overflow: auto; }
+  .msg-sect { font-size: 11.5px; font-weight: 800; color: #2F5BB7; margin: 14px 0 6px; letter-spacing: .2px; }
+  .msg-sect:first-child { margin-top: 0; }
+  .msg-sect small { color: #8A90A0; font-weight: 700; }
+  .msg-sender { font-size: 12px; margin: -2px 0 2px; }
+  .msg-sender .ok { color: #3A3F4E; } .msg-sender .ok b { color: #2F5BB7; }
+  .msg-sender .err { color: #C0392B; font-weight: 700; }
+  .msg-quicks { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+  .msg-quick { display: inline-flex; align-items: center; gap: 5px; border: 1px solid #C6D7F2; background: #EAF0FB; color: #2F5BB7;
+    font-size: 11.5px; font-weight: 700; padding: 4px 9px; border-radius: 999px; cursor: pointer; max-width: 100%; }
+  .msg-quick small { color: #7C86A0; font-weight: 700; }
+  .msg-quick:hover { background: #DCE7FA; border-color: #2F5BB7; }
+  .msg-tabs { display: inline-flex; border: 1px solid #C9D0DE; border-radius: 8px; overflow: hidden; margin-bottom: 8px; }
+  .msg-tab { padding: 6px 16px; font-size: 12px; font-weight: 700; color: #5B6273; background: #fff; cursor: pointer; border: 0; border-left: 1px solid #C9D0DE; }
+  .msg-tab:first-child { border-left: 0; }
+  .msg-tab.on { background: #2F5BB7; color: #fff; }
+  .msg-tpllist { display: flex; flex-direction: column; gap: 4px; max-height: 148px; overflow: auto; border: 1px solid #E6EAF2; border-radius: 8px; padding: 6px; }
+  .msg-tplrow { display: flex; align-items: center; gap: 8px; text-align: left; border: 1px solid transparent; background: #fff; border-radius: 6px; padding: 6px 8px; cursor: pointer; font-family: inherit; }
+  .msg-tplrow:hover { background: #F5F8FC; }
+  .msg-tplrow.on { border-color: #2F5BB7; background: #EEF4FF; }
+  .msg-tplrow .ti { flex: 1; font-size: 12.5px; font-weight: 700; color: #242832; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .msg-tplrow .tc { font-size: 11px; color: #8A90A0; flex: none; }
+  .msg-badge { font-size: 10px; font-weight: 800; border-radius: 4px; padding: 1px 6px; flex: none; }
+  .msg-badge.at { color: #6B3FA0; background: #F0E9FB; }
+  .msg-badge.sms { color: #1F7A4D; background: #E1F5EA; }
+  .msg-addrow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .msg-addrow.wrap { max-height: 66px; overflow: auto; }
+  .msg-in { flex: 1; min-width: 90px; box-sizing: border-box; border: 1px solid #C9D0DE; border-radius: 6px; padding: 5px 8px; font-size: 12px; font-family: inherit; }
+  .msg-in:focus { outline: none; border-color: #2F5BB7; box-shadow: 0 0 0 2px rgba(47,91,183,.15); }
+  .msg-addbtn { border: 1px dashed #B9C6DE; background: #F7FAFF; color: #3A5A94; font-size: 11.5px; font-weight: 700; padding: 4px 9px; border-radius: 6px; cursor: pointer; }
+  .msg-addbtn small { color: #8A90A0; font-weight: 700; }
+  .msg-addbtn:hover { border-color: #2F5BB7; background: #EEF4FF; }
+  .msg-chips { display: flex; flex-wrap: wrap; gap: 6px; min-height: 30px; border: 1px solid #E6EAF2; border-radius: 8px; padding: 7px; }
+  .msg-chip { display: inline-flex; align-items: center; gap: 5px; background: #EEF2F8; border: 1px solid #D3DBEA; border-radius: 999px; padding: 2px 6px 2px 3px; font-size: 11.5px; color: #242832; }
+  .msg-chip .ct { font-size: 9.5px; font-weight: 800; color: #fff; background: #7B8AA6; border-radius: 999px; padding: 1px 6px; }
+  .msg-chip.bad { background: #FDECEC; border-color: #F3C0C0; color: #C0392B; }
+  .msg-chip.bad .ct { background: #C0392B; }
+  .msg-chip-x { border: 0; background: none; color: #7C86A0; cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px; }
+  .msg-chip-x:hover { color: #C0392B; }
+  .msg-empty { font-size: 11.5px; color: #9AA0B0; }
+  .ct-msg-modal textarea#msgBody { width: 100%; box-sizing: border-box; border: 1px solid #C9D0DE; border-radius: 8px; padding: 9px; font-size: 12.5px; line-height: 1.6; font-family: inherit; resize: vertical; }
+  .ct-msg-modal textarea#msgBody[readonly] { background: #F5F6F9; color: #56606F; }
+  .msg-vars { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+  .msg-var { display: flex; align-items: center; gap: 6px; }
+  .msg-var .vn { font-size: 11px; font-weight: 700; color: #2F5BB7; white-space: nowrap; }
+  .msg-var input { flex: 1; min-width: 0; box-sizing: border-box; border: 1px solid #C9D0DE; border-radius: 6px; padding: 4px 7px; font-size: 12px; font-family: inherit; }
+  .msg-var.miss input { border-color: #E8B84B; background: #FFFBEF; }
+  .msg-meta { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 8px 0 4px; }
+  .msg-type { font-size: 10.5px; font-weight: 800; border-radius: 4px; padding: 2px 7px; }
+  .msg-type.at { color: #6B3FA0; background: #F0E9FB; }
+  .msg-type.sms { color: #1F7A4D; background: #E1F5EA; }
+  .msg-type.lms { color: #B45309; background: #FEF3C7; }
+  .msg-byte { font-size: 11.5px; font-weight: 700; color: #5B6273; font-variant-numeric: tabular-nums; }
+  .msg-byte.over { color: #C0392B; }
+  .msg-warn { font-size: 11px; font-weight: 700; color: #C0392B; }
+  .msg-preview { border: 1px solid #E6EAF2; border-radius: 8px; overflow: hidden; margin-top: 4px; }
+  .msg-preview .pv-h { background: #F5F8FC; padding: 5px 10px; font-size: 11px; font-weight: 800; color: #5B6273; }
+  .msg-preview .pv-b { padding: 10px; font-size: 12.5px; line-height: 1.6; color: #242832; white-space: pre-wrap; word-break: break-all; }
+  .msg-note { margin: 8px 0 0; font-size: 11.5px; color: #8A6D3B; background: #FEF9EC; border-radius: 6px; padding: 7px 9px; }
+  .msg-opt { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 12px; color: #3A3F4E; cursor: pointer; }
+  .msg-opt input { accent-color: #2F5BB7; }
+  .msg-confirm-q { font-size: 14px; color: #242832; margin: 2px 0 6px; }
+  .msg-confirm-q b { color: #2F5BB7; }
+  .msg-confirm-meta { font-size: 12px; color: #5B6273; margin-bottom: 10px; }
+  .msg-confirm-meta b { color: #242832; }
 
   /* ===== 피해 진행 정보 탭 — 편집 컨트롤 ===== */
   .lg-cin.ta-r { text-align: right; }
