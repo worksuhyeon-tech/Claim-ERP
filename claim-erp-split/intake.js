@@ -721,6 +721,18 @@ const CT_ACC_DETAILS = {
   "계약위반(음주·약물 등)": ["음주운전", "약물운전", "무면허운전", "사고후 미조치(뺑소니)"],
 };
 const CT_TASKS = ["Moral사고", "당일사고", "근접배서", "심야사고", "범위위배", "무면허운전", "타차운전"];
+// 시스템이 사고·계약 데이터로 자동 판단하는 항목(담당자 수정 불가)
+const CT_AUTO_TASKS = ["당일사고", "근접배서", "심야사고"];
+// 조사 Task 항목별 설명(툴팁)
+const CT_TASK_DESC = {
+  "Moral사고": "고의·기획 등 도덕적 위험(Moral)이 의심되는 사고. 체크하면 조사내용 입력 팝업이 열립니다.",
+  "당일사고": "보험 가입일(계약 개시일)과 사고 발생일이 같은 날인 사고. 시스템이 자동 판단합니다.",
+  "근접배서": "사고 직전(30일 이내) 계약 배서(담보 추가·변경)가 있었던 사고. 시스템이 자동 판단합니다.",
+  "심야사고": "심야 시간대(22시~06시)에 발생한 사고. 사고일시로 시스템이 자동 판단합니다.",
+  "범위위배": "운전 가능 범위(운전자 한정·연령 등)를 벗어난 상태에서 발생한 사고입니다.",
+  "무면허운전": "무면허(면허 정지·취소 포함) 상태에서 운전 중 발생한 사고입니다.",
+  "타차운전": "다른 자동차 운전 담보로, 다른 차량 운전 중 발생한 사고입니다.",
+};
 
 const intakeContractState = {};
 function getContractState(id, d) {
@@ -735,7 +747,7 @@ function getContractState(id, d) {
       content: A.content || "", note: A.note || "",
       accMajor: "차대차", accDetail: CT_ACC_DETAILS["차대차"][0],
       tasks: (A.otherDrive && A.otherDrive !== "해당없음") ? ["타차운전"] : [], moralNote: "",
-      police: (A.police === "신고접수") ? "신고" : "미신고", policeStation: "",
+      police: (A.police === "신고접수") ? "신고" : "미신고", policeStation: "", policeOfficer: "", policeOfficerPhone: "",
       comp: { insurer: "", caseNo: "", staff: "", staffPhone: "", faultRate: "", faultFixed: "미확정", place: A.place || "", accType: "", dispatched: "미출동", content: "" },
     };
   }
@@ -796,17 +808,45 @@ function ctAgreeMsgHtml(d, st) {
     + `<button type="button" class="lg-msgbtn" id="ctMsgBtn" title="알림톡·문자메세지 발송" aria-label="알림톡·문자메세지 발송" data-desc="운전자에게 개인정보 수집·이용 동의 안내 등 알림톡/문자메세지를 발송하는 창을 엽니다.">${msgIcon}</button>`
     + `</div>`;
 }
-function ctTaskChecksHtml(st) {
-  return `<div class="lg-ctchecks">` + CT_TASKS.map(t =>
-    `<label class="lg-ctchk" data-desc="${t === "Moral사고" ? "Moral(모럴) 의심 사고로 지정하면 조사내용 입력 팝업이 열립니다." : `'${iEsc(t)}' 조사 항목으로 표시합니다.`}"><input type="checkbox" data-cttask="${iEsc(t)}" ${st.tasks.includes(t) ? "checked" : ""}><span>${iEsc(t)}</span></label>`
-  ).join("") + `</div>`;
+/* 사고일시/계약 데이터로 자동판단하는 조사 Task 계산 */
+function ctParseDate(s) { const m = String(s || "").match(/(\d{4})[-.\/](\d{1,2})[-.\/](\d{1,2})/); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; }
+function ctParseHour(s) { const m = String(s || "").match(/(\d{1,2}):(\d{2})/); return m ? +m[1] : null; }
+function computeAutoTasks(d, st) {
+  const acc = ctParseDate(st.datetime), hour = ctParseHour(st.datetime);
+  const contract = (d && d.contract) || {};
+  const start = ctParseDate(contract.carPeriod);                 // 계약 개시일
+  const endorse = ctParseDate(contract.premium);                 // 영수/배서 근사일
+  const hasEndorse = contract.change && contract.change !== "없음";
+  const sameDay = (a, b) => !!(a && b && a.getTime() === b.getTime());
+  const daysGap = (a, b) => (a && b) ? Math.abs((a - b) / 86400000) : Infinity;
+  return {
+    "심야사고": hour != null && (hour >= 22 || hour < 6),
+    "당일사고": sameDay(acc, start),
+    "근접배서": !!hasEndorse && daysGap(acc, endorse) <= 30,
+  };
+}
+function ctTaskChecksHtml(d, st) {
+  const auto = computeAutoTasks(d, st);
+  st.autoTasks = auto;                                           // 저장용 기록(계약사고정보)
+  const items = CT_TASKS.map(t => {
+    const desc = CT_TASK_DESC[t] || `'${iEsc(t)}' 조사 항목으로 표시합니다.`;
+    if (CT_AUTO_TASKS.includes(t)) {                             // 시스템 자동판단 — 담당자 수정 불가
+      return `<label class="lg-ctchk auto" data-desc="${iEsc(desc)}"><input type="checkbox" disabled ${auto[t] ? "checked" : ""}><span>${iEsc(t)}</span><em class="lg-ctauto">자동</em></label>`;
+    }
+    return `<label class="lg-ctchk" data-desc="${iEsc(desc)}"><input type="checkbox" data-cttask="${iEsc(t)}" ${st.tasks.includes(t) ? "checked" : ""}><span>${iEsc(t)}</span></label>`;
+  }).join("");
+  return `<div class="lg-ctchecks" id="ctTaskArea">${items}</div>`;
 }
 function ctPoliceHtml(st) {
   const rep = st.police === "신고";
   return `<div class="lg-ctpolice">
     <label class="lg-ctradio" data-desc="경찰에 사고를 신고한 건입니다."><input type="radio" name="ctPolice" value="신고" ${rep ? "checked" : ""}>신고</label>
     <label class="lg-ctradio" data-desc="경찰 신고를 하지 않은 건입니다."><input type="radio" name="ctPolice" value="미신고" ${!rep ? "checked" : ""}>미신고</label>
-    <span id="ctPoliceStationWrap" class="lg-ctstation ${rep ? "" : "lg-hide"}">관할 <input type="text" class="lg-cin sm" data-ct="policeStation" value="${iEsc(st.policeStation)}" placeholder="경찰서명" data-desc="신고한 관할 경찰서명을 입력합니다."></span>
+    <span id="ctPoliceStationWrap" class="lg-ctstation ${rep ? "" : "lg-hide"}">
+      <span class="lg-ctstation-i">관할 <input type="text" class="lg-cin sm" data-ct="policeStation" value="${iEsc(st.policeStation)}" placeholder="경찰서명" data-desc="신고한 관할 경찰서명을 입력합니다."></span>
+      <span class="lg-ctstation-i">담당 <input type="text" class="lg-cin sm" data-ct="policeOfficer" value="${iEsc(st.policeOfficer || "")}" placeholder="담당 경찰관 이름" data-desc="사건 담당 경찰관의 이름을 입력합니다."></span>
+      <span class="lg-ctstation-i">연락처 <input type="text" class="lg-cin sm" data-ct="policeOfficerPhone" value="${iEsc(st.policeOfficerPhone || "")}" placeholder="담당 경찰관 연락처" data-desc="사건 담당 경찰관의 연락처를 입력합니다."></span>
+    </span>
   </div>`;
 }
 function intakeContractTab(d) {
@@ -837,7 +877,7 @@ function intakeContractTab(d) {
       { k: "사고유형", raw: ctSel("accMajor", st.accMajor, CT_ACC_MAJORS) },
       { k: "세부분류", raw: `<select class="lg-csel" id="ctAccDetail" data-ct="accDetail">${detailOpts.map(o => `<option ${o === st.accDetail ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>` },
       { k: "특이사항", raw: ctText("note", st.note, "특이사항"), full: true },
-      { k: "조사Task", raw: ctTaskChecksHtml(st), full: true },
+      { k: "조사Task", raw: ctTaskChecksHtml(d, st), full: true },
       { k: "경찰접수", raw: ctPoliceHtml(st), full: true },
     ])
     + `<div class="lg-sect">경합 보험사 접수 정보<button class="lg-mini" type="button" id="ctCompFetch" data-desc="상대측(타 보험사) 접수 정보를 조회해 아래 항목을 자동으로 불러옵니다. (연동 시 실제 타사 데이터)">타사 정보 조회</button></div>`
@@ -916,13 +956,20 @@ function bindIntakeContract(d) {
         const sel = body.querySelector("#ctAccDetail");
         if (sel) sel.innerHTML = opts.map(o => `<option ${o === st.accDetail ? "selected" : ""}>${iEsc(o)}</option>`).join("");
       }
+      if (el.dataset.ct === "datetime") {          // 사고일시 변경 → 자동판단 조사 Task(심야사고 등) 재계산
+        const area = body.querySelector("#ctTaskArea");
+        if (area) { area.outerHTML = ctTaskChecksHtml(d, st); bindTaskChecks(); }
+      }
     });
   });
-  body.querySelectorAll("[data-cttask]").forEach(cb => cb.addEventListener("change", () => {
-    const t = cb.dataset.cttask;
-    if (cb.checked) { if (!st.tasks.includes(t)) st.tasks.push(t); if (t === "Moral사고") openMoralModal(st); }
-    else { st.tasks = st.tasks.filter(x => x !== t); }
-  }));
+  function bindTaskChecks() {
+    body.querySelectorAll("[data-cttask]").forEach(cb => cb.addEventListener("change", () => {
+      const t = cb.dataset.cttask;
+      if (cb.checked) { if (!st.tasks.includes(t)) st.tasks.push(t); if (t === "Moral사고") openMoralModal(st); }
+      else { st.tasks = st.tasks.filter(x => x !== t); }
+    }));
+  }
+  bindTaskChecks();
   body.querySelectorAll('input[name="ctPolice"]').forEach(r => r.addEventListener("change", () => {
     if (!r.checked) return;
     st.police = r.value;
