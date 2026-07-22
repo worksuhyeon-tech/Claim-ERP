@@ -930,7 +930,7 @@ function bindIntakeContract(d) {
   const fb = body.querySelector("#ctCompFetch");
   if (fb) fb.addEventListener("click", () => fetchCompetitorInfo(d, st));
   const mb = body.querySelector("#ctMsgBtn");
-  if (mb) mb.addEventListener("click", () => openMsgModal(d));
+  if (mb) mb.addEventListener("click", () => openMsgSendWindow(d));
 }
 // 타사(경합 보험사) 정보 조회 — 데모: 임의 접수정보를 끌어와 채운다.
 function fetchCompetitorInfo(d, st) {
@@ -985,351 +985,30 @@ function openMoralModal(st) {
   });
 }
 
-/* ======================= 알림톡 · LMS/SMS 발송 (데모) =======================
-   작업지시서 기반 프론트 데모. 백엔드(Supabase 테이블/RLS/실발송 API/큐/배치)는
-   정적 데모 규칙상 제외하고, 발송 모달의 화면·동작만 클라이언트에서 구현한다.
-   - 발신번호: 채널에 따라 서비스 레이어(msgResolveSender)에서 강제 결정(프론트 조작 무시)
-   - 템플릿: 공용(SYSTEM)/개인(PERSONAL) 탭, 알림톡=승인템플릿(본문잠금)/문자=자유편집
-   - 변수 #{...} 자동 바인딩 + 미치환 차단, byte 계산(SMS 90/LMS 2000), SMS↔LMS 자동전환
-   - 다중 수신자(칩, 최대 100, 중복제거, 유효성, 마스킹), 확인 모달, Mock 발송(성공 90%) */
-
-// 공식 알림톡 발신 채널(공용) — 담당자 개인번호 노출 금지
-const MSG_ALIMTALK_SENDER = { label: "SK렌터카 공식 알림톡 채널", no: "1533-0999" };
-// 담당자 업무용 발신번호 화이트리스트 (sender_numbers 테이블 대체 · 사전등록 번호만 허용)
-const MSG_SENDER_REGISTRY = {
-  "최도윤": "010-4412-8890", "박지현": "010-5567-1123", "김하늘": "010-2245-7781",
-  "오세린": "010-3391-2201", "문태호": "010-8834-5560", "유나래": "010-9911-3345",
-  "정예린": "010-7782-4410", "한도경": "010-3320-9987", "서지우": "010-6642-1180",
-};
-// 유관업체(파트너) 연락처 마스터 (데모)
-const MSG_PARTNERS = [
-  { name: "강남협력공업사", type: "정비업체", no: "010-2211-3300" },
-  { name: "블루핸즈 분당점", type: "정비업체", no: "010-3312-8842" },
-  { name: "오토큐 강서점", type: "정비업체", no: "010-4451-7789" },
-  { name: "SK렌터카 강남지점", type: "렌터카지점", no: "010-1600-2201" },
-  { name: "SK렌터카 분당지점", type: "렌터카지점", no: "010-1600-3302" },
-  { name: "연세더바른병원 원무과", type: "병원", no: "010-2228-0100" },
-];
-// 메시지 템플릿 시드 — 공용 5종 + 개인 2종 (ALIMTALK=본문잠금 / LMS=자유편집)
-const MSG_TEMPLATES = [
-  { id: "T1", scope: "SYSTEM", owner: null, channel: "ALIMTALK", category: "접수안내", title: "사고접수 안내",
-    content: "[SK렌터카] #{고객명}님, 사고접수(#{사고접수번호})가 정상 접수되었습니다.\n담당자 #{담당자명}(#{담당자연락처})가 신속히 안내드리겠습니다.",
-    kakao_template_code: "SKR_ACC_RECEIPT_01", use_count: 42, pinned: true, last_used_at: 0 },
-  { id: "T2", scope: "SYSTEM", owner: null, channel: "ALIMTALK", category: "수리진행", title: "입고·수리 진행 안내",
-    content: "[SK렌터카] #{고객명}님 차량(#{차량번호})이 #{정비업체명}에 #{입고일} 입고되었습니다.\n예상 수리완료일은 #{예상수리완료일}입니다.",
-    kakao_template_code: "SKR_REPAIR_PROGRESS_01", use_count: 31, pinned: false, last_used_at: 0 },
-  { id: "T3", scope: "SYSTEM", owner: null, channel: "ALIMTALK", category: "지급안내", title: "보상금 지급 안내",
-    content: "[SK렌터카] #{고객명}님, 사고건(#{사고접수번호}) 보상금 #{금액}원 지급이 완료되었습니다.",
-    kakao_template_code: "SKR_PAYMENT_DONE_01", use_count: 18, pinned: false, last_used_at: 0 },
-  { id: "T4", scope: "SYSTEM", owner: null, channel: "LMS", category: "서류요청", title: "서류 제출 요청",
-    content: "[SK렌터카] #{고객명}님, 사고건(#{사고접수번호}) 처리를 위해 서류 제출이 필요합니다.\n- 사고사실확인원\n- 통장사본\n문의: #{담당자명} #{담당자연락처}",
-    kakao_template_code: null, use_count: 27, pinned: true, last_used_at: 0 },
-  { id: "T5", scope: "SYSTEM", owner: null, channel: "LMS", category: "수리진행", title: "수리 완료·출고 안내",
-    content: "[SK렌터카] #{고객명}님 차량(#{차량번호}) 수리가 완료되었습니다. #{정비업체명}에서 출고 가능합니다. 담당 #{담당자명}",
-    kakao_template_code: null, use_count: 12, pinned: false, last_used_at: 0 },
-  { id: "P1", scope: "PERSONAL", owner: "최도윤", channel: "LMS", category: "접수안내", title: "[내] 재통화 안내",
-    content: "#{고객명}님, SK렌터카 #{담당자명}입니다. 사고 관련 확인차 연락드렸습니다. 편하신 시간에 회신 부탁드립니다. (#{담당자연락처})",
-    kakao_template_code: null, use_count: 9, pinned: true, last_used_at: 0 },
-  { id: "P2", scope: "PERSONAL", owner: "오세린", channel: "LMS", category: "기타", title: "[내] 렌트 안내",
-    content: "#{고객명}님, 대차(렌트) 관련 안내드립니다. 문의: #{담당자명} #{담당자연락처}",
-    kakao_template_code: null, use_count: 4, pinned: false, last_used_at: 0 },
-];
-let MSG_TEMPLATE_SEQ = 100;          // 개인 템플릿 신규 id 시퀀스
-const MSG_SEND_LOG = [];             // 발송 이력 스냅샷(append-only, 세션 메모리) — 수정·삭제 불가
-
-// EUC-KR byte(한글 2byte) / 문자수
-function msgByteLen(s) { let b = 0; for (const ch of String(s || "")) b += ch.charCodeAt(0) > 127 ? 2 : 1; return b; }
-function msgCharLen(s) { return Array.from(String(s || "")).length; }
-// 휴대폰 정규화(010-0000-0000) — 형식 아니면 null
-function msgNormPhone(raw) {
-  const n = String(raw || "").replace(/[^0-9]/g, "");
-  if (!/^01[016789]\d{7,8}$/.test(n)) return null;
-  return n.length === 10 ? `${n.slice(0,3)}-${n.slice(3,6)}-${n.slice(6)}` : `${n.slice(0,3)}-${n.slice(3,7)}-${n.slice(7)}`;
-}
-// 마스킹 010-1234-****
-function msgMask(no) { const m = String(no || "").match(/^(01[016789])-?(\d{3,4})-?(\d{4})$/); return m ? `${m[1]}-${m[2]}-****` : String(no || ""); }
-// 본문 내 변수 #{...} 목록
-function msgVarsIn(text) { const out = []; String(text || "").replace(/#\{([^}]+)\}/g, (m, n) => { n = n.trim(); if (!out.includes(n)) out.push(n); return m; }); return out; }
-// 변수 치환 — 값 없으면 #{...} 그대로 남김(미치환 검사용)
-function msgApply(text, vals) { return String(text || "").replace(/#\{([^}]+)\}/g, (m, n) => { const v = vals[n.trim()]; return (v !== undefined && String(v) !== "") ? v : m; }); }
-
-// 운전자에게 알림톡/LMS를 발송하는 모달 (개인정보동의 여부 옆 아이콘에서 호출)
-function openMsgModal(d) {
+/* ======================= 알림톡 · LMS/SMS 발송 =======================
+   '메시지 발송'은 팝업(모달)이 아니라 별도 새 창(message-send.html)으로 연다.
+   현재 사고건의 연락처·변수 컨텍스트를 localStorage로 넘겨 새 창이 읽는다. */
+const MSG_CTX_KEY = "msgSendContext";
+function openMsgSendWindow(d) {
   const claim = (typeof CLAIMS !== "undefined") ? CLAIMS.find(x => x.id === d.id) : null;
-  const meName = (claim && claim.manager) || "담당자";
-  const meMobile = MSG_SENDER_REGISTRY[meName] || null;           // 미등록 시 문자 발송 차단
   const det = (typeof INTAKE_DETAIL !== "undefined" && INTAKE_DETAIL[d.id]) || {};
   const P = d.parties || {};
-  // 사고건 데이터 → 기본 변수 자동 바인딩
-  const boundVars = {
-    "고객명": (P.insured && P.insured.name) || (P.owner && P.owner.name) || (P.driver && P.driver.name) || (claim && claim.name) || "",
-    "차량번호": (d.insuredCar && d.insuredCar.no) || (claim && claim.car) || "",
-    "사고접수번호": d.id || "",
-    "사고일자": (d.accident && d.accident.datetime) ? String(d.accident.datetime).slice(0, 10) : "",
-    "담당자명": meName,
-    "담당자연락처": meMobile || "",
-    "정비업체명": (claim && claim.repairShop) || "",
-    "입고일": det.inDate || "",
-    "예상수리완료일": det.outDate || "",
-    "금액": det.estimate ? String(det.estimate).replace(/[^0-9,]/g, "") : "",
+  const person = o => ({ name: (o && o.name) || "", phone: (o && o.phone) || "" });
+  const ctx = {
+    claimId: d.id,
+    custName: (P.insured && P.insured.name) || (claim && claim.name) || "",
+    carNo: (d.insuredCar && d.insuredCar.no) || (claim && claim.car) || "",
+    accidentDate: (d.accident && d.accident.datetime) ? String(d.accident.datetime).slice(0, 10) : "",
+    managerName: (claim && claim.manager) || "담당자",
+    repairShop: (claim && claim.repairShop) || "",
+    inDate: det.inDate || "", outDate: det.outDate || "",
+    estimate: det.estimate ? String(det.estimate).replace(/[^0-9,]/g, "") : "",
+    parties: { insured: person(P.insured), owner: person(P.owner), notifier: person(P.notifier), driver: person(P.driver) },
   };
-  const ms = { channel: "ALIMTALK", scope: "SYSTEM", templateId: null, title: "", content: "", vars: {}, recipients: [], fallback: false, partnerQuery: "" };
-
-  let root = document.getElementById("ctMsgRoot");
-  if (!root) { root = document.createElement("div"); root.id = "ctMsgRoot"; document.body.appendChild(root); }
-  root.className = "ct-modal-root open";
-  const close = () => { root.classList.remove("open"); root.innerHTML = ""; };
-
-  const getTpl = id => MSG_TEMPLATES.find(t => t.id === id) || null;
-  const allVals = () => Object.assign({}, boundVars, ms.vars);
-  const validRecips = () => ms.recipients.filter(r => !r.invalid);
-  // 채널별 발신번호 강제 결정 (서비스 레이어 · 프론트 값 사용 안 함)
-  const msgResolveSender = () => ms.channel === "ALIMTALK" ? MSG_ALIMTALK_SENDER.no : meMobile;
-  const visibleTemplates = () => MSG_TEMPLATES.filter(t => t.channel === ms.channel &&
-    (ms.scope === "SYSTEM" ? t.scope === "SYSTEM" : (t.scope === "PERSONAL" && t.owner === meName)));
-  const frequentTemplates = () => MSG_TEMPLATES
-    .filter(t => t.channel === ms.channel && (t.scope === "SYSTEM" || t.owner === meName))
-    .sort((a, b) => (b.pinned - a.pinned) || (b.use_count - a.use_count) || (b.last_used_at - a.last_used_at))
-    .slice(0, 5);
-
-  function computeState() {
-    const applied = msgApply(ms.content, allVals());
-    const appliedTitle = msgApply(ms.title, allVals());
-    const unresolved = msgVarsIn(applied).concat(msgVarsIn(appliedTitle).filter(v => !msgVarsIn(applied).includes(v)));
-    let type, used, max, unit, over;
-    if (ms.channel === "ALIMTALK") { type = "알림톡"; unit = "자"; used = msgCharLen(applied); max = 1000; over = used > max; }
-    else { const b = msgByteLen(applied); type = b <= 90 ? "SMS" : "LMS"; unit = "byte"; used = b; max = (type === "SMS") ? 90 : 2000; over = b > 2000; }
-    const senderOk = ms.channel === "ALIMTALK" ? true : !!meMobile;
-    const tplOk = ms.channel === "ALIMTALK" ? !!getTpl(ms.templateId) : true;   // 알림톡=승인 템플릿 필수
-    const contentOk = applied.trim().length > 0;
-    const recipOk = validRecips().length >= 1;
-    const canSend = senderOk && tplOk && contentOk && recipOk && unresolved.length === 0 && !over;
-    return { applied, appliedTitle, unresolved, type, used, max, unit, over, senderOk, tplOk, contentOk, recipOk, canSend };
-  }
-
-  function addRecipient(type, name, no) {
-    const norm = msgNormPhone(no);
-    if (ms.recipients.length >= 100) return "max";
-    if (norm && ms.recipients.some(r => !r.invalid && r.no === norm)) return "dup";
-    ms.recipients.push({ type, name: name || "", no: norm || String(no || ""), invalid: !norm });
-    return "ok";
-  }
-
-  function paint() {
-    const st = computeState();
-    const chOpt = (val, label) => `<label class="lg-msg-chopt ${ms.channel === val ? "on" : ""}"><input type="radio" name="msgCh" value="${val}" ${ms.channel === val ? "checked" : ""}> ${label}</label>`;
-    // 발신번호 안내
-    const senderLine = ms.channel === "ALIMTALK"
-      ? `<span class="ok">${iEsc(MSG_ALIMTALK_SENDER.label)} · <b>${iEsc(MSG_ALIMTALK_SENDER.no)}</b></span>`
-      : (meMobile ? `<span class="ok">담당자 본인 번호 · <b>${iEsc(meMobile)}</b> (${iEsc(meName)})</span>`
-                  : `<span class="err">발신번호 등록 필요 — 문자 발송이 제한됩니다. (${iEsc(meName)} 업무용 번호 미등록)</span>`);
-    // 템플릿
-    const quick = frequentTemplates().map(t => `<button type="button" class="msg-quick" data-msg-tpl="${t.id}" title="${iEsc(t.title)}">${t.pinned ? "📌 " : ""}${iEsc(t.title)}<small>${t.use_count}</small></button>`).join("") || `<span class="msg-empty">자주쓰는 템플릿 없음</span>`;
-    const tplList = visibleTemplates().map(t => {
-      const on = t.id === ms.templateId ? " on" : "";
-      const badge = t.channel === "ALIMTALK" ? `<span class="msg-badge at">알림톡</span>` : `<span class="msg-badge sms">문자</span>`;
-      return `<button type="button" class="msg-tplrow${on}" data-msg-tpl="${t.id}">${badge}<span class="ti">${iEsc(t.title)}</span><span class="tc">${iEsc(t.category)}</span></button>`;
-    }).join("") || `<div class="msg-empty">해당 채널의 ${ms.scope === "SYSTEM" ? "공용" : "내"} 템플릿이 없습니다.</div>`;
-    // 수신자 칩
-    const chips = ms.recipients.map((r, i) => {
-      const typeLabel = r.type === "CUSTOMER" ? "고객" : r.type === "PARTNER" ? "업체" : "직접";
-      return `<span class="msg-chip ${r.invalid ? "bad" : ""}" title="${iEsc(r.name)} ${iEsc(r.invalid ? r.no : msgMask(r.no))}"><span class="ct">${typeLabel}</span>${iEsc(r.name || "-")} ${iEsc(r.invalid ? "형식오류" : msgMask(r.no))}<button type="button" class="msg-chip-x" data-msg-rm="${i}" aria-label="삭제">×</button></span>`;
-    }).join("") || `<span class="msg-empty">수신자를 추가하세요 (최소 1명, 최대 100명)</span>`;
-    // 고객 연락처 추가 버튼
-    const custBtns = ["insured:피보험자", "owner:소유자", "driver:운전자", "notifier:통보자"].map(pair => {
-      const [k, lb] = pair.split(":"); const o = P[k];
-      if (!o || !o.name || !o.phone) return "";
-      return `<button type="button" class="msg-addbtn" data-msg-addcust="${k}">+ ${lb} ${iEsc(o.name)}</button>`;
-    }).join("");
-    const partnerHits = MSG_PARTNERS.filter(p => !ms.partnerQuery || (p.name + p.type).includes(ms.partnerQuery))
-      .map(p => `<button type="button" class="msg-addbtn" data-msg-addpart="${iEsc(p.name)}">+ ${iEsc(p.name)} <small>${iEsc(p.type)}</small></button>`).join("") || `<span class="msg-empty">검색 결과 없음</span>`;
-    // 변수 입력 폼 (제목+본문의 모든 변수)
-    const vnames = msgVarsIn(ms.content).concat(msgVarsIn(ms.title).filter(v => !msgVarsIn(ms.content).includes(v)));
-    const varForm = vnames.length ? `<div class="msg-vars">${vnames.map(n => {
-      const v = (ms.vars[n] !== undefined ? ms.vars[n] : (boundVars[n] || ""));
-      const miss = String(v).trim() === "";
-      return `<label class="msg-var ${miss ? "miss" : ""}"><span class="vn">#{${iEsc(n)}}</span><input type="text" data-msg-var="${iEsc(n)}" value="${iEsc(v)}" placeholder="값 입력"></label>`;
-    }).join("")}</div>` : "";
-
-    const bodyLocked = ms.channel === "ALIMTALK";
-    root.innerHTML = `
-    <div class="ct-modal-bd"></div>
-    <div class="ct-modal ct-msg-modal" role="dialog" aria-modal="true" aria-label="알림톡·문자 발송">
-      <div class="ct-modal-h"><b>알림 발송 · 알림톡 / 문자(LMS·SMS)</b><button type="button" class="ct-modal-x" aria-label="닫기">×</button></div>
-      <div class="ct-modal-b">
-        <div class="msg-sect">① 채널</div>
-        <div class="lg-msg-ch">${chOpt("ALIMTALK", "알림톡 (공식번호)")}${chOpt("LMS", "문자 (내 번호)")}</div>
-        <div class="msg-sender">${senderLine}</div>
-
-        <div class="msg-sect">② 템플릿</div>
-        <div class="msg-quicks">${quick}</div>
-        <div class="msg-tabs">
-          <button type="button" class="msg-tab ${ms.scope === "SYSTEM" ? "on" : ""}" data-msg-scope="SYSTEM">공용 템플릿</button>
-          <button type="button" class="msg-tab ${ms.scope === "PERSONAL" ? "on" : ""}" data-msg-scope="PERSONAL">내 템플릿</button>
-        </div>
-        <div class="msg-tpllist">${tplList}</div>
-
-        <div class="msg-sect">③ 수신자 <small>(${validRecips().length}명 · 최대 100)</small></div>
-        <div class="msg-addrow">${custBtns || `<span class="msg-empty">고객 연락처 없음</span>`}</div>
-        <div class="msg-addrow"><input type="text" class="msg-in" id="msgPartnerQ" value="${iEsc(ms.partnerQuery)}" placeholder="유관업체 검색(업체명·유형)"></div>
-        <div class="msg-addrow wrap">${partnerHits}</div>
-        <div class="msg-addrow"><input type="text" class="msg-in" id="msgManName" placeholder="이름"><input type="text" class="msg-in" id="msgManNo" placeholder="휴대폰번호"><button type="button" class="lg-abtn" id="msgManAdd">직접추가</button></div>
-        <div class="msg-chips">${chips}</div>
-
-        <div class="msg-sect">④ 내용</div>
-        ${ms.channel === "LMS" ? `<input type="text" class="msg-in" id="msgTitle" value="${iEsc(ms.title)}" placeholder="제목 (LMS, 최대 40byte)">` : ""}
-        <textarea id="msgBody" rows="5" placeholder="${bodyLocked ? "알림톡은 승인된 템플릿을 선택하세요 (본문 편집 불가)" : "문자 본문을 입력하세요"}" ${bodyLocked ? "readonly" : ""}>${iEsc(ms.content)}</textarea>
-        ${bodyLocked ? `<p class="msg-note">※ 알림톡은 사전 심사·승인된 템플릿만 발송할 수 있어 본문을 편집할 수 없습니다.${ms.templateId ? ` (코드: ${iEsc(getTpl(ms.templateId).kakao_template_code)})` : ""}</p>` : ""}
-        ${varForm}
-        <div class="msg-meta">
-          <span class="msg-type ${st.type === "SMS" ? "sms" : st.type === "LMS" ? "lms" : "at"}">${st.type}</span>
-          <span class="msg-byte ${st.over ? "over" : ""}">${st.used}/${st.max}${st.unit}</span>
-          ${st.unresolved.length ? `<span class="msg-warn">미입력 변수: ${st.unresolved.map(v => "#{" + iEsc(v) + "}").join(", ")}</span>` : ``}
-        </div>
-        <div class="msg-preview"><div class="pv-h">미리보기</div><div class="pv-b">${iEsc(st.applied) || "<내용 없음>"}</div></div>
-
-        ${ms.channel === "ALIMTALK" ? `<label class="msg-opt"><input type="checkbox" id="msgFallback" ${ms.fallback ? "checked" : ""}> 알림톡 실패 시 문자로 대체발송 (발신번호는 담당자 번호)</label>` : ""}
-      </div>
-      <div class="ct-modal-f">
-        <button type="button" class="lg-abtn" id="msgSaveTpl" ${ms.channel === "ALIMTALK" ? 'disabled title="알림톡은 승인 템플릿만 사용 가능"' : ""}>내 템플릿으로 저장</button>
-        <span style="flex:1"></span>
-        <button type="button" class="lg-abtn" id="msgCancel">취소</button>
-        <button type="button" class="lg-abtn primary" id="msgSend" ${st.canSend ? "" : "disabled"}>발송</button>
-      </div>
-    </div>`;
-    bind();
-  }
-
-  function bind() {
-    root.querySelector(".ct-modal-bd").addEventListener("click", close);
-    root.querySelector(".ct-modal-x").addEventListener("click", close);
-    root.querySelector("#msgCancel").addEventListener("click", close);
-    // 채널
-    root.querySelectorAll('input[name="msgCh"]').forEach(r => r.addEventListener("change", () => {
-      if (!r.checked) return;
-      ms.channel = r.value;
-      if (ms.templateId && getTpl(ms.templateId) && getTpl(ms.templateId).channel !== ms.channel) { ms.templateId = null; ms.content = ""; ms.title = ""; }
-      if (ms.channel === "LMS") ms.fallback = false;
-      paint();
-    }));
-    // 템플릿 탭
-    root.querySelectorAll("[data-msg-scope]").forEach(b => b.addEventListener("click", () => { ms.scope = b.dataset.msgScope; paint(); }));
-    // 템플릿 선택(퀵/목록)
-    root.querySelectorAll("[data-msg-tpl]").forEach(b => b.addEventListener("click", () => {
-      const t = getTpl(b.dataset.msgTpl); if (!t) return;
-      ms.channel = t.channel;                 // 퀵버튼이 다른 채널이면 채널도 전환
-      ms.templateId = t.id; ms.title = t.title; ms.content = t.content; ms.vars = {};
-      paint();
-    }));
-    // 고객 연락처 추가
-    root.querySelectorAll("[data-msg-addcust]").forEach(b => b.addEventListener("click", () => {
-      const o = P[b.dataset.msgAddcust]; if (!o) return;
-      const r = addRecipient("CUSTOMER", o.name, o.phone);
-      if (r === "dup") showToast("중복 1건 제외됨"); else if (r === "max") showToast("수신자는 최대 100명까지 추가할 수 있습니다.");
-      paint();
-    }));
-    // 유관업체 검색/추가
-    const pq = root.querySelector("#msgPartnerQ");
-    if (pq) pq.addEventListener("input", () => { ms.partnerQuery = pq.value.trim(); const f = document.activeElement === pq; paint(); if (f) { const el = root.querySelector("#msgPartnerQ"); el.focus(); el.setSelectionRange(el.value.length, el.value.length); } });
-    root.querySelectorAll("[data-msg-addpart]").forEach(b => b.addEventListener("click", () => {
-      const p = MSG_PARTNERS.find(x => x.name === b.dataset.msgAddpart); if (!p) return;
-      const r = addRecipient("PARTNER", p.name, p.no);
-      if (r === "dup") showToast("중복 1건 제외됨"); else if (r === "max") showToast("수신자는 최대 100명까지 추가할 수 있습니다.");
-      paint();
-    }));
-    // 직접입력 추가
-    const madd = root.querySelector("#msgManAdd");
-    if (madd) madd.addEventListener("click", () => {
-      const nm = root.querySelector("#msgManName").value.trim();
-      const no = root.querySelector("#msgManNo").value.trim();
-      if (!no) { showToast("휴대폰번호를 입력하세요."); return; }
-      const r = addRecipient("MANUAL", nm, no);
-      if (r === "dup") { showToast("중복 1건 제외됨"); return; }
-      if (r === "max") { showToast("수신자는 최대 100명까지 추가할 수 있습니다."); return; }
-      if (!msgNormPhone(no)) showToast("휴대폰 형식이 아니어서 발송 대상에서 제외됩니다.");
-      paint();
-    });
-    // 칩 삭제
-    root.querySelectorAll("[data-msg-rm]").forEach(b => b.addEventListener("click", () => { ms.recipients.splice(+b.dataset.msgRm, 1); paint(); }));
-    // 제목/본문/변수 — 즉시 갱신(재렌더 없이)
-    const titleEl = root.querySelector("#msgTitle");
-    if (titleEl) titleEl.addEventListener("input", () => { ms.title = titleEl.value; refresh(); });
-    const bodyEl = root.querySelector("#msgBody");
-    if (bodyEl && !bodyEl.readOnly) bodyEl.addEventListener("input", () => { ms.content = bodyEl.value; refresh(); });
-    root.querySelectorAll("[data-msg-var]").forEach(inp => inp.addEventListener("input", () => { ms.vars[inp.dataset.msgVar] = inp.value; refresh(); }));
-    const fb = root.querySelector("#msgFallback");
-    if (fb) fb.addEventListener("change", () => { ms.fallback = fb.checked; });
-    // 내 템플릿으로 저장
-    const save = root.querySelector("#msgSaveTpl");
-    if (save && !save.disabled) save.addEventListener("click", () => {
-      const content = (ms.content || "").trim();
-      if (!content) { showToast("저장할 본문이 없습니다."); return; }
-      MSG_TEMPLATES.push({ id: "P" + (++MSG_TEMPLATE_SEQ), scope: "PERSONAL", owner: meName, channel: "LMS",
-        category: "기타", title: ms.title ? ms.title.slice(0, 20) : `내 템플릿 ${MSG_TEMPLATE_SEQ}`, content, kakao_template_code: null, use_count: 0, pinned: false, last_used_at: Date.now() });
-      showToast("내 템플릿으로 저장했습니다.");
-      ms.scope = "PERSONAL"; paint();
-    });
-    // 발송 → 확인 모달 (disabled 상태에서는 클릭 이벤트가 발생하지 않으므로 항상 바인딩)
-    const send = root.querySelector("#msgSend");
-    if (send) send.addEventListener("click", paintConfirm);
-  }
-
-  // 재렌더 없이 파생 표시만 갱신(포커스 유지)
-  function refresh() {
-    const st = computeState();
-    const meta = root.querySelector(".msg-meta"); if (meta) {
-      meta.innerHTML = `<span class="msg-type ${st.type === "SMS" ? "sms" : st.type === "LMS" ? "lms" : "at"}">${st.type}</span>`
-        + `<span class="msg-byte ${st.over ? "over" : ""}">${st.used}/${st.max}${st.unit}</span>`
-        + (st.unresolved.length ? `<span class="msg-warn">미입력 변수: ${st.unresolved.map(v => "#{" + iEsc(v) + "}").join(", ")}</span>` : ``);
-    }
-    const pv = root.querySelector(".msg-preview .pv-b"); if (pv) pv.textContent = st.applied || "<내용 없음>";
-    const send = root.querySelector("#msgSend"); if (send) send.disabled = !st.canSend;
-    root.querySelectorAll("[data-msg-var]").forEach(inp => inp.parentElement.classList.toggle("miss", String(inp.value).trim() === ""));
-  }
-
-  // 발송 직전 확인 모달
-  function paintConfirm() {
-    const st = computeState();
-    const recips = validRecips();
-    const sample = recips[0];
-    root.querySelector(".ct-modal-b").innerHTML = `
-      <div class="msg-confirm">
-        <p class="msg-confirm-q">수신자 <b>${recips.length}명</b>에게 <b>${ms.channel === "ALIMTALK" ? "알림톡" : "문자(" + st.type + ")"}</b>로 발송합니다.</p>
-        <div class="msg-confirm-meta">발신번호 <b>${iEsc(msgResolveSender())}</b>${ms.channel === "ALIMTALK" && ms.fallback ? " · 실패 시 문자 대체발송" : ""}</div>
-        <div class="msg-preview"><div class="pv-h">미리보기 (${iEsc(sample ? (sample.name || msgMask(sample.no)) : "-")})</div><div class="pv-b">${iEsc(st.applied)}</div></div>
-        <p class="msg-note">데모 화면으로 실제 발송되지 않으며, 수신자별로 임의 성공/실패 결과가 생성됩니다.</p>
-      </div>`;
-    root.querySelector(".ct-modal-f").innerHTML = `<button type="button" class="lg-abtn" id="msgBack">뒤로</button><span style="flex:1"></span><button type="button" class="lg-abtn primary" id="msgConfirm">발송 확정</button>`;
-    root.querySelector("#msgBack").addEventListener("click", paint);
-    root.querySelector("#msgConfirm").addEventListener("click", doSend);
-  }
-
-  // Mock 발송 (수신자별 90% 성공) — 부분 실패 허용
-  function doSend() {
-    const st = computeState();
-    const recips = validRecips();
-    let success = 0, fail = 0;
-    const details = recips.map(r => {
-      const ok = Math.random() < 0.9;
-      if (ok) success++; else fail++;
-      return { receiver_type: r.type, receiver_name: r.name, receiver_no: r.no, content: st.applied, status: ok ? "DELIVERED" : "FAILED" };
-    });
-    let fallbackNote = "";
-    if (ms.channel === "ALIMTALK" && ms.fallback && fail > 0) {   // 실패건 문자 대체발송(데모)
-      let recovered = 0;
-      details.forEach(x => { if (x.status === "FAILED" && Math.random() < 0.95) { x.status = "DELIVERED_SMS"; recovered++; success++; fail--; } });
-      if (recovered) fallbackNote = ` · 문자 대체발송 ${recovered}건`;
-    }
-    const tpl = getTpl(ms.templateId);
-    if (tpl) { tpl.use_count = (tpl.use_count || 0) + 1; tpl.last_used_at = Date.now(); }
-    MSG_SEND_LOG.push({ at: Date.now(), claim_id: d.id, sender_user: meName, channel_type: ms.channel,
-      sender_no: msgResolveSender(), title: st.appliedTitle, content: st.applied, fallback_yn: ms.fallback,
-      total_cnt: recips.length, success_cnt: success, fail_cnt: fail, details });
-    close();
-    showToast(`${recips.length}명 발송 — 성공 ${success} · 실패 ${fail}${fallbackNote}`);
-  }
-
-  paint();
+  try { localStorage.setItem(MSG_CTX_KEY, JSON.stringify(ctx)); } catch (e) {}
+  const w = window.open("message-send.html?claim=" + encodeURIComponent(d.id), "msgSend_" + d.id,
+    "width=1180,height=820,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes");
+  if (w) w.focus(); else showToast("팝업이 차단되었습니다. 브라우저 팝업 허용 후 다시 시도하세요.");
 }
 
 /* ---- 탭2: 피해 진행 정보 ---- */

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>메시지 발송 | CLAIM ERP</title>
+<style>
+  /* ===== 메시지 발송 새 창 — 5·60대 시니어도 쓰기 쉽게 큰 글씨·큰 버튼·명확한 단계 ===== */
+  :root{
+    --blue:#2F5BB7; --blue-d:#234a99; --blue-soft:#EAF0FB; --line:#C9D3E4; --line2:#E1E7F1;
+    --ink:#1E2530; --sub:#4A5262; --ok:#1F7A4D; --warn:#B45309; --err:#C0392B; --bg:#EEF2F8;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; height:100%; }
+  body{ font-family:-apple-system,BlinkMacSystemFont,"Malgun Gothic","맑은 고딕",sans-serif;
+    background:var(--bg); color:var(--ink); font-size:17px; line-height:1.5; }
+  button{ font-family:inherit; }
+
+  /* 헤더 */
+  .hd{ background:var(--blue); color:#fff; padding:14px 22px; display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .hd .t{ font-size:22px; font-weight:800; letter-spacing:-.3px; }
+  .hd .meta{ font-size:16px; opacity:.95; }
+  .hd .meta b{ font-weight:800; }
+  .hd .sp{ flex:1; }
+  .hd .role{ display:flex; align-items:center; gap:8px; font-size:15px; background:rgba(255,255,255,.15); padding:7px 12px; border-radius:10px; }
+  .hd .role select{ font-size:15px; font-family:inherit; padding:4px 8px; border-radius:8px; border:0; }
+
+  /* 안내줄 */
+  .notice{ background:#FFF6E6; color:#8A5A00; font-size:16px; font-weight:700; padding:11px 22px; border-bottom:1px solid #F0DFB8; }
+  .notice b{ color:var(--err); }
+
+  /* 본문 2단 */
+  .wrap{ display:grid; grid-template-columns:1fr 1fr; gap:18px; padding:18px 22px 26px; align-items:start; }
+  @media (max-width:900px){ .wrap{ grid-template-columns:1fr; } }
+  .col{ display:flex; flex-direction:column; gap:16px; }
+
+  .card{ background:#fff; border:1.5px solid var(--line); border-radius:14px; overflow:hidden; }
+  .card-h{ display:flex; align-items:center; gap:10px; padding:13px 16px; background:#F4F8FE; border-bottom:1.5px solid var(--line2); }
+  .card-h .no{ display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border-radius:9px;
+    background:var(--blue); color:#fff; font-size:17px; font-weight:800; flex:none; }
+  .card-h .ti{ font-size:19px; font-weight:800; }
+  .card-h .hint{ font-size:14px; color:var(--sub); font-weight:600; }
+  .card-b{ padding:12px 14px; }
+
+  /* 템플릿 리스트 */
+  .tpl-list{ display:flex; flex-direction:column; gap:8px; max-height:290px; overflow:auto; }
+  .tpl{ display:flex; align-items:center; gap:12px; text-align:left; width:100%; cursor:pointer;
+    border:2px solid var(--line2); background:#fff; border-radius:11px; padding:12px 14px; min-height:56px; }
+  .tpl:hover{ border-color:#B9CBEC; background:#FAFCFF; }
+  .tpl.on{ border-color:var(--blue); background:var(--blue-soft); box-shadow:0 0 0 2px rgba(47,91,183,.12); }
+  .tpl .cat{ font-size:13px; font-weight:800; color:#fff; border-radius:7px; padding:3px 9px; flex:none; min-width:96px; text-align:center; }
+  .tpl .cat.at{ background:#7B57C7; }
+  .tpl .cat.lms{ background:#2E9E6B; }
+  .tpl .cat.free{ background:#8A93A6; }
+  .tpl .body{ min-width:0; }
+  .tpl .tt{ font-size:17px; font-weight:700; color:var(--ink); }
+  .tpl .ts{ font-size:14px; color:var(--sub); margin-top:2px; }
+  .tpl.on .tt{ color:var(--blue-d); }
+
+  /* 발신 안내 배지 */
+  .sender-note{ font-size:15px; color:var(--sub); margin:2px 0 12px; padding:9px 12px; background:#F5F8FC; border:1px solid var(--line2); border-radius:10px; }
+  .sender-note b{ color:var(--blue); }
+
+  /* 왼쪽 버튼줄 */
+  .lbtns{ display:flex; gap:10px; flex-wrap:wrap; }
+  .lbtn{ flex:1; min-width:120px; font-size:16px; font-weight:800; padding:13px 10px; border-radius:11px;
+    border:2px solid var(--blue); background:#fff; color:var(--blue); cursor:pointer; }
+  .lbtn:hover{ background:var(--blue-soft); }
+  .lbtn.admin{ border-color:#8A5A00; color:#8A5A00; }
+  .lbtn.admin:hover{ background:#FFF6E6; }
+
+  /* 수신자 목록 */
+  .rc-head{ display:grid; grid-template-columns:44px 1fr 1.4fr 1.5fr; gap:8px; padding:6px 10px; font-size:14px; font-weight:800; color:var(--sub); }
+  .rc-list{ display:flex; flex-direction:column; gap:8px; }
+  .rc{ display:grid; grid-template-columns:44px 1fr 1.4fr 1.5fr; gap:8px; align-items:center;
+    border:2px solid var(--line2); border-radius:11px; padding:10px; }
+  .rc.on{ border-color:var(--blue); background:var(--blue-soft); }
+  .rc.bad{ border-color:#F0C4C4; background:#FDF1F1; }
+  .rc input[type=checkbox]{ width:24px; height:24px; accent-color:var(--blue); cursor:pointer; justify-self:center; }
+  .rc .gb{ font-size:15px; font-weight:800; color:var(--sub); }
+  .rc .nm{ font-size:17px; font-weight:700; }
+  .rc .ph{ font-size:17px; font-weight:700; color:var(--ink); font-variant-numeric:tabular-nums; letter-spacing:.3px; }
+  .rc .bad-t{ font-size:14px; color:var(--err); font-weight:700; }
+
+  .rc-manual{ display:flex; gap:8px; align-items:center; margin-top:10px; flex-wrap:wrap; }
+  .rc-manual input{ font-size:16px; font-family:inherit; padding:11px 12px; border:2px solid var(--line); border-radius:10px; }
+  .rc-manual .mn{ width:120px; } .rc-manual .mp{ flex:1; min-width:150px; }
+  .rc-manual .add{ font-size:16px; font-weight:800; padding:11px 18px; border-radius:10px; border:2px solid var(--blue); background:var(--blue); color:#fff; cursor:pointer; }
+
+  /* 발송 내용 */
+  .content-ta{ width:100%; min-height:150px; font-size:17px; line-height:1.6; font-family:inherit;
+    border:2px solid var(--line); border-radius:12px; padding:14px; resize:vertical; color:var(--ink); }
+  .content-ta:focus{ outline:none; border-color:var(--blue); box-shadow:0 0 0 3px rgba(47,91,183,.14); }
+  .content-ta[readonly]{ background:#F5F6F9; color:#3E4657; }
+  .content-meta{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:8px; font-size:15px; }
+  .tag{ font-size:14px; font-weight:800; border-radius:7px; padding:3px 10px; }
+  .tag.at{ color:#5B3AA0; background:#EEE7FA; }
+  .tag.sms{ color:#1F7A4D; background:#E1F5EA; }
+  .tag.lms{ color:#B45309; background:#FEF3C7; }
+  .len{ color:var(--sub); font-weight:700; }
+  .len.over{ color:var(--err); }
+  .miss{ color:var(--err); font-weight:800; }
+
+  /* 발송 버튼 */
+  .send-row{ display:flex; align-items:center; gap:12px; margin-top:14px; }
+  .send-row .sp{ flex:1; }
+  .send-btn{ font-size:20px; font-weight:800; padding:16px 40px; border-radius:14px; border:0;
+    background:var(--blue); color:#fff; cursor:pointer; box-shadow:0 4px 12px rgba(47,91,183,.28); }
+  .send-btn:hover:not(:disabled){ background:var(--blue-d); }
+  .send-btn:disabled{ background:#B7C1D4; box-shadow:none; cursor:not-allowed; }
+
+  /* 토스트 */
+  .toast{ position:fixed; left:50%; bottom:32px; transform:translateX(-50%) translateY(20px);
+    background:#1B2430; color:#fff; font-size:16px; font-weight:700; padding:14px 24px; border-radius:12px;
+    box-shadow:0 10px 30px rgba(16,30,54,.35); opacity:0; pointer-events:none; transition:opacity .18s, transform .18s; max-width:88vw; text-align:center; }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* 확인 모달 */
+  .ov{ position:fixed; inset:0; background:rgba(16,24,40,.45); display:none; align-items:center; justify-content:center; z-index:50; padding:20px; }
+  .ov.open{ display:flex; }
+  .dlg{ background:#fff; border-radius:16px; width:520px; max-width:100%; overflow:hidden; box-shadow:0 24px 60px rgba(16,30,54,.35); }
+  .dlg-h{ font-size:20px; font-weight:800; padding:18px 22px; border-bottom:1.5px solid var(--line2); }
+  .dlg-b{ padding:18px 22px; font-size:17px; }
+  .dlg-b .big{ font-size:19px; font-weight:800; margin-bottom:10px; }
+  .dlg-b .big b{ color:var(--blue); }
+  .dlg-pv{ border:1.5px solid var(--line2); border-radius:11px; padding:13px; margin-top:8px; background:#FAFBFD; white-space:pre-wrap; word-break:break-all; font-size:16px; line-height:1.6; max-height:220px; overflow:auto; }
+  .dlg-note{ font-size:14px; color:var(--sub); margin-top:10px; }
+  .dlg-f{ display:flex; justify-content:flex-end; gap:10px; padding:14px 22px 20px; }
+  .dlg-btn{ font-size:17px; font-weight:800; padding:13px 26px; border-radius:11px; cursor:pointer; border:2px solid var(--line); background:#fff; color:var(--sub); }
+  .dlg-btn.primary{ border-color:var(--blue); background:var(--blue); color:#fff; }
+
+  .empty{ font-size:15px; color:#9AA0B0; padding:8px 4px; }
+</style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <div id="confirmOv" class="ov"><div class="dlg" id="confirmDlg"></div></div>
+  <script src="message.js"></script>
+</body>
+</html>
