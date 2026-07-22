@@ -180,7 +180,7 @@ const GEN_ACC_CONTENT = [
   "빗길 미끄러짐으로 가드레일 접촉, 조)좌측 패널 전반 손상",
 ];
 const GEN_LICENSE = ["1종보통 / 유효", "2종보통 / 유효", "1종대형 / 유효", "2종소형 / 유효"];
-const GEN_REL = ["피보험자 본인", "배우자", "자녀", "형제", "지인 (동의운전)"];
+const GEN_REL = ["피보험자 본인", "배우자", "자녀", "형제/친인척", "지정운전자"];
 const GEN_SPECIAL = [
   "차량단독사고보상 / 애니카서비스 / 다른자동차운전담보특약 III / 긴급견인서비스 확대",
   "대물확장 / 자녀할인 / 마일리지특약 / 블랙박스할인",
@@ -710,6 +710,8 @@ function intakeWorkbenchHtml(d) {
 
 /* ---- 탭1: 계약 사고 정보 — 담당자 편집 컨트롤 ---- */
 const CT_LICENSE_TYPES = ["1종대형", "1종보통", "1종특수", "2종보통", "2종소형", "원동기", "무면허", "해당없음"];
+// 운전자-피보험자 '관계' 선택 목록
+const CT_REL_TYPES = ["피보험자 본인", "지정운전자", "임직원(직원/대표)", "배우자", "자녀", "부모", "렌터카임차인", "형제/친인척", "며느리", "사위", "대리운전", "취급업자", "기타", "미탑승", "절취운전"];
 const CT_ACC_MAJORS = ["차대차", "차량단독", "차대인", "타차일방", "계약위반(음주·약물 등)"];
 const CT_ACC_DETAILS = {
   "차대차": ["추돌", "후진사고", "주/정차 중 사고", "차선변경(가해)", "차선변경(피해)", "신호위반", "교차로 진입", "측면 접촉"],
@@ -817,7 +819,7 @@ function intakeContractTab(d) {
       { k: "운전자", raw: ctText("driverName", st.driverName, "운전자명") },
       { k: "연락처", raw: ctText("phone", st.phone, "010-0000-0000") },
       { k: "생년월일", raw: ctBirthHtml(st) },
-      { k: "관계", raw: ctText("driverRel", st.driverRel, "예: 피보험자 본인") },
+      { k: "관계", raw: ctSel("driverRel", st.driverRel, (st.driverRel && !CT_REL_TYPES.includes(st.driverRel)) ? [st.driverRel].concat(CT_REL_TYPES) : CT_REL_TYPES) },
       { k: "면허종류", raw: ctSel("licenseType", st.licenseType, CT_LICENSE_TYPES) },
       { k: "면허번호", raw: ctText("licenseNo", st.licenseNo, "00-00-000000-00") },
       { k: "소유자", v: P.owner.name }, { k: "연락처", v: P.owner.phone, blue: true },
