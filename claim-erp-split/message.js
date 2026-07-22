@@ -438,7 +438,7 @@ function openStdSettings() {
         <span>${esc(t.msgType)}</span><span class="l">${esc(t.title)}</span><span>${esc(t.regBy)}</span>
       </div>`).join("") || `<div class="empty">표준문구가 없습니다. [신규]로 추가하세요.</div>`;
     openSet(`
-      <div class="set-h"><b>표준문구설정</b><span class="tag-x">대외비</span><button class="set-x" id="stdX">×</button></div>
+      <div class="set-h"><b>표준문구설정</b><button class="set-x" id="stdX">×</button></div>
       <div class="set-b">
         <div class="set-secth">표준문구 리스트</div>
         <div class="set-tbl">
@@ -515,7 +515,7 @@ function openAddressBook() {
         <span class="phone"><input data-ad="p1|${i}" value="${esc(r.p1)}" maxlength="3"><span>-</span><input data-ad="p2|${i}" value="${esc(r.p2)}" maxlength="4"><span>-</span><input data-ad="p3|${i}" value="${esc(r.p3)}" maxlength="4"></span>
       </div>`).join("") || `<div class="empty">등록된 연락처가 없습니다. [＋ 행 추가]로 등록하세요.</div>`;
     openSet(`
-      <div class="set-h"><b>나의 연락처설정 (주소록)</b><span class="tag-x">대외비</span><button class="set-x" id="adX">×</button></div>
+      <div class="set-h"><b>나의 연락처설정 (주소록)</b><button class="set-x" id="adX">×</button></div>
       <div class="set-b">
         <div class="set-hint">자주 연락하는 지급처(정비·부품·렌트 등)를 등록하면 발송 화면의 <b>받는 사람</b>에 바로 나타납니다.</div>
         <div class="set-tbl">
@@ -559,7 +559,7 @@ function openTplSettings() {
         <span class="ord"><button class="set-mini" data-tp-up="${i}" ${i === 0 ? "disabled" : ""}>▲</button><button class="set-mini" data-tp-dn="${i}" ${i === rows.length - 1 ? "disabled" : ""}>▼</button><button class="set-mini del" data-tp-del="${i}">×</button></span>
       </div>`).join("") || `<div class="empty">등록된 개인 템플릿이 없습니다. [＋ 행 추가]로 등록하세요.</div>`;
     openSet(`
-      <div class="set-h"><b>템플릿설정 · 단축키 관리</b><span class="tag-x">대외비</span><button class="set-x" id="tpX">×</button></div>
+      <div class="set-h"><b>템플릿설정 · 단축키 관리</b><button class="set-x" id="tpX">×</button></div>
       <div class="set-b">
         <div class="set-hint">순번(1~9)이 <b>단축키</b>입니다. 발송 화면에서 <b>Alt + 숫자</b>를 누르면 해당 템플릿이 발송내용에 바로 세팅됩니다.</div>
         <div class="set-tbl">
