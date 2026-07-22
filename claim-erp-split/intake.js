@@ -831,7 +831,7 @@ function ctTaskChecksHtml(d, st) {
   const items = CT_TASKS.map(t => {
     const desc = CT_TASK_DESC[t] || `'${iEsc(t)}' 조사 항목으로 표시합니다.`;
     if (CT_AUTO_TASKS.includes(t)) {                             // 시스템 자동판단 — 담당자 수정 불가
-      return `<label class="lg-ctchk auto" data-desc="${iEsc(desc)}"><input type="checkbox" disabled ${auto[t] ? "checked" : ""}><span>${iEsc(t)}</span><em class="lg-ctauto">자동</em></label>`;
+      return `<label class="lg-ctchk auto" data-desc="${iEsc(desc)}"><input type="checkbox" disabled ${auto[t] ? "checked" : ""}><span>${iEsc(t)}</span></label>`;
     }
     return `<label class="lg-ctchk" data-desc="${iEsc(desc)}"><input type="checkbox" data-cttask="${iEsc(t)}" ${st.tasks.includes(t) ? "checked" : ""}><span>${iEsc(t)}</span></label>`;
   }).join("");
