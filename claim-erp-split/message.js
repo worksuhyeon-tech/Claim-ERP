@@ -33,21 +33,24 @@ const REP_TEMPLATES = [
     content: "[SK렌터카] #{고객명}님, 화물 간접손해 기준 안내 및 지급요청 안내입니다.\n담당 #{담당자명} #{담당자연락처}", code: "SKR_INDIRECT_CARGO_01" },
 ];
 
-// ② LMS 템플릿 — 표준문구(시스템) + 자유문구 + 개인문구(직원). 선택 시 본문 수정 가능.
-const LMS_TEMPLATES = [
-  { id: "L0", kind: "자유문구", title: "자유문구 (직접 작성)", content: "", owner: "*" },
-  { id: "L1", kind: "표준문구", title: "대물입고안내(소유)",
-    content: "[SK렌터카] #{고객명}님, 차량(#{차량번호})이 #{정비업체명}에 입고되었습니다.\n수리 진행 후 안내드리겠습니다. 담당 #{담당자명} #{담당자연락처}", owner: null },
-  { id: "L2", kind: "표준문구", title: "대물입고안내(피보)",
-    content: "[SK렌터카] #{고객명}님, 피보험차량(#{차량번호}) 입고 안내입니다. #{정비업체명}에서 수리 진행 예정입니다.\n담당 #{담당자명} #{담당자연락처}", owner: null },
-  { id: "L3", kind: "표준문구", title: "사업자등록여부",
-    content: "[SK렌터카] #{고객명}님, 부가세 환급 처리를 위해 사업자등록 여부 확인이 필요합니다. 회신 부탁드립니다.\n담당 #{담당자명}", owner: null },
-  { id: "L4", kind: "표준문구", title: "렌트모바일시스템 설치안내",
-    content: "[SK렌터카] #{고객명}님, 렌트 이용을 위한 모바일시스템 설치 안내입니다. 안내 링크에서 설치를 완료해 주세요.\n담당 #{담당자명} #{담당자연락처}", owner: null },
-  { id: "P1", kind: "개인문구", title: "[내문구] 재통화 요청",
-    content: "#{고객명}님, SK렌터카 #{담당자명}입니다. 사고 관련 확인차 연락드렸습니다. 편하신 시간에 회신 부탁드립니다. (#{담당자연락처})", owner: "*" },
-  { id: "P2", kind: "개인문구", title: "[내문구] 렌트 안내",
-    content: "#{고객명}님, 대차(렌트) 관련 안내드립니다. 궁금하신 점은 편히 연락 주세요.\n#{담당자명} #{담당자연락처}", owner: "*" },
+// ② LMS 템플릿 = 자유문구(가상) + 표준문구(시스템·표준문구설정에서 관리) + 개인문구(직원·템플릿설정에서 관리)
+//    실제 데이터는 localStorage 저장소(loadStd/loadPtpl)에서 가져오며, 아래는 최초 시드값이다.
+const FREE_TPL = { id: "FREE", kind: "자유문구", title: "자유문구 (직접 작성)", content: "" };
+// 표준문구 시드 — 이미지1 컬럼 구조(순번/등록일시/인물구분/이벤트키/상담유형/송신내용/메시지유형/제목/문구/등록자)
+const STD_SEED = [
+  { id: "S1", seq: 1, regAt: "2026-04-30 09:16", person: "대물", eventKey: "대물입고안내", consultType: "입고지원", sendType: "입고안내", msgType: "物입고안내", title: "대물입고안내(소유)", regBy: "김수현",
+    content: "[SK렌터카] #{고객명}님, 차량(#{차량번호})이 #{정비업체명}에 입고되었습니다.\n수리 진행 후 안내드리겠습니다. 담당 #{담당자명} #{담당자연락처}" },
+  { id: "S2", seq: 2, regAt: "2026-05-07 18:21", person: "대물", eventKey: "대물입고안내", consultType: "입고지원", sendType: "입고안내", msgType: "物입고안내", title: "대물입고안내(피보)", regBy: "이혜숙",
+    content: "[SK렌터카] #{고객명}님, 피보험차량(#{차량번호}) 입고 안내입니다. #{정비업체명}에서 수리 진행 예정입니다.\n담당 #{담당자명} #{담당자연락처}" },
+  { id: "S3", seq: 3, regAt: "2023-09-13 09:27", person: "대물", eventKey: "서류요청", consultType: "서류안내", sendType: "서류요청", msgType: "기타", title: "사업자등록여부", regBy: "김동훈",
+    content: "[SK렌터카] #{고객명}님, 부가세 환급 처리를 위해 사업자등록 여부 확인이 필요합니다. 회신 부탁드립니다.\n담당 #{담당자명}" },
+  { id: "S4", seq: 4, regAt: "2026-03-02 11:02", person: "대물", eventKey: "렌트안내", consultType: "렌트지원", sendType: "설치안내", msgType: "기타", title: "렌트모바일시스템 설치안내", regBy: "오세린",
+    content: "[SK렌터카] #{고객명}님, 렌트 이용을 위한 모바일시스템 설치 안내입니다. 안내 링크에서 설치를 완료해 주세요.\n담당 #{담당자명} #{담당자연락처}" },
+];
+// 개인문구 시드 — 순번(slot 1~9)=단축키. Alt+숫자로 즉시 세팅
+const PTPL_SEED = [
+  { slot: 1, title: "재통화 요청", content: "#{고객명}님, SK렌터카 #{담당자명}입니다. 사고 관련 확인차 연락드렸습니다. 편하신 시간에 회신 부탁드립니다. (#{담당자연락처})" },
+  { slot: 2, title: "렌트 안내", content: "#{고객명}님, 대차(렌트) 관련 안내드립니다. 궁금하신 점은 편히 연락 주세요.\n#{담당자명} #{담당자연락처}" },
 ];
 
 /* ---------- 헬퍼 ---------- */
@@ -91,6 +94,26 @@ const VARS = {
   "예상수리완료일": CTX.outDate || "",
   "금액": CTX.estimate || "",
 };
+const VAR_KEYS = Object.keys(VARS);   // 변수 카탈로그(표준문구설정의 문구변수 선택용)
+
+/* ---------- localStorage 저장소 (표준문구 · 주소록 · 개인 템플릿) ---------- */
+const STD_KEY = "msgStdTemplates";           // 표준문구(전사 공용)
+const ADDR_KEY = "msgAddr_" + ME_NAME;       // 주소록(직원별 지급처 연락처)
+const PTPL_KEY = "msgPtpl_" + ME_NAME;       // 개인 템플릿(직원별, 순번=단축키)
+// 주소록 시드 — 이미지2(지급처 정비/부품/렌트)
+const ADDR_SEED = [
+  { id: "a1", gubun: "지급처", type: "정비업체", name: CTX.repairShop || "정비업체", phone: "010-3312-8842" },
+  { id: "a2", gubun: "지급처", type: "부품업체", name: "성일모터스 부품", phone: "010-4451-7789" },
+  { id: "a3", gubun: "지급처", type: "렌트업체", name: "SK렌터카 지점", phone: "010-1600-2201" },
+];
+function lsGet(key, fallback) { try { const v = JSON.parse(localStorage.getItem(key)); return (v && Array.isArray(v)) ? v : fallback; } catch (e) { return fallback; } }
+function lsSet(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} }
+function loadStd() { return lsGet(STD_KEY, STD_SEED.map(x => Object.assign({}, x))); }
+function saveStd(list) { lsSet(STD_KEY, list); }
+function loadAddr() { return lsGet(ADDR_KEY, ADDR_SEED.map(x => Object.assign({}, x))); }
+function saveAddr(list) { lsSet(ADDR_KEY, list); }
+function loadPtpl() { return lsGet(PTPL_KEY, PTPL_SEED.map(x => Object.assign({}, x))); }
+function savePtpl(list) { lsSet(PTPL_KEY, list); }
 
 /* ---------- 상태 ---------- */
 const state = {
@@ -113,16 +136,24 @@ function buildContacts(ctx) {
   add("고객", "계약자", P.owner);
   add("고객", "통보자", P.notifier);
   add("고객", "운전자", P.driver);
-  // 지급처(정비·부품·렌트) — 데모 연락처
-  rows.push({ id: "c" + rows.length, gubun: "지급처", type: "정비업체", name: ctx.repairShop || "정비업체", phone: "010-3312-8842", checked: false });
-  rows.push({ id: "c" + rows.length, gubun: "지급처", type: "부품업체", name: "성일모터스 부품", phone: "010-4451-7789", checked: false });
-  rows.push({ id: "c" + rows.length, gubun: "지급처", type: "렌트업체", name: "SK렌터카 지점", phone: "010-1600-2201", checked: false });
+  // 지급처 — 주소록(나의 연락처설정)에서 관리
+  loadAddr().forEach((a, i) => rows.push({ id: "p" + i, gubun: a.gubun || "지급처", type: a.type || "", name: a.name || "", phone: a.phone || "", checked: false }));
   return rows;
 }
 
 /* ---------- 파생 계산 ---------- */
 function repTplList() { return REP_TEMPLATES; }
-function lmsTplList() { return LMS_TEMPLATES.filter(t => t.owner === null || t.owner === "*" || t.owner === ME_NAME); }
+// 표준문구/개인문구를 발송화면 좌측 하단 목록용 균일 레코드로 변환
+function stdRows() { return loadStd().map(t => ({ id: t.id, kind: "표준문구", title: t.title, content: t.content })); }
+function ptplRows() {
+  return loadPtpl().slice().sort((a, b) => a.slot - b.slot).map(p => ({
+    id: "P" + p.slot, kind: "개인문구", slot: p.slot,
+    title: `[${p.slot}] ` + ((p.title || (p.content || "").split("\n")[0] || ("개인문구 " + p.slot)).slice(0, 18)),
+    content: p.content || "",
+  }));
+}
+function lmsTplList() { return [{ id: FREE_TPL.id, kind: "자유문구", title: FREE_TPL.title, content: "" }].concat(stdRows(), ptplRows()); }
+function findLmsTpl(id) { return lmsTplList().find(t => t.id === id) || null; }
 function selectedContacts() { return state.contacts.filter(c => c.checked && normPhone(c.phone)); }
 
 function computed() {
@@ -270,7 +301,7 @@ function bind() {
 
   app.querySelectorAll("[data-tpl]").forEach(b => b.addEventListener("click", () => {
     const ch = b.dataset.ch, id = b.dataset.tpl;
-    const t = ch === "ALIMTALK" ? REP_TEMPLATES.find(x => x.id === id) : LMS_TEMPLATES.find(x => x.id === id);
+    const t = ch === "ALIMTALK" ? REP_TEMPLATES.find(x => x.id === id) : findLmsTpl(id);
     if (!t) return;
     if (ch === "LMS" && !ME_MOBILE) { toast("발신번호(내 번호)가 등록되어 있지 않아 문자를 보낼 수 없습니다."); return; }
     state.channel = ch; state.tplId = id;
@@ -299,12 +330,33 @@ function bind() {
   if (ta && !ta.readOnly) ta.addEventListener("input", () => { state.content = ta.value; refreshMeta(); });
 
   app.querySelectorAll("[data-open]").forEach(b => b.addEventListener("click", () => {
-    const map = { addr: "주소록", tpl: "템플릿설정", std: "표준문구설정" };
-    toast(`'${map[b.dataset.open]}' 화면은 준비 중입니다. (별도 화면 제공 예정)`);
+    if (b.dataset.open === "addr") openAddressBook();
+    else if (b.dataset.open === "tpl") openTplSettings();
+    else if (b.dataset.open === "std") openStdSettings();
   }));
 
   const sendBtn = document.getElementById("sendBtn");
   if (sendBtn) sendBtn.addEventListener("click", openConfirm);
+  bindShortcuts();
+}
+
+/* ---------- 단축키 Alt+1~9 → 개인 템플릿 즉시 세팅 ---------- */
+function bindShortcuts() {
+  if (window.__msgKeyBound) return;
+  window.__msgKeyBound = true;
+  document.addEventListener("keydown", e => {
+    if (!e.altKey || e.ctrlKey || e.metaKey) return;
+    if (!/^[1-9]$/.test(e.key)) return;
+    if (document.getElementById("setOv").classList.contains("open")) return;   // 설정창 열림 시 무시
+    e.preventDefault();
+    const slot = +e.key;
+    const t = loadPtpl().find(p => p.slot === slot);
+    if (!t || !(t.content || "").trim()) { toast(`단축키 ${slot}: 등록된 개인 템플릿이 없습니다.`); return; }
+    if (!ME_MOBILE) { toast("발신번호(내 번호) 미등록으로 문자 발송이 제한됩니다."); return; }
+    state.channel = "LMS"; state.tplId = "P" + slot; state.content = applyVars(t.content, VARS);
+    render();
+    toast(`단축키 ${slot}: ${(t.title || "개인문구")} 불러옴`);
+  });
 }
 
 // 발송내용 편집 시 재렌더 없이 하단 표시만 갱신(입력 포커스 유지)
@@ -354,6 +406,182 @@ function doSend() {
   // 발송 후 수신자 선택 해제(중복발송 방지)
   state.contacts.forEach(x => { x.checked = false; });
   render();
+}
+
+/* ============================ 설정 모달 공통 ============================ */
+function openSet(html) { const dlg = document.getElementById("setDlg"); dlg.innerHTML = html; document.getElementById("setOv").classList.add("open"); return dlg; }
+function closeSet() { document.getElementById("setOv").classList.remove("open"); document.getElementById("setDlg").innerHTML = ""; }
+function nowStr() { const d = new Date(); const p = n => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+function insertAtCaret(el, text) {
+  const s = el.selectionStart != null ? el.selectionStart : el.value.length;
+  const e = el.selectionEnd != null ? el.selectionEnd : el.value.length;
+  el.value = el.value.slice(0, s) + text + el.value.slice(e);
+  const pos = s + text.length; el.selectionStart = el.selectionEnd = pos;
+}
+
+/* ===== 모달 A: 표준문구설정 (시스템담당자 전용) — 마스터/디테일 ===== */
+const STD_PERSON = ["대물", "대인", "자차", "공통"];
+const STD_CONSULT = ["입고지원", "서류안내", "렌트지원", "과실안내", "지급안내", "기타"];
+function openStdSettings() {
+  let list = loadStd().map(x => Object.assign({}, x));
+  let sel = list.length ? 0 : -1;
+  const checks = new Set();
+  const blankStd = () => ({ id: "S" + Date.now(), seq: list.reduce((m, x) => Math.max(m, x.seq || 0), 0) + 1, regAt: nowStr(), person: "대물", eventKey: "", consultType: "입고지원", sendType: "", msgType: "기타", title: "", content: "", regBy: ME_NAME });
+  let draft = sel >= 0 ? Object.assign({}, list[sel]) : blankStd();
+
+  function paint() {
+    const rows = list.map((t, i) => `
+      <div class="set-row std${i === sel ? " sel" : ""}" data-std-row="${i}">
+        <span><input type="checkbox" data-std-ck="${i}" ${checks.has(i) ? "checked" : ""}></span>
+        <span>${t.seq || ""}</span><span>${esc(t.regAt)}</span><span>${esc(t.person)}</span>
+        <span>${esc(t.eventKey)}</span><span>${esc(t.consultType)}</span><span>${esc(t.sendType)}</span>
+        <span>${esc(t.msgType)}</span><span class="l">${esc(t.title)}</span><span>${esc(t.regBy)}</span>
+      </div>`).join("") || `<div class="empty">표준문구가 없습니다. [신규]로 추가하세요.</div>`;
+    openSet(`
+      <div class="set-h"><b>표준문구설정</b><span class="tag-x">대외비</span><button class="set-x" id="stdX">×</button></div>
+      <div class="set-b">
+        <div class="set-secth">표준문구 리스트</div>
+        <div class="set-tbl">
+          <div class="set-tbl-h std"><span></span><span>순번</span><span>등록일시</span><span>인물구분</span><span>이벤트키</span><span>상담유형</span><span>송신내용</span><span>메시지유형</span><span class="l">제목</span><span>등록자</span></div>
+          <div class="set-tbl-b" style="max-height:190px">${rows}</div>
+        </div>
+        <div class="set-secth">표준문구 상세</div>
+        <div class="set-detail">
+          <label class="fld"><span class="k">문구제목</span><input id="dTitle" value="${esc(draft.title)}"></label>
+          <label class="fld"><span class="k">이벤트키</span><input id="dEvent" value="${esc(draft.eventKey)}"></label>
+          <label class="fld"><span class="k">인물구분</span><select id="dPerson">${STD_PERSON.map(o => `<option ${o === draft.person ? "selected" : ""}>${o}</option>`).join("")}</select></label>
+          <label class="fld"><span class="k">상담유형</span><select id="dConsult">${STD_CONSULT.map(o => `<option ${o === draft.consultType ? "selected" : ""}>${o}</option>`).join("")}</select></label>
+          <label class="fld"><span class="k">메시지유형</span><input id="dMsgType" value="${esc(draft.msgType)}"></label>
+          <label class="fld"><span class="k">송신내용</span><input id="dSend" value="${esc(draft.sendType)}"></label>
+          <div class="fld var"><span class="k">문구변수</span><select id="dVar">${VAR_KEYS.map(k => `<option value="${esc(k)}">#{${esc(k)}}</option>`).join("")}</select><button class="set-mini" id="dVarCopy">변수복사(문구에 삽입)</button></div>
+          <label class="fld full"><span class="k">문구</span><textarea id="dContent" rows="6" placeholder="문구를 입력하세요. 변수는 #{고객명} 처럼 넣으면 발송 시 자동 치환됩니다.">${esc(draft.content)}</textarea></label>
+        </div>
+      </div>
+      <div class="set-f">
+        <button class="dlg-btn" id="stdNew">신규</button>
+        <button class="dlg-btn" id="stdApply">반영</button>
+        <button class="dlg-btn" id="stdDel">삭제</button>
+        <span style="flex:1"></span>
+        <button class="dlg-btn primary" id="stdSave">저장</button>
+        <button class="dlg-btn" id="stdClose">닫기</button>
+      </div>`);
+    const dlg = document.getElementById("setDlg");
+    document.getElementById("stdX").onclick = closeSet;
+    document.getElementById("stdClose").onclick = closeSet;
+    dlg.querySelectorAll("[data-std-row]").forEach(r => r.addEventListener("click", e => {
+      if (e.target.matches("[data-std-ck]")) return;
+      sel = +r.dataset.stdRow; draft = Object.assign({}, list[sel]); paint();
+    }));
+    dlg.querySelectorAll("[data-std-ck]").forEach(cb => cb.addEventListener("change", () => {
+      const i = +cb.dataset.stdCk; if (cb.checked) checks.add(i); else checks.delete(i);
+    }));
+    const bindD = (id, key) => { const el = document.getElementById(id); if (el) el.addEventListener("input", () => draft[key] = el.value); };
+    bindD("dTitle", "title"); bindD("dEvent", "eventKey"); bindD("dMsgType", "msgType"); bindD("dSend", "sendType"); bindD("dContent", "content");
+    document.getElementById("dPerson").addEventListener("change", e => draft.person = e.target.value);
+    document.getElementById("dConsult").addEventListener("change", e => draft.consultType = e.target.value);
+    document.getElementById("dVarCopy").addEventListener("click", () => {
+      const ta = document.getElementById("dContent");
+      insertAtCaret(ta, "#{" + document.getElementById("dVar").value + "}");
+      draft.content = ta.value; ta.focus();
+    });
+    document.getElementById("stdNew").onclick = () => { sel = -1; checks.clear(); draft = blankStd(); paint(); };
+    document.getElementById("stdApply").onclick = () => {
+      if (!(draft.title || "").trim()) { toast("문구제목을 입력하세요."); return; }
+      if (sel >= 0) list[sel] = Object.assign({}, draft);
+      else { list.push(Object.assign({}, draft)); sel = list.length - 1; }
+      toast("상세 내용을 리스트에 반영했습니다. (저장을 눌러야 확정됩니다)"); paint();
+    };
+    document.getElementById("stdDel").onclick = () => {
+      if (!checks.size) { toast("삭제할 행을 체크하세요."); return; }
+      list = list.filter((_, i) => !checks.has(i)); checks.clear();
+      sel = list.length ? 0 : -1; draft = sel >= 0 ? Object.assign({}, list[sel]) : blankStd(); paint();
+    };
+    document.getElementById("stdSave").onclick = () => { saveStd(list); toast("표준문구를 저장했습니다."); render(); closeSet(); };
+  }
+  paint();
+}
+
+/* ===== 모달 B: 주소록(나의 연락처설정) — 직원 ===== */
+const ADDR_TYPES = ["정비업체", "부품업체", "렌트업체", "기타업체"];
+function openAddressBook() {
+  let rows = loadAddr().map(a => { const m = String(a.phone || "").split("-"); return { id: a.id || ("a" + Math.random().toString(36).slice(2, 7)), gubun: a.gubun || "지급처", type: a.type || "정비업체", name: a.name || "", p1: m[0] || "010", p2: m[1] || "", p3: m[2] || "", ck: false }; });
+  function paint() {
+    const body = rows.map((r, i) => `
+      <div class="set-row addr">
+        <span><input type="checkbox" data-ad-ck="${i}" ${r.ck ? "checked" : ""}></span>
+        <span>${esc(r.gubun)}</span>
+        <span><select data-ad="type|${i}">${ADDR_TYPES.map(o => `<option ${o === r.type ? "selected" : ""}>${o}</option>`).join("")}</select></span>
+        <span><input data-ad="name|${i}" value="${esc(r.name)}" placeholder="성명"></span>
+        <span class="phone"><input data-ad="p1|${i}" value="${esc(r.p1)}" maxlength="3"><span>-</span><input data-ad="p2|${i}" value="${esc(r.p2)}" maxlength="4"><span>-</span><input data-ad="p3|${i}" value="${esc(r.p3)}" maxlength="4"></span>
+      </div>`).join("") || `<div class="empty">등록된 연락처가 없습니다. [＋ 행 추가]로 등록하세요.</div>`;
+    openSet(`
+      <div class="set-h"><b>나의 연락처설정 (주소록)</b><span class="tag-x">대외비</span><button class="set-x" id="adX">×</button></div>
+      <div class="set-b">
+        <div class="set-hint">자주 연락하는 지급처(정비·부품·렌트 등)를 등록하면 발송 화면의 <b>받는 사람</b>에 바로 나타납니다.</div>
+        <div class="set-tbl">
+          <div class="set-tbl-h addr"><span></span><span>구분</span><span>고객구분</span><span>성명</span><span>전화번호</span></div>
+          <div class="set-tbl-b" style="max-height:340px">${body}</div>
+        </div>
+        <div class="set-rowbtns"><button class="set-mini" id="adAdd">＋ 행 추가</button><button class="set-mini" id="adDel">－ 선택 삭제</button></div>
+      </div>
+      <div class="set-f"><span style="flex:1"></span><button class="dlg-btn primary" id="adSave">저장</button><button class="dlg-btn" id="adClose">닫기</button></div>`);
+    const dlg = document.getElementById("setDlg");
+    document.getElementById("adX").onclick = closeSet; document.getElementById("adClose").onclick = closeSet;
+    dlg.querySelectorAll("[data-ad]").forEach(el => el.addEventListener("input", () => { const a = el.dataset.ad.split("|"); rows[+a[1]][a[0]] = el.value; }));
+    dlg.querySelectorAll("[data-ad-ck]").forEach(cb => cb.addEventListener("change", () => { rows[+cb.dataset.adCk].ck = cb.checked; }));
+    document.getElementById("adAdd").onclick = () => { rows.push({ id: "a" + Math.random().toString(36).slice(2, 7), gubun: "지급처", type: "정비업체", name: "", p1: "010", p2: "", p3: "", ck: false }); paint(); };
+    document.getElementById("adDel").onclick = () => { rows = rows.filter(r => !r.ck); paint(); };
+    document.getElementById("adSave").onclick = () => {
+      const out = []; let bad = 0;
+      rows.forEach(r => {
+        if (!r.name && !r.p2 && !r.p3) return;                 // 완전 빈 행은 건너뜀
+        const phone = normPhone(`${r.p1}-${r.p2}-${r.p3}`);
+        if (!phone) { bad++; return; }
+        out.push({ id: r.id, gubun: r.gubun, type: r.type, name: r.name, phone });
+      });
+      saveAddr(out);
+      toast(bad ? `${bad}건은 번호 형식 오류로 제외하고 저장했습니다.` : "주소록을 저장했습니다.");
+      state.contacts = buildContacts(CTX); render(); closeSet();
+    };
+  }
+  paint();
+}
+
+/* ===== 모달 C: 템플릿설정 · 단축키 관리 — 직원 ===== */
+function openTplSettings() {
+  let rows = loadPtpl().slice().sort((a, b) => a.slot - b.slot).map(p => ({ title: p.title || "", content: p.content || "" }));
+  function paint() {
+    const body = rows.map((r, i) => `
+      <div class="set-row tpl">
+        <span class="slot">${i + 1}</span>
+        <span><input data-tp="title|${i}" value="${esc(r.title)}" placeholder="제목(선택)"></span>
+        <span><textarea data-tp="content|${i}" rows="2" placeholder="내용을 입력하세요">${esc(r.content)}</textarea></span>
+        <span class="ord"><button class="set-mini" data-tp-up="${i}" ${i === 0 ? "disabled" : ""}>▲</button><button class="set-mini" data-tp-dn="${i}" ${i === rows.length - 1 ? "disabled" : ""}>▼</button><button class="set-mini del" data-tp-del="${i}">×</button></span>
+      </div>`).join("") || `<div class="empty">등록된 개인 템플릿이 없습니다. [＋ 행 추가]로 등록하세요.</div>`;
+    openSet(`
+      <div class="set-h"><b>템플릿설정 · 단축키 관리</b><span class="tag-x">대외비</span><button class="set-x" id="tpX">×</button></div>
+      <div class="set-b">
+        <div class="set-hint">순번(1~9)이 <b>단축키</b>입니다. 발송 화면에서 <b>Alt + 숫자</b>를 누르면 해당 템플릿이 발송내용에 바로 세팅됩니다.</div>
+        <div class="set-tbl">
+          <div class="set-tbl-h tpl"><span>순번</span><span>제목</span><span>내용</span><span>정렬</span></div>
+          <div class="set-tbl-b" style="max-height:360px">${body}</div>
+        </div>
+        <div class="set-rowbtns"><button class="set-mini" id="tpAdd" ${rows.length >= 9 ? "disabled" : ""}>＋ 행 추가 (최대 9)</button></div>
+      </div>
+      <div class="set-f"><span style="flex:1"></span><button class="dlg-btn primary" id="tpOk">확인</button><button class="dlg-btn" id="tpCancel">취소</button></div>`);
+    const dlg = document.getElementById("setDlg");
+    document.getElementById("tpX").onclick = closeSet; document.getElementById("tpCancel").onclick = closeSet;
+    dlg.querySelectorAll("[data-tp]").forEach(el => el.addEventListener("input", () => { const a = el.dataset.tp.split("|"); rows[+a[1]][a[0]] = el.value; }));
+    dlg.querySelectorAll("[data-tp-up]").forEach(b => b.addEventListener("click", () => { const i = +b.dataset.tpUp; const t = rows[i - 1]; rows[i - 1] = rows[i]; rows[i] = t; paint(); }));
+    dlg.querySelectorAll("[data-tp-dn]").forEach(b => b.addEventListener("click", () => { const i = +b.dataset.tpDn; const t = rows[i + 1]; rows[i + 1] = rows[i]; rows[i] = t; paint(); }));
+    dlg.querySelectorAll("[data-tp-del]").forEach(b => b.addEventListener("click", () => { rows.splice(+b.dataset.tpDel, 1); paint(); }));
+    document.getElementById("tpAdd").onclick = () => { if (rows.length >= 9) { toast("최대 9개까지 등록할 수 있습니다."); return; } rows.push({ title: "", content: "" }); paint(); };
+    document.getElementById("tpOk").onclick = () => {
+      const out = rows.filter(r => (r.content || "").trim()).slice(0, 9).map((r, i) => ({ slot: i + 1, title: (r.title || "").trim(), content: r.content }));
+      savePtpl(out); toast("개인 템플릿을 저장했습니다. (발송화면에서 Alt+숫자로 사용)"); render(); closeSet();
+    };
+  }
+  paint();
 }
 
 document.addEventListener("DOMContentLoaded", render);

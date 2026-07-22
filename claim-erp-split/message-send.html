@@ -130,12 +130,73 @@
   .dlg-btn.primary{ border-color:var(--blue); background:var(--blue); color:#fff; }
 
   .empty{ font-size:15px; color:#9AA0B0; padding:8px 4px; }
+
+  /* ===== 설정 모달(표준문구설정 · 주소록 · 템플릿설정) ===== */
+  .set-modal{ width:980px; max-width:96vw; display:flex; flex-direction:column; max-height:92vh; }
+  .set-h{ display:flex; align-items:center; gap:10px; background:var(--blue); color:#fff; padding:13px 18px; font-size:19px; }
+  .set-h b{ font-weight:800; }
+  .set-h .tag-x{ font-size:12px; font-weight:800; color:#fff; background:#C0392B; border-radius:6px; padding:2px 8px; }
+  .set-h .set-x{ margin-left:auto; width:32px; height:32px; border:0; border-radius:9px; background:rgba(255,255,255,.2); color:#fff; font-size:20px; cursor:pointer; }
+  .set-b{ padding:16px 18px; overflow:auto; flex:1 1 auto; min-height:0; }
+  .set-secth{ font-size:16px; font-weight:800; color:var(--blue-d); margin:6px 0 8px; padding-left:8px; border-left:4px solid var(--blue); }
+  .set-secth:not(:first-child){ margin-top:16px; }
+  .set-hint{ font-size:14px; color:#4A5262; background:#F4F8FE; border:1px solid #DCE7F7; border-radius:9px; padding:9px 12px; margin-bottom:12px; }
+  .set-hint b{ color:var(--blue); }
+
+  .set-tbl{ border:1.5px solid var(--line); border-radius:10px; overflow:hidden; }
+  .set-tbl-h{ display:grid; gap:0; background:#EFF3FA; font-size:13.5px; font-weight:800; color:#3A4252; }
+  .set-tbl-h span{ padding:9px 8px; border-left:1px solid #DDE5F1; text-align:center; }
+  .set-tbl-h span:first-child{ border-left:0; }
+  .set-tbl-b{ overflow:auto; }
+  .set-row{ display:grid; gap:0; align-items:center; border-top:1px solid #EAEFF6; font-size:14.5px; }
+  .set-row span{ padding:7px 8px; border-left:1px solid #EEF2F8; min-width:0; }
+  .set-row span:first-child{ border-left:0; text-align:center; }
+  .set-row span.l{ text-align:left; }
+  .set-row input[type=checkbox]{ width:20px; height:20px; accent-color:var(--blue); cursor:pointer; }
+
+  /* 표준문구 리스트: 10열 */
+  .set-tbl-h.std, .set-row.std{ grid-template-columns:36px 46px 132px 74px 108px 82px 82px 92px 1fr 82px; }
+  .set-row.std{ cursor:pointer; }
+  .set-row.std.sel{ background:var(--blue-soft); }
+  .set-row.std:hover{ background:#F7FAFF; }
+  .set-row.std span{ text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .set-row.std span.l{ text-align:left; }
+  /* 주소록: 5열 */
+  .set-tbl-h.addr, .set-row.addr{ grid-template-columns:36px 72px 130px 1fr 250px; }
+  .set-row.addr select, .set-row.addr input{ width:100%; box-sizing:border-box; font-size:14.5px; font-family:inherit; padding:8px 8px; border:1.5px solid var(--line); border-radius:8px; }
+  .set-row.addr .phone{ display:flex; align-items:center; gap:4px; }
+  .set-row.addr .phone input{ text-align:center; }
+  /* 템플릿설정: 4열 */
+  .set-tbl-h.tpl, .set-row.tpl{ grid-template-columns:56px 180px 1fr 128px; }
+  .set-row.tpl{ align-items:stretch; }
+  .set-row.tpl .slot{ display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:800; color:var(--blue); }
+  .set-row.tpl input, .set-row.tpl textarea{ width:100%; box-sizing:border-box; font-size:14.5px; font-family:inherit; padding:8px; border:1.5px solid var(--line); border-radius:8px; resize:vertical; }
+  .set-row.tpl .ord{ display:flex; align-items:center; gap:4px; justify-content:center; }
+
+  /* 표준문구 상세 폼 */
+  .set-detail{ display:grid; grid-template-columns:1fr 1fr; gap:10px 16px; }
+  .set-detail .fld{ display:flex; align-items:center; gap:10px; }
+  .set-detail .fld.full{ grid-column:1 / -1; align-items:flex-start; }
+  .set-detail .fld.var{ grid-column:1 / -1; }
+  .set-detail .k{ width:82px; flex:none; font-size:14.5px; font-weight:700; color:#3A4252; }
+  .set-detail input, .set-detail select, .set-detail textarea{ flex:1; min-width:0; box-sizing:border-box; font-size:15px; font-family:inherit; padding:9px 10px; border:1.5px solid var(--line); border-radius:9px; }
+  .set-detail textarea{ line-height:1.6; resize:vertical; }
+  .set-detail .fld.var select{ flex:0 0 240px; }
+
+  .set-mini{ font-size:13.5px; font-weight:800; padding:8px 12px; border-radius:9px; border:2px solid var(--blue); background:#fff; color:var(--blue); cursor:pointer; }
+  .set-mini:hover:not(:disabled){ background:var(--blue-soft); }
+  .set-mini:disabled{ border-color:#C7CEDA; color:#AAB2C0; cursor:default; }
+  .set-mini.del{ border-color:#D98A8A; color:#C0392B; }
+  .set-rowbtns{ display:flex; gap:8px; margin-top:10px; }
+  .set-f{ display:flex; align-items:center; gap:8px; padding:14px 18px; border-top:1.5px solid var(--line2); }
+  .set-f .dlg-btn{ font-size:16px; }
 </style>
 </head>
 <body>
   <div id="app"></div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
   <div id="confirmOv" class="ov"><div class="dlg" id="confirmDlg"></div></div>
+  <div id="setOv" class="ov"><div class="dlg set-modal" id="setDlg"></div></div>
   <script src="message.js"></script>
 </body>
 </html>
