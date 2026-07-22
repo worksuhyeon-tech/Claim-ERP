@@ -677,14 +677,14 @@ function intakeWorkbenchHtml(d) {
   const prop = getIntakeProperty(d.id, d);
   const logs = getIntakeLogs(d.id);
   const histBtns = [
-    { label:"메세지발송", desc:"고객·관련자에게 안내 문자(진행 상황·요청 사항)를 발송합니다." },
-    { label:"간편렌트", desc:"대차(렌트) 차량을 간편 신청 절차로 바로 접수합니다." },
+    { label:"메세지발송", act:"msg", desc:"고객·관련자에게 알림톡/문자메세지를 발송하는 창을 엽니다." },
+    { label:"간편렌트", act:"rent", desc:"대차(렌트) 차량을 간편 신청 절차로 바로 접수합니다." },
   ];
   const filterOpts = ["전체", ...INTAKE_MEMO_TYPES];
   return `<div class="lg-panels">
     <div class="lg-panel">
       <div class="lg-panel-h"><span class="h">진행 이력</span><span class="lg-radio"><label><input type="radio" name="lgHistScope" disabled> MY</label><label><input type="radio" name="lgHistScope" checked disabled> 전체</label></span></div>
-      <div class="lg-mini-btns">${histBtns.map(b => `<button class="lg-mini gray" type="button" data-desc="${iEsc(b.desc)}">${iEsc(b.label)}</button>`).join("")}</div>
+      <div class="lg-mini-btns">${histBtns.map(b => `<button class="lg-mini gray" type="button" data-hist-act="${iEsc(b.act)}" data-desc="${iEsc(b.desc)}">${iEsc(b.label)}</button>`).join("")}</div>
       <div class="lg-radio lg-hist-filter" style="margin-bottom:6px">${filterOpts.map(t => `<label data-desc="${t === "전체" ? "모든 채널의 진행 이력을 표시합니다." : `'${iEsc(t)}' 채널로 남긴 진행 이력만 골라 표시합니다.`}"><input type="radio" name="lgHistFilter" value="${iEsc(t)}" ${intakeLogFilter === t ? "checked" : ""}> ${iEsc(t)}</label>`).join("")}</div>
       <div class="lg-log" id="intakeLogBox">${intakeLogTableHtml(logs)}</div>
     </div>
@@ -2093,6 +2093,9 @@ function openImageZoom(images, startIndex) {
 }
 
 function bindIntakeWorkbench(d) {
+  // 진행 이력 상단 '메세지발송' 버튼 → 운전자 개동 옆 아이콘과 동일한 발송 창 열기
+  const msgBtn = document.querySelector('[data-hist-act="msg"]');
+  if (msgBtn) msgBtn.addEventListener("click", () => openMsgSendWindow(d));
   const memoSave = $("#intakeMemoSave");
   if (memoSave) memoSave.addEventListener("click", () => {
     const memoType = $("#intakeMemoType").value;
