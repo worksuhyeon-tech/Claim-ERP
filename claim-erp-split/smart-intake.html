@@ -118,15 +118,27 @@
   .lg-csel { cursor: pointer; }
   .lg-cin:focus, .lg-csel:focus { outline: none; border-color: #2F5BB7; box-shadow: 0 0 0 2px rgba(47,91,183,.15); }
   .lg-tbl td:has(> .lg-cin), .lg-tbl td:has(> .lg-csel) { padding: 3px 6px; }
+  /* 생년월일 3분할 — 주민번호 앞자리 / 뒷자리 첫1자리 / 만 나이(자동계산·비활성) */
+  .lg-birth { display: flex; align-items: center; gap: 4px 6px; flex-wrap: wrap; }
+  .lg-birth .lg-birth-front { width: 82px; text-align: center; letter-spacing: .5px; }
+  .lg-birth .lg-birth-back { width: 30px; text-align: center; }
+  .lg-birth-sep { color: #9AA0B0; }
+  .lg-birth-mask { letter-spacing: 2px; color: #B9C0CE; font-size: 11px; user-select: none; }
+  .lg-birth-age { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #3A3F4E; white-space: nowrap; margin-left: 2px; }
+  .lg-birth .lg-birth-ageval { width: 42px; text-align: center; background: #EEF1F6; color: #242832; font-weight: 700; cursor: default; -webkit-text-fill-color: #242832; opacity: 1; }
   /* 조사 Task 체크박스 */
   .lg-ctchecks { display: flex; flex-wrap: wrap; gap: 4px 12px; }
   .lg-ctchk { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #3A3F4E; cursor: pointer; }
   .lg-ctchk input { width: 13px; height: 13px; accent-color: #2F5BB7; cursor: pointer; }
+  /* 시스템 자동판단 조사 Task */
+  .lg-ctchk.auto { cursor: default; color: #5B6273; }
+  .lg-ctchk.auto input { cursor: default; }
   /* 경찰접수 라디오 */
   .lg-ctpolice { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
   .lg-ctradio { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #3A3F4E; cursor: pointer; }
   .lg-ctradio input { accent-color: #2F5BB7; cursor: pointer; }
-  .lg-ctstation { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #5B6273; }
+  .lg-ctstation { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: #5B6273; }
+  .lg-ctstation-i { display: inline-flex; align-items: center; gap: 6px; }
   .lg-hide { display: none !important; }
   /* 섹션 헤더 내 조회 버튼 */
   .lg-sect .lg-mini { float: right; margin-top: -2px; }
@@ -145,6 +157,14 @@
   .ct-modal-b textarea { width: 100%; box-sizing: border-box; border: 1px solid #C9D0DE; border-radius: 8px; padding: 10px; font-size: 13px; line-height: 1.6; font-family: inherit; resize: vertical; }
   .ct-modal-b textarea:focus { outline: none; border-color: #2F5BB7; box-shadow: 0 0 0 3px rgba(47,91,183,.15); }
   .ct-modal-f { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px 16px; }
+
+  /* 개인정보동의 옆 알림톡·문자 발송 아이콘 */
+  .lg-agree { display: inline-flex; align-items: center; gap: 8px; }
+  .lg-agree-v { color: #242832; }
+  .lg-msgbtn { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 24px;
+    border: 1px solid #C6D7F2; border-radius: 6px; background: #EAF0FB; color: #2F5BB7; cursor: pointer; flex: none; padding: 0; }
+  .lg-msgbtn:hover { background: #DCE7FA; border-color: #2F5BB7; }
+  .lg-msgbtn svg { width: 15px; height: 15px; }
 
   /* ===== 피해 진행 정보 탭 — 편집 컨트롤 ===== */
   .lg-cin.ta-r { text-align: right; }

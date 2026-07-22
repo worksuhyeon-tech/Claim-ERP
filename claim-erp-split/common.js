@@ -228,23 +228,25 @@ function deriveWork(c) {
   return { repair, part, glass, sealant, rent, exemption, approval, estimate, payment, receive };
 }
 
-/* 미결 속성(스마트업무처리 화면에서 담당자가 남긴 메모) 데모 시드 풀 — "속성명, 메모" 형식 */
+/* 미결 속성(스마트업무처리 화면에서 담당자가 남긴 메모) 데모 시드 풀 — "속성명 - 메모" 형식 */
 const ATTR_SEED_POOL = [
-  "렌트, 3일 대차 제공 예정",
-  "재통화, 07/24 14시 재확인 예정",
-  "VOC, 사고내용 상이 주장 접수",
-  "탁송, 공업사 → 자택 탁송 요청",
-  "기타, 견인비 별도 청구 예정",
-  "재통화, 07/22 오전 통화 예정",
-  "렌트, 동급 차량 배정 요청",
-  "기타, 렌트 연장 문의 회신 대기",
+  "렌트 - 3일 대차 제공 예정",
+  "재통화 - 07/24 14시 재확인 예정",
+  "VOC - 사고내용 상이 주장 접수",
+  "탁송 - 공업사 → 자택 탁송 요청",
+  "기타 - 견인비 별도 청구 예정",
+  "재통화 - 07/22 오전 통화 예정",
+  "렌트 - 동급 차량 배정 요청",
+  "기타 - 렌트 연장 문의 회신 대기",
 ];
-/* 접수번호 기반 결정적 시드 — 일부 건은 미결속성 없음(-), 일부는 1개, 일부는 2개 */
+/* 접수번호 기반 결정적 시드 — 일부 건은 미결속성 없음(-), 일부는 1개, 일부는 2개, 일부는 3개 */
 function seedUnresolvedProps(n) {
+  const L = ATTR_SEED_POOL.length;
   const k = n % 5;
   if (k === 0) return [];                                                    // 미결속성 없음
-  if (k === 2) return [ATTR_SEED_POOL[n % ATTR_SEED_POOL.length], ATTR_SEED_POOL[(n + 3) % ATTR_SEED_POOL.length]];
-  return [ATTR_SEED_POOL[n % ATTR_SEED_POOL.length]];
+  if (k === 4) return [ATTR_SEED_POOL[n % L], ATTR_SEED_POOL[(n + 3) % L], ATTR_SEED_POOL[(n + 5) % L]]; // 3개
+  if (k === 2) return [ATTR_SEED_POOL[n % L], ATTR_SEED_POOL[(n + 3) % L]]; // 2개
+  return [ATTR_SEED_POOL[n % L]];                                            // 1개
 }
 
 CLAIMS.forEach(c => {

@@ -723,17 +723,17 @@ function elapsedDaysCell(c) {
   return `<span class="cdays">${d}<small>일</small></span>`;
 }
 
-/* 리스트 표 고정 구조 — 19열 colgroup + 1줄 헤더
-   (계약 정보확인 우측에 미결속성1·미결속성2·접수경과일·담당자 추가, 타 열 폭 축소) */
+/* 리스트 표 고정 구조 — 20열 colgroup + 1줄 헤더
+   (계약 정보확인 우측에 미결속성1·2·3·접수경과일·담당자 추가, 타 열 폭 축소) */
 const LIST_COLGROUP =
   '<colgroup>' +
   '<col style="width:2.5%"><col style="width:2.5%"><col style="width:2.5%">' +
-  '<col style="width:9%"><col style="width:9%"><col style="width:6%"><col style="width:6%">' +
-  '<col style="width:4.5%">' +
+  '<col style="width:8.5%"><col style="width:8%"><col style="width:5.5%"><col style="width:5.5%">' +
+  '<col style="width:4%">' +
   '<col style="width:4.5%"><col style="width:4.5%"><col style="width:4.5%">' +
-  '<col style="width:6%"><col style="width:6%">' +
-  '<col style="width:4.5%"><col style="width:4.5%">' +
-  '<col style="width:7.5%"><col style="width:7.5%"><col style="width:4.5%"><col style="width:4.5%">' +
+  '<col style="width:5.5%"><col style="width:5.5%">' +
+  '<col style="width:4%"><col style="width:4%">' +
+  '<col style="width:6.5%"><col style="width:6.5%"><col style="width:6.5%"><col style="width:4%"><col style="width:4%">' +
   '</colgroup>';
 const LIST_THEAD =
   '<thead>' +
@@ -745,7 +745,10 @@ const LIST_THEAD =
       '<th>정비 상태</th><th>부품 상태</th><th>승인 상태</th>' +
       '<th>추산</th><th>지급</th>' +
       '<th>운전자<br>정보동의</th><th>계약<br>정보확인</th>' +
-      '<th>미결속성1</th><th>미결속성2</th><th>접수<br>경과일</th>' +
+      '<th data-desc="Smart업무처리에서 입력한 미결 속성이 \'속성명 - 메모\' 형태로 표시됩니다. 내용이 길면 말줄임(…)으로 보이고, 마우스를 올리면 전체 내용을 확인할 수 있습니다.">미결속성1</th>' +
+      '<th data-desc="Smart업무처리에서 입력한 두 번째 미결 속성입니다.">미결속성2</th>' +
+      '<th data-desc="Smart업무처리에서 입력한 세 번째 미결 속성입니다.">미결속성3</th>' +
+      '<th>접수<br>경과일</th>' +
       '<th data-desc="현재 데모는 담당자 구분 없이 전체 조회되지만, 실제 구현 모드에서는 본인 미결 리스트만 조회되는 것이 기본값입니다.">담당자</th>' +
     '</tr>' +
   '</thead>';
@@ -792,6 +795,7 @@ function claimRowHtml(c, seq) {
         <td>${ynCell(contractConfirmed(c))}</td>
         <td class="cattr">${attrCell(c, 0)}</td>
         <td class="cattr">${attrCell(c, 1)}</td>
+        <td class="cattr">${attrCell(c, 2)}</td>
         <td>${elapsedDaysCell(c)}</td>
         <td class="cmgr">${escapeHtml(c.manager || "-")}</td>
       </tr>
@@ -835,7 +839,7 @@ function renderList() {
     const msg = q
       ? `<b>'${escapeHtml(q)}'</b>에 해당하는 조치대상 건이 없습니다.`
       : `조건에 해당하는 조치대상 건이 없습니다.`;
-    $("#rows").innerHTML = `${head}<tbody><tr><td colspan="19" class="rows-empty">${msg}</td></tr></tbody></table>`;
+    $("#rows").innerHTML = `${head}<tbody><tr><td colspan="20" class="rows-empty">${msg}</td></tr></tbody></table>`;
     renderPager(1, 1);
     return;
   }
