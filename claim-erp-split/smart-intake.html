@@ -42,7 +42,7 @@
   #viewIntake .lg-sk-band td[data-desc],
   #viewIntake .lg-sect[data-desc] { cursor: help; }
 
-  /* 차량 부위 손상 — 정비공장 입력 ↔ 담당자 입력 2단 대조 */
+  /* 차량 손상 부위 — 정비공장 입력 ↔ 담당자 입력 2단 대조 */
   #viewIntake .lg-dmg-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
   #viewIntake .lg-dmg-col { border: 1px solid var(--lg-line2, #C9D3E4); border-radius: 5px; background: #fff; padding: 8px 10px 10px; }
   #viewIntake .lg-dmg-col .lg-dmg { border: 0; padding: 0; }
@@ -57,6 +57,22 @@
   #viewIntake .lg-dmg-cap.shop { color: #384150; }
   #viewIntake .lg-dmg-cap.staff::before { background: #B45309; }
   #viewIntake .lg-dmg-cap.staff { color: #B45309; }
+  /* 손상 사진 썸네일 */
+  #viewIntake .lg-dmg-photos { border: 1px solid var(--lg-line2, #C9D3E4); border-radius: 5px; background: #fff; padding: 8px 10px 10px; margin-bottom: 12px; }
+  #viewIntake .lg-dmg-photos-cap { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; font-size: 12.5px; font-weight: 800; color: #2B3140; padding-bottom: 7px; margin-bottom: 9px; border-bottom: 1px dashed var(--lg-line, #D9E0EC); }
+  #viewIntake .lg-dmg-photos-cap span { font-size: 11px; font-weight: 600; color: #8A90A0; }
+  #viewIntake .lg-dmg-thumbs { display: flex; gap: 8px; flex-wrap: wrap; }
+  #viewIntake .lg-dmg-thumb { width: 96px; padding: 0; border: 1px solid var(--lg-line, #D9E0EC); border-radius: 6px; background: #fff; cursor: pointer; overflow: hidden; display: flex; flex-direction: column; font-family: inherit; }
+  #viewIntake .lg-dmg-thumb:hover { border-color: #2F5BB7; box-shadow: 0 0 0 2px rgba(47,91,183,.15); }
+  #viewIntake .lg-dmg-thumb img { width: 100%; height: 66px; object-fit: cover; display: block; background: #EEF1F6; }
+  #viewIntake .lg-dmg-thumb span { font-size: 10px; color: #5B6273; padding: 3px 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: left; }
+  /* 수리 승인 */
+  #viewIntake .lg-dmg-approve { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 12px; padding: 10px 12px; border: 1px solid #C6D7F2; background: #F4F8FE; border-radius: 6px; }
+  #viewIntake .lg-approve-chk { display: inline-flex; align-items: center; gap: 6px; font-size: 13.5px; font-weight: 800; color: #1D4ED8; cursor: pointer; }
+  #viewIntake .lg-approve-chk input { width: 16px; height: 16px; accent-color: #2F5BB7; cursor: pointer; }
+  #viewIntake .lg-approve-hint { font-size: 11.5px; color: #5B6273; }
+  #viewIntake .lg-approve-hint b { color: #2B3140; }
+  #viewIntake .lg-approve-sent { font-size: 11.5px; font-weight: 800; color: #15803D; background: #DCFCE7; border: 1px solid #A7E9BF; border-radius: 999px; padding: 2px 9px; margin-left: auto; }
   /* 담당자 입력 항목은 클릭으로 선택 */
   #viewIntake .lg-dmg-item.staff-part { cursor: pointer; user-select: none; border-radius: 3px; }
   #viewIntake .lg-dmg-item.staff-part:hover { background: #FEF3C7; }
@@ -115,6 +131,10 @@
   .lg-cin, .lg-csel { width: 100%; box-sizing: border-box; border: 1px solid #C9D0DE; border-radius: 5px;
     padding: 3px 7px; font-size: 12px; color: #242832; background: #fff; font-family: inherit; }
   .lg-cin.sm { width: auto; min-width: 130px; }
+  /* 자차과실 퍼센트 입력 */
+  .lg-fault { display: inline-flex; align-items: center; gap: 6px; }
+  .lg-fault .lg-fault-in { width: 64px; text-align: center; letter-spacing: .5px; }
+  .lg-fault-unit { font-size: 12.5px; font-weight: 700; color: #3A3F4E; }
   .lg-csel { cursor: pointer; }
   .lg-cin:focus, .lg-csel:focus { outline: none; border-color: #2F5BB7; box-shadow: 0 0 0 2px rgba(47,91,183,.15); }
   .lg-tbl td:has(> .lg-cin), .lg-tbl td:has(> .lg-csel) { padding: 3px 6px; }

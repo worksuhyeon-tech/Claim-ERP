@@ -79,14 +79,18 @@ const intakePropertyState = {
     note:"피해담당자와 로그의 사고내용이 서로 다름",
   },
 };
-// 사고번호별 담당자 입력 파손부위 (차량 부위 손상 · 담당자 대조용, 클릭 선택)
+// 사고번호별 담당자 입력 파손부위 (차량 손상 부위 · 담당자 대조용, 클릭 선택)
 const intakeStaffParts = {};
 // 사고번호별 접수지 저장 여부 — 저장해야 추산 등록·종결 가능
 const intakeSaved = {};
+// 사고번호별 '탭별' 저장 여부 — { contract, damage, estimate }
+// 종결 규칙: 면책=계약+피해 저장 시 / 지급=계약+피해 저장 & '청구 견적 정보' 탭에서만
+const intakeSavedTabs = {};
+function intakeSavedTabsOf(id) { return intakeSavedTabs[id] || (intakeSavedTabs[id] = {}); }
 
 const CLAIM_CHIP_KEYS = ["정비", "부품", "유리", "실런트", "운반", "기타", "렌트", "교통"];
 const CHIP_STATE_TEXT = { none:"미청구", recv:"청구접수", review:"검토", done:"완료" };
-// 차량 부위 손상 체크 목록
+// 차량 손상 부위 체크 목록
 const PART_LIST = ["앞범퍼","헤드램프L","헤드램프R","본네트","앞휀다L","앞휀다R","사이드미러L","사이드미러R",
   "앞도어L","앞도어R","루프","사이드스텝L","사이드스텝R","뒤도어L","뒤도어R","트렁크","테일램프L","테일램프R",
   "뒤범퍼","앞휠L","앞휠R","뒤휠L","뒤휠R","기타"];
@@ -677,14 +681,13 @@ function intakeWorkbenchHtml(d) {
   const prop = getIntakeProperty(d.id, d);
   const logs = getIntakeLogs(d.id);
   const histBtns = [
-    { label:"메세지발송", desc:"고객·관련자에게 안내 문자(진행 상황·요청 사항)를 발송합니다." },
-    { label:"간편렌트", desc:"대차(렌트) 차량을 간편 신청 절차로 바로 접수합니다." },
+    { label:"메세지발송", act:"msg", desc:"고객·관련자에게 알림톡/문자메세지를 발송하는 창을 엽니다." },
   ];
   const filterOpts = ["전체", ...INTAKE_MEMO_TYPES];
   return `<div class="lg-panels">
     <div class="lg-panel">
       <div class="lg-panel-h"><span class="h">진행 이력</span><span class="lg-radio"><label><input type="radio" name="lgHistScope" disabled> MY</label><label><input type="radio" name="lgHistScope" checked disabled> 전체</label></span></div>
-      <div class="lg-mini-btns">${histBtns.map(b => `<button class="lg-mini gray" type="button" data-desc="${iEsc(b.desc)}">${iEsc(b.label)}</button>`).join("")}</div>
+      <div class="lg-mini-btns">${histBtns.map(b => `<button class="lg-mini gray" type="button" data-hist-act="${iEsc(b.act)}" data-desc="${iEsc(b.desc)}">${iEsc(b.label)}</button>`).join("")}</div>
       <div class="lg-radio lg-hist-filter" style="margin-bottom:6px">${filterOpts.map(t => `<label data-desc="${t === "전체" ? "모든 채널의 진행 이력을 표시합니다." : `'${iEsc(t)}' 채널로 남긴 진행 이력만 골라 표시합니다.`}"><input type="radio" name="lgHistFilter" value="${iEsc(t)}" ${intakeLogFilter === t ? "checked" : ""}> ${iEsc(t)}</label>`).join("")}</div>
       <div class="lg-log" id="intakeLogBox">${intakeLogTableHtml(logs)}</div>
     </div>
@@ -746,6 +749,7 @@ function getContractState(id, d) {
       datetime: A.datetime || "", place: A.place || "", placeDetail: A.placeDetail || "",
       content: A.content || "", note: A.note || "",
       accMajor: "차대차", accDetail: CT_ACC_DETAILS["차대차"][0],
+      selfFault: (String((d.ownDamage || {}).faultRate || "").match(/(\d+)\s*%/) || [])[1] || "",   // 자차과실(%)
       tasks: (A.otherDrive && A.otherDrive !== "해당없음") ? ["타차운전"] : [], moralNote: "",
       police: (A.police === "신고접수") ? "신고" : "미신고", policeStation: "", policeOfficer: "", policeOfficerPhone: "",
       comp: { insurer: "", caseNo: "", staff: "", staffPhone: "", faultRate: "", faultFixed: "미확정", place: A.place || "", accType: "", dispatched: "미출동", content: "" },
@@ -758,6 +762,10 @@ function ctText(field, val, ph) {
 }
 function ctSel(field, val, opts) {
   return `<select class="lg-csel" data-ct="${iEsc(field)}">${opts.map(o => `<option ${o === val ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>`;
+}
+/* 자차과실 — 퍼센트 직접 입력: ( __ ) % */
+function ctFaultHtml(st) {
+  return `<span class="lg-fault"><input type="text" inputmode="numeric" maxlength="3" class="lg-cin lg-fault-in" data-ct="selfFault" value="${iEsc(st.selfFault || "")}" placeholder="0" data-desc="자차 과실 비율(%)을 담당자가 직접 입력합니다. (0~100)"><span class="lg-fault-unit">%</span></span>`;
 }
 /* 생년월일(주민번호) 문자열 파싱 — "64****-2 (만61세)" → { front:"64****", back:"2", age:"61" } */
 function parseBirth(raw) {
@@ -876,6 +884,7 @@ function intakeContractTab(d) {
       { k: "내용", raw: ctText("content", st.content, "사고 경위·내용"), full: true },
       { k: "사고유형", raw: ctSel("accMajor", st.accMajor, CT_ACC_MAJORS) },
       { k: "세부분류", raw: `<select class="lg-csel" id="ctAccDetail" data-ct="accDetail">${detailOpts.map(o => `<option ${o === st.accDetail ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>` },
+      { k: "자차과실", raw: ctFaultHtml(st) },
       { k: "특이사항", raw: ctText("note", st.note, "특이사항"), full: true },
       { k: "조사Task", raw: ctTaskChecksHtml(d, st), full: true },
       { k: "경찰접수", raw: ctPoliceHtml(st), full: true },
@@ -901,7 +910,7 @@ function intakeContractTab(d) {
     ])
     + lgSect("자차 계약사항")
     + lgTable([
-      { k: "자차가입", v: d.ownDamage.joined }, { k: "자차과실", v: d.ownDamage.faultRate },
+      { k: "자차가입", v: d.ownDamage.joined, full: true },
     ])
     + lgSect("피보험차량")
     + lgTable([
@@ -940,6 +949,11 @@ function bindIntakeContract(d) {
       const isBirth = el.dataset.ct === "birthFront" || el.dataset.ct === "birthBack";
       if (isBirth) {                               // 생년월일 필드는 숫자만 허용
         const clean = el.value.replace(/\D/g, "");
+        if (clean !== el.value) el.value = clean;
+      }
+      if (el.dataset.ct === "selfFault") {         // 자차과실(%) — 숫자만, 0~100
+        let clean = el.value.replace(/\D/g, "");
+        if (clean !== "" && +clean > 100) clean = "100";
         if (clean !== el.value) el.value = clean;
       }
       ctSetField(st, el.dataset.ct, el.value);
@@ -1061,7 +1075,7 @@ function openMsgSendWindow(d) {
 }
 
 /* ---- 탭2: 피해 진행 정보 ---- */
-// 차량 부위 손상 목록 렌더 (interactive=true → 담당자 입력, 클릭 토글)
+// 차량 손상 부위 목록 렌더 (interactive=true → 담당자 입력, 클릭 토글)
 function dmgPartsHtml(checkedSet, interactive) {
   return PART_LIST.map(p => {
     const on = checkedSet.has(p);
@@ -1100,9 +1114,20 @@ function getDamageState(id, d) {
       repairStartDate: "", repairEndDate: "", outDoneDate: "",
       estimate: "1,300,000",
       deductible: "300,000",
+      repairApproved: false, repairApprovedSent: false,   // 수리 승인 체크 / 송신 여부
     };
   }
   return intakeDamageState[id];
+}
+// 이 사고건의 손상 사진(사고사진·수리전사진 중 실제 이미지) — 확대보기 썸네일용
+function getDamagePhotos(d) {
+  const byClaim = (typeof CLAIM_IMAGES !== "undefined" && CLAIM_IMAGES[d.id]) || {};
+  const out = [];
+  ["사고사진", "수리전사진"].forEach(folder => (byClaim[folder] || []).forEach(im => { if (im && im.url) out.push(im); }));
+  if (!out.length) {   // 데모: 사진 데이터가 없는 건은 기본 손상 사진으로 대체
+    ["repair_01", "repair_02", "repair_03", "repair_04"].forEach((n, i) => out.push({ id: "dmg" + i, name: `손상사진_${i + 1}.jpg`, url: `assets/accident_car/${n}.jpg` }));
+  }
+  return out;
 }
 function dmText(f, v, ph) { return `<input type="text" class="lg-cin" data-dm="${iEsc(f)}" value="${iEsc(v)}" placeholder="${iEsc(ph || "")}" data-desc="담당자가 직접 수정·저장하는 항목입니다.">`; }
 function dmDate(f, v) { return `<input type="date" class="lg-cin" data-dm="${iEsc(f)}" value="${iEsc(v)}" data-desc="날짜를 선택합니다.">`; }
@@ -1160,10 +1185,21 @@ function intakeDamageTab(d) {
       { k: "면책금", raw: dmNum("deductible", s.deductible), full: true },
     ]);
 
-  // 차량 부위 손상 — 정비공장 입력(좌, 읽기전용) ↔ 담당자 입력(우, 클릭 선택) 대조
+  // 차량 손상 부위 — 사진 확대보기 + 정비공장 입력(좌, 읽기전용) ↔ 담당자 입력(우, 클릭 선택) 대조
   const shopChecked = new Set(d.parts.checked || []);
   const staffChecked = intakeStaffParts[d.id] || (intakeStaffParts[d.id] = new Set());
-  const carDamage = lgSect("차량 부위 손상", "좌: 정비공장 입력 · 우: 담당자 입력 (실제 파손부위 대조용)")
+  const photos = getDamagePhotos(d);
+  const photoStrip = `<div class="lg-dmg-photos">
+       <div class="lg-dmg-photos-cap">손상 사진<span>썸네일을 클릭하면 확대보기 새 창이 열립니다 · 사진을 보며 파손부위를 선택하세요</span></div>
+       <div class="lg-dmg-thumbs">${photos.map((im, i) => `<button type="button" class="lg-dmg-thumb" data-dmg-photo="${i}" data-desc="${iEsc(im.name)} — 클릭하면 확대보기 새 창이 열립니다."><img src="${iEsc(im.url)}" alt="${iEsc(im.name)}" loading="lazy"><span>${iEsc(im.name)}</span></button>`).join("")}</div>
+     </div>`;
+  const approve = `<div class="lg-dmg-approve">
+       <label class="lg-approve-chk" data-desc="담당자가 확인한 파손부위 선택을 마친 뒤 '수리 승인'에 체크하고 하단 '저장'을 누르면, SK렌터카와 정비공장에 수리 승인 지시가 송신됩니다."><input type="checkbox" id="dmRepairApprove" ${s.repairApproved ? "checked" : ""}><span>수리 승인</span></label>
+       <span class="lg-approve-hint">파손부위 선택 완료 후 체크 → 하단 <b>'저장'</b> 시 SK렌터카·정비공장에 수리 승인 지시 송신</span>
+       ${s.repairApprovedSent ? `<span class="lg-approve-sent">송신됨 ✓</span>` : ""}
+     </div>`;
+  const carDamage = lgSect("차량 손상 부위", "사진 확대보기 · 좌: 정비공장 입력 · 우: 담당자 입력 (실제 파손부위 대조용)")
+    + photoStrip
     + `<div class="lg-dmg-pair">
          <div class="lg-dmg-col">
            <div class="lg-dmg-cap shop">정비공장 입력<span>공업사가 청구한 파손부위</span></div>
@@ -1173,7 +1209,8 @@ function intakeDamageTab(d) {
            <div class="lg-dmg-cap staff">담당자 입력<span>담당자가 확인한 실제 파손부위 · 클릭하여 선택</span></div>
            <div class="lg-dmg"><div class="lg-dmg-list">${dmgPartsHtml(staffChecked, true)}</div><div class="lg-dmg-car">${CAR_DIAGRAM_SVG}</div></div>
          </div>
-       </div>`;
+       </div>`
+    + approve;
 
   return `<div class="lg-cols"><div>${left}</div><div>${right}</div></div>${carDamage}`;
 }
@@ -2093,6 +2130,9 @@ function openImageZoom(images, startIndex) {
 }
 
 function bindIntakeWorkbench(d) {
+  // 진행 이력 상단 '메세지발송' 버튼 → 운전자 개동 옆 아이콘과 동일한 발송 창 열기
+  const msgBtn = document.querySelector('[data-hist-act="msg"]');
+  if (msgBtn) msgBtn.addEventListener("click", () => openMsgSendWindow(d));
   const memoSave = $("#intakeMemoSave");
   if (memoSave) memoSave.addEventListener("click", () => {
     const memoType = $("#intakeMemoType").value;
@@ -2163,7 +2203,30 @@ function bindIntakeWorkbench(d) {
   }));
 }
 
-// 담당자 입력 파손부위 클릭 토글 (차량 부위 손상 · 우측 도식)
+// 손상 사진 확대보기 — 새 팝업 창에 전체 사진 갤러리를 띄운다(담당자가 보며 파손부위 선택)
+function openDamagePhotos(photos, startIndex) {
+  if (!photos || !photos.length) return;
+  const w = window.open("", "dmgPhotoViewer", "width=920,height=780,scrollbars=yes,resizable=yes");
+  if (!w) { showToast("팝업이 차단되었습니다. 브라우저 팝업 허용 후 다시 시도하세요."); return; }
+  const abs = u => { try { return new URL(u, location.href).href; } catch (e) { return u; } };
+  const figs = photos.map((im, i) => `<figure id="p${i}"><img src="${abs(im.url)}" alt="${iEsc(im.name)}"><figcaption>${i + 1}. ${iEsc(im.name)}</figcaption></figure>`).join("");
+  w.document.write(`<!DOCTYPE html><html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>손상 사진 확대보기</title>
+    <style>*{box-sizing:border-box}body{margin:0;background:#0d1016;color:#e8edf5;font-family:system-ui,"Malgun Gothic",sans-serif}
+    .hd{position:sticky;top:0;z-index:2;background:#141a24;padding:11px 16px;font-size:14px;font-weight:800;border-bottom:1px solid #263043}
+    .hd span{font-weight:600;color:#aeb8c8;font-size:12px;margin-left:8px}
+    .wrap{padding:16px;display:flex;flex-direction:column;gap:16px;align-items:center}
+    figure{margin:0;max-width:860px;width:100%;background:#141a24;border:1px solid #263043;border-radius:12px;overflow:hidden}
+    img{display:block;width:100%;height:auto}
+    figcaption{padding:9px 12px;font-size:13px;color:#aeb8c8}</style></head>
+    <body><div class="hd">손상 사진 확대보기 · 총 ${photos.length}장<span>사진을 보며 담당자 파손부위를 선택하세요</span></div>
+    <div class="wrap">${figs}</div>
+    <script>window.onload=function(){var e=document.getElementById('p'+${Number(startIndex) || 0});if(e)e.scrollIntoView();};<\/script>
+    </body></html>`);
+  w.document.close();
+  w.focus();
+}
+// 담당자 입력 파손부위 클릭 토글 (차량 손상 부위 · 우측 도식)
 function dmSetField(s, path, val) {
   if (path.indexOf(".") >= 0) { const [a, b] = path.split("."); (s[a] = s[a] || {})[b] = val; }
   else s[path] = val;
@@ -2182,6 +2245,12 @@ function bindIntakeDamage(d) {
       else { set.add(part); el.classList.add("on"); }
     });
   });
+  // 손상 사진 썸네일 → 확대보기 새 창
+  const photos = getDamagePhotos(d);
+  document.querySelectorAll("[data-dmg-photo]").forEach(btn => btn.addEventListener("click", () => openDamagePhotos(photos, +btn.dataset.dmgPhoto)));
+  // 수리 승인 체크박스
+  const approveEl = document.getElementById("dmRepairApprove");
+  if (approveEl) approveEl.addEventListener("change", () => { getDamageState(d.id, d).repairApproved = approveEl.checked; });
   // 피해 진행 / 공업사·수리 편집 컨트롤
   const body = $("#intakeBody"); if (!body) return;
   const s = getDamageState(d.id, d);
@@ -2364,10 +2433,18 @@ function renderIntake() {
   const root = $("#intakeRoot");
   if (!d) { root.innerHTML = `<div style="padding:40px;text-align:center;color:#8a90a0">표시할 사고건이 없습니다.</div>`; return; }
   const done = d.procStatus === "완료";
-  const saved = !!intakeSaved[id];   // 접수지 저장 여부 (모든 탭 공통)
-  const closeLocked = !saved;        // 저장 후에만 면책/지급 선택·종결 가능
+  const stabs = intakeSavedTabsOf(id);
+  const cSaved = !!stabs.contract, dSaved = !!stabs.damage;
+  const curSaved = !!stabs[intakeTab];            // 현재 탭 저장 여부(뱃지 표시용)
+  const bothSaved = cSaved && dSaved;
+  // 종결 활성화 규칙: 면책=계약+피해 저장 / 지급=계약+피해 저장 & '청구 견적 정보' 탭
+  const allowClose = { "면책": bothSaved, "지급": bothSaved && intakeTab === "estimate" };
+  const anyClose = allowClose["면책"] || allowClose["지급"];
   const tabLabel = intakeTab === "contract" ? "계약 사고 정보" : intakeTab === "damage" ? "피해 진행 정보" : "청구 견적 정보";
-  const closeType = intakeCloseType[id] || "지급"; // 종결 구분 기본값: 지급
+  // 종결 구분(면책/지급) — 현재 허용되지 않는 값이면 허용되는 값으로 보정
+  let closeType = intakeCloseType[id];
+  if (!closeType || !allowClose[closeType]) closeType = allowClose["지급"] ? "지급" : (allowClose["면책"] ? "면책" : (closeType || "지급"));
+  if (anyClose) intakeCloseType[id] = closeType; // 종결 가능할 때만 선택값 확정
   const unresolvedText = (d.unresolved && d.unresolved.length) ? d.unresolved.join(", ") : "없음";
   const queryType = INTAKE_QUERY_TYPES.includes(intakeQueryType) ? intakeQueryType : INTAKE_QUERY_TYPES[0];
   root.innerHTML = `
@@ -2395,12 +2472,20 @@ function renderIntake() {
           <div class="lg-actionbar">
             <span class="lg-std" data-desc="현재 이 사고건에 남아 있는 미결 속성(재통화·VOC 등) 태그입니다.">미결 태그: ${iEsc(unresolvedText)}</span>
             <span class="sp"></span>
-            <span class="lg-savetag ${saved ? "on" : ""}" data-desc="${saved ? "접수지가 저장되어 청구 견적 탭에서 추산을 등록하고 면책/지급 종결을 할 수 있습니다." : "계약 사고 정보·피해 진행 정보를 저장해야 청구 견적 탭에서 추산을 등록하고 면책/지급 종결을 할 수 있습니다."}">${saved ? "저장됨 ✓" : "미저장"}</span>
+            <span class="lg-savetag ${curSaved ? "on" : ""}" data-desc="현재 '${iEsc(tabLabel)}' 탭의 저장 여부입니다. 계약 사고 정보와 피해 진행 정보를 모두 저장해야 '면책' 종결이, 여기에 더해 '청구 견적 정보' 탭에서만 '지급' 종결이 가능합니다.">${curSaved ? "저장됨 ✓" : "미저장"}</span>
             <div class="lg-close-type" role="radiogroup" aria-label="종결 구분">
-              ${["면책", "지급"].map(t => `<label class="lg-ctype ${closeType === t ? "on" : ""} ${closeLocked ? "disabled" : ""}" data-desc="${closeLocked ? "먼저 '저장'을 눌러 접수지를 저장한 후 종결 구분(면책/지급)을 선택할 수 있습니다." : `이 사고건을 '${t}'(으)로 종결 처리할 구분으로 지정합니다.`}"><input type="radio" name="intakeCloseType" value="${t}" ${closeType === t ? "checked" : ""} ${(done || closeLocked) ? "disabled" : ""}>${t}</label>`).join("")}
+              ${["면책", "지급"].map(t => {
+                const allow = allowClose[t];
+                const desc = allow
+                  ? `이 사고건을 '${t}'(으)로 종결 처리할 구분으로 지정합니다.`
+                  : (t === "면책"
+                      ? "계약 사고 정보와 피해 진행 정보를 모두 저장해야 '면책' 종결을 선택할 수 있습니다."
+                      : "'지급' 종결은 계약 사고 정보·피해 진행 정보를 모두 저장한 뒤 '청구 견적 정보' 탭에서만 선택할 수 있습니다.");
+                return `<label class="lg-ctype ${closeType === t ? "on" : ""} ${allow ? "" : "disabled"}" data-desc="${iEsc(desc)}"><input type="radio" name="intakeCloseType" value="${t}" ${closeType === t ? "checked" : ""} ${(done || !allow) ? "disabled" : ""}>${t}</label>`;
+              }).join("")}
             </div>
             <button class="lg-abtn" type="button" id="intakeSave" data-desc="현재 '${iEsc(tabLabel)}' 탭의 입력 내용을 저장합니다. 계약 사고 정보·피해 진행 정보를 저장해야 청구 견적 탭에서 추산(선견적)을 등록하고 면책/지급 종결을 진행할 수 있습니다.">저장</button>
-            <button class="lg-abtn primary" type="button" id="intakeComplete" ${(done || !saved) ? "disabled" : ""} data-desc="${saved ? "선택한 구분(면책/지급)으로 이 사고건을 종결 처리합니다." : "접수지를 저장한 후 종결할 수 있습니다. 저장 전에는 비활성화됩니다."}">${done ? "종결됨" : "종결"}</button>
+            <button class="lg-abtn primary" type="button" id="intakeComplete" ${(done || !anyClose) ? "disabled" : ""} data-desc="${anyClose ? "선택한 구분(면책/지급)으로 이 사고건을 종결 처리합니다." : "계약 사고 정보·피해 진행 정보를 저장해야 종결할 수 있습니다. (지급 종결은 청구 견적 정보 탭에서)"}">${done ? "종결됨" : "종결"}</button>
           </div>
         </div>
       </div>
@@ -2459,12 +2544,23 @@ function renderIntake() {
   // 저장 버튼(모든 탭 공통): 현재 탭 입력 저장 → 저장 상태 전환(추산 등록·종결 잠금 해제)
   const sv = $("#intakeSave");
   if (sv) sv.addEventListener("click", () => {
-    if (intakeTab === "contract") getContractState(d.id, d);
-    else if (intakeTab === "damage") getDamageState(d.id, d);
-    intakeSaved[d.id] = true;      // 입력값은 각 탭 상태에 이미 반영됨
     const label = intakeTab === "contract" ? "계약 사고 정보" : intakeTab === "damage" ? "피해 진행 정보" : "청구 견적 정보";
-    showToast(`${d.id} ${label}가 저장되었습니다. 추산 등록·종결이 가능합니다.`);
-    renderIntake();                // 저장 뱃지·종결 버튼 활성 반영
+    let msg = `${d.id} ${label}가 저장되었습니다.`;
+    if (intakeTab === "contract") getContractState(d.id, d);
+    else if (intakeTab === "damage") {
+      const ds = getDamageState(d.id, d);
+      const parts = intakeStaffParts[d.id];
+      if (ds.repairApproved && parts && parts.size > 0) {   // 수리 승인 → SK렌터카·정비공장에 지시 송신(데모)
+        ds.repairApprovedSent = true;
+        msg = `${d.id} 피해 진행 정보 저장 · SK렌터카·정비공장에 수리 승인 지시를 송신했습니다.`;
+      } else if (ds.repairApproved) {
+        msg = `${d.id} 피해 진행 정보 저장 (수리 승인 송신 보류: 담당자 파손부위를 먼저 선택하세요.)`;
+      }
+    }
+    intakeSaved[d.id] = true;               // 입력값은 각 탭 상태에 이미 반영됨
+    intakeSavedTabsOf(d.id)[intakeTab] = true; // 현재 탭 저장 플래그 (종결 규칙 판정용)
+    showToast(msg);
+    renderIntake();                          // 저장 뱃지·종결 버튼 활성 반영
   });
 }
 
