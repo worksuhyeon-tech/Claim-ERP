@@ -678,7 +678,6 @@ function intakeWorkbenchHtml(d) {
   const logs = getIntakeLogs(d.id);
   const histBtns = [
     { label:"메세지발송", act:"msg", desc:"고객·관련자에게 알림톡/문자메세지를 발송하는 창을 엽니다." },
-    { label:"간편렌트", act:"rent", desc:"대차(렌트) 차량을 간편 신청 절차로 바로 접수합니다." },
   ];
   const filterOpts = ["전체", ...INTAKE_MEMO_TYPES];
   return `<div class="lg-panels">
