@@ -749,6 +749,7 @@ function getContractState(id, d) {
       datetime: A.datetime || "", place: A.place || "", placeDetail: A.placeDetail || "",
       content: A.content || "", note: A.note || "",
       accMajor: "차대차", accDetail: CT_ACC_DETAILS["차대차"][0],
+      selfFault: (String((d.ownDamage || {}).faultRate || "").match(/(\d+)\s*%/) || [])[1] || "",   // 자차과실(%)
       tasks: (A.otherDrive && A.otherDrive !== "해당없음") ? ["타차운전"] : [], moralNote: "",
       police: (A.police === "신고접수") ? "신고" : "미신고", policeStation: "", policeOfficer: "", policeOfficerPhone: "",
       comp: { insurer: "", caseNo: "", staff: "", staffPhone: "", faultRate: "", faultFixed: "미확정", place: A.place || "", accType: "", dispatched: "미출동", content: "" },
@@ -761,6 +762,10 @@ function ctText(field, val, ph) {
 }
 function ctSel(field, val, opts) {
   return `<select class="lg-csel" data-ct="${iEsc(field)}">${opts.map(o => `<option ${o === val ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>`;
+}
+/* 자차과실 — 퍼센트 직접 입력: ( __ ) % */
+function ctFaultHtml(st) {
+  return `<span class="lg-fault"><input type="text" inputmode="numeric" maxlength="3" class="lg-cin lg-fault-in" data-ct="selfFault" value="${iEsc(st.selfFault || "")}" placeholder="0" data-desc="자차 과실 비율(%)을 담당자가 직접 입력합니다. (0~100)"><span class="lg-fault-unit">%</span></span>`;
 }
 /* 생년월일(주민번호) 문자열 파싱 — "64****-2 (만61세)" → { front:"64****", back:"2", age:"61" } */
 function parseBirth(raw) {
@@ -879,6 +884,7 @@ function intakeContractTab(d) {
       { k: "내용", raw: ctText("content", st.content, "사고 경위·내용"), full: true },
       { k: "사고유형", raw: ctSel("accMajor", st.accMajor, CT_ACC_MAJORS) },
       { k: "세부분류", raw: `<select class="lg-csel" id="ctAccDetail" data-ct="accDetail">${detailOpts.map(o => `<option ${o === st.accDetail ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>` },
+      { k: "자차과실", raw: ctFaultHtml(st) },
       { k: "특이사항", raw: ctText("note", st.note, "특이사항"), full: true },
       { k: "조사Task", raw: ctTaskChecksHtml(d, st), full: true },
       { k: "경찰접수", raw: ctPoliceHtml(st), full: true },
@@ -904,7 +910,7 @@ function intakeContractTab(d) {
     ])
     + lgSect("자차 계약사항")
     + lgTable([
-      { k: "자차가입", v: d.ownDamage.joined }, { k: "자차과실", v: d.ownDamage.faultRate },
+      { k: "자차가입", v: d.ownDamage.joined, full: true },
     ])
     + lgSect("피보험차량")
     + lgTable([
@@ -943,6 +949,11 @@ function bindIntakeContract(d) {
       const isBirth = el.dataset.ct === "birthFront" || el.dataset.ct === "birthBack";
       if (isBirth) {                               // 생년월일 필드는 숫자만 허용
         const clean = el.value.replace(/\D/g, "");
+        if (clean !== el.value) el.value = clean;
+      }
+      if (el.dataset.ct === "selfFault") {         // 자차과실(%) — 숫자만, 0~100
+        let clean = el.value.replace(/\D/g, "");
+        if (clean !== "" && +clean > 100) clean = "100";
         if (clean !== el.value) el.value = clean;
       }
       ctSetField(st, el.dataset.ct, el.value);
