@@ -325,19 +325,14 @@
             <div class="v-tabpane" data-pane="staff">
               <div class="vtab-tools">
                 <span class="tt-label">업무 담당자</span>
-                <span class="vinline"><span class="u">업무</span>
-                  <select class="lg-sel" style="width:130px">
-                    <option>대물 - SA</option><option>대물 - AS</option><option>대인</option><option>자차</option>
-                  </select>
-                </span>
                 <span class="sp"></span>
                 <button type="button" class="lg-mini" data-addrow="staff">＋ 행추가</button>
                 <button type="button" class="lg-mini gray" data-delrow="staff">－ 선택삭제</button>
               </div>
               <table class="lg-tbl vseltbl" data-table="staff">
-                <colgroup><col style="width:30px"><col style="width:30%"><col style="width:16%"><col style="width:30%"><col style="width:auto"></colgroup>
+                <colgroup><col style="width:30px"><col style="width:90px"><col style="width:26%"><col style="width:16%"><col style="width:26%"><col style="width:auto"></colgroup>
                 <thead>
-                  <tr><th class="vcheck"><input type="checkbox" data-checkall></th><th>부서명</th><th>사번</th><th>성명</th><th>적용종료일</th></tr>
+                  <tr><th class="vcheck"><input type="checkbox" data-checkall></th><th>업무구분</th><th>부서명</th><th>사번</th><th>성명</th><th>적용종료일</th></tr>
                 </thead>
                 <tbody id="vStaffBody"><!-- JS 시드 --></tbody>
               </table>

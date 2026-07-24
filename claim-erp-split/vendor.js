@@ -8,6 +8,8 @@
   /* 업체구분 · 거래메이커 드롭다운 옵션 (엑셀 드롭다운 구분값) */
   const KIND_OPTS = ["정비업체", "부품업체", "유리업체", "렌트업체", "실런트업체"];
   const MAKER_OPTS = ["", "현대", "기아", "쌍용", "르노삼성", "한국GM", "제네시스"];
+  /* 담당자 업무구분 — SA 또는 SK (대물-AS·대인·자차 불필요) */
+  const TASK_OPTS = ["SA", "SK"];
 
   /* 담당자 인사 디렉터리 (성명 → 사번·부서) — 조회 데모용 */
   const STAFF_DIR = {
@@ -20,8 +22,8 @@
 
   /* 담당자 시드 (엑셀 시트2) */
   const STAFF_SEED = [
-    { name: "정태순", no: "10200849", dept: "애니카손사 Claim1팀", end: "9999.12.31" },
-    { name: "고석민", no: "11060684", dept: "SK Claim 1팀", end: "2026.07.22" },
+    { task: "SA", name: "정태순", no: "10200849", dept: "애니카손사 Claim1팀", end: "9999.12.31" },
+    { task: "SK", name: "고석민", no: "11060684", dept: "SK Claim 1팀", end: "2026.07.22" },
   ];
 
   /* 유관업체 시드 (엑셀 시트2) — 자주 거래하는 업체 */
@@ -63,9 +65,10 @@
 
   /* 담당자 행 마크업 — 성명 조회로 사번·부서 자동 채움 */
   function staffRow(d) {
-    d = d || { name: "", no: "", dept: "", end: "9999.12.31" };
+    d = d || { task: TASK_OPTS[0], name: "", no: "", dept: "", end: "9999.12.31" };
     return `<tr>
       <td class="vcheck"><input type="checkbox" data-rowchk></td>
+      <td><select class="lg-sel" data-f="task">${optionsHtml(TASK_OPTS, d.task)}</select></td>
       <td><input class="lg-in" data-f="dept" value="${esc(d.dept)}" placeholder="조회 시 자동" readonly></td>
       <td><input class="lg-in" data-f="no" value="${esc(d.no)}" placeholder="자동" readonly></td>
       <td>
