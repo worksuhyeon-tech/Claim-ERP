@@ -84,6 +84,12 @@
   #clTooltip.above::after { bottom: -4px; }
   #clTooltip.below::after { top: -4px; }
   #viewVendor [data-desc] { cursor: pointer; }
+
+  /* 적용종료일 — 무기한(달력/키인) vs 종료(잠금) */
+  #viewVendor .vend { width: 140px; }
+  #viewVendor .vend-lock {
+    display: inline-block; min-width: 90px; padding: 3px 4px;
+    color: #6B7280; font-weight: 600; font-variant-numeric: tabular-nums; cursor: default; }
 </style>
 </head>
 <body>
