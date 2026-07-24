@@ -135,6 +135,16 @@ const INTAKE_DETAIL = {
       joinCover:"인 I·II 물 I·II 상 무 차", change:"1건", premium:"1,208,120 (영수일 2025-06-17)",
       contractor:"서명희 / 64****-2 / 010-5065-2187", rc:"자동차다이렉트영업부 1577-7233" },
     damage:{ info:"-", transport:"청구없음", rentClaim:"미청구", vatTarget:"해당없음", custInfo:"-" },
+    // SK렌터카 계약정보 IF — 고정 테스트 데이터 (계약 사고 정보 > 계약 정보 확인용)
+    skRent:{
+      rentType:"렌터카", bizType:"법인장기", product:"법인장기 / SKR-2021-0098213",
+      branch:"강릉지점", nrType:"SK렌터카", custOrg:"(주)한빛물류", vip:"VIP",
+      firstRegDate:"2021-06-28", residualValue:"45,000,000",
+      maintProduct:"고급/프리미엄(분기)", visitCheck:"3개월 1회", pickupMaint:"Y",
+      accidentSub:"3일", personalSub:"포함",
+      deductAgreed:"200,000", deductBilling:"개별 정액", deductPayMethod:"완전자차",
+      totalAccidents:"2건", deductArrears:"0건", deductSurcharge:"0", deductSurchargeCount:"0건",
+    },
     repair:{ shop:"[A] 탑모터스 041-558-9432 (우수)", period:"입고 2026-05-19 ~ 출고 2026-05-26 (7일)",
       accAmount:"15,420,000 (추가담보 270,000)", paySpecial:"-", estimatePay:"추산 0 / 지급 2,898,420",
       payResource:"정비, 부품", closeDate:"2026-05-22" },
@@ -424,17 +434,33 @@ function defaultDetail(c, w) {
       assignDate: inDate !== "-" ? inDate : accDate, receiptDate: accDate,
     }] : [],
     parts:{ checked: genDamageParts(p) },
-    // SK렌터카 연동 수신 항목 (실제 운영 시 SK렌터카 시스템에서 수신)
+    // SK렌터카 연동 수신 항목 — 대분류 '계약정보' IF (실제 운영 시 SK렌터카 시스템에서 수신)
     skRent:{
-      deductAgreed: won(p.pick([300000, 400000, 500000, 700000])),
-      deductSurcharge: won(p.pick([0, 0, 0, 50000, 100000])),
-      maintProduct: p.pick(["기본정비", "표준정비", "케어플러스"]),
-      bizType: p.pick(["Direct", "제휴", "법인"]),
-      visitCheck: p.pick(["-", "포함", "미포함"]),
+      // 계약·차량
+      rentType: p.pick(["렌터카", "리스"]),
+      bizType: p.pick(["법인장기", "법인단기", "중기"]),
+      product: `${p.pick(["법인장기", "법인단기", "중기"])} / SKR-${regYear}-${p.int(100000, 999999)}`,
+      branch: p.pick(["강릉지점", "원주지점", "춘천지점", "수원지점", "서울본부"]),
+      nrType: "SK렌터카",
+      custName: c.name, carNo: no, model: model,
+      custOrg: p.pick(["-", "(주)한빛물류", "대성산업(주)", "오토리스(주)", "미래에너지법인"]),
+      vip: p.pick(["일반", "일반", "일반", "VIP", "VVIP"]),
+      firstRegDate: `${regYear}-${pad2(p.int(1, 12))}-${pad2(p.int(1, 28))}`,
+      residualValue: won(Math.round(spec.price * (p.int(40, 70) / 100)) * 10000),
+      // 정비·대차 서비스
+      maintProduct: p.pick(["표준정비상품", "고급/프리미엄(분기)", "기본정비"]),
+      visitCheck: p.pick(["무", "2개월 1회", "3개월 1회"]),
       pickupMaint: p.pick(["N", "Y"]),
-      accidentSub: p.pick(["N(미포함)", "Y(포함)"]),
-      deductBilling: p.pick(["개별 정액", "통합 청구", "개별 실비"]),
+      accidentSub: p.pick(["무", "즉시", "12H", "3일", "5일"]),
       personalSub: p.pick(["불포함", "포함"]),
+      // 면책금 (사고 정산)
+      deductAgreed: won(p.pick([100000, 200000, 300000, 500000])),
+      deductBilling: p.pick(["개별 정액", "통합 청구", "개별 실비"]),
+      deductPayMethod: p.pick(["완전자차", "선택안함"]),
+      totalAccidents: `${p.int(0, 6)}건`,
+      deductArrears: `${p.int(0, 4)}건`,
+      deductSurcharge: won(p.pick([0, 0, 0, 50000, 100000])),
+      deductSurchargeCount: `${p.int(0, 3)}건`,
     },
     estimateDoc: est,
   };
@@ -902,38 +928,69 @@ function intakeContractTab(d) {
       { k: "출동여부", raw: ctSel("comp.dispatched", c.dispatched, ["미출동", "출동", "출동요청"]) },
       { k: "사고내용", raw: ctText("comp.content", c.content, "타사 기재 사고내용"), full: true },
     ]);
-  const right = lgSect("면부책")
+  const right = lgSect("면부책", "※ 면책금(자기부담금) 포함")
     + lgTable([
       { k: "운전한정", v: d.liability.driveLimit, full: true },
       { k: "운전연령", v: d.liability.ageLimit }, { k: "자기부담", v: d.liability.selfPay },
-      { k: "물적할증", v: d.liability.propertySurcharge, full: true },
+      ...skDeductEntries(d),                       // 면책금(=자기부담금) 항목 통합
     ])
-    + lgSect("자차 계약사항")
-    + lgTable([
-      { k: "자차가입", v: d.ownDamage.joined, full: true },
-    ])
+    + skMaintServiceHtml(d)                        // 정비·대차 서비스 (면부책 다음)
     + lgSect("피보험차량")
     + lgTable([
-      { k: "차명/번호", v: joinDot([d.insuredCar.name, d.insuredCar.no]), full: true },
+      { k: "차명/번호", v: joinDot([d.insuredCar.name, d.insuredCar.no]) }, { k: "자차가입여부", v: d.ownDamage.joined },
       { k: "차종", v: d.insuredCar.kind }, { k: "코드", v: d.insuredCar.code, blue: true },
       { k: "차량가액", v: d.insuredCar.priceAB, full: true },
       { k: "총가입금액", v: d.insuredCar.totalJoin, full: true },
       { k: "추가담보", v: d.insuredCar.addCover }, { k: "상세", v: d.insuredCar.detail },
       { k: "특약", v: d.insuredCar.special, full: true },
     ])
-    + lgSect("계약 정보")
-    + lgTable([
-      { k: "대물의무", v: d.contract.propertyDuty, full: true },
-      { k: "대물임의", v: d.contract.propertyAny, full: true },
-      { k: "차량", v: d.contract.carPeriod, full: true },
-      { k: "3년사고", v: d.contract.threeYear }, { k: "할인할증", v: d.contract.discount },
-      { k: "보종", v: d.contract.insType, full: true },
-      { k: "가입담보", v: d.contract.joinCover, full: true },
-      { k: "계약변경", v: d.contract.change }, { k: "보험료", v: d.contract.premium },
-      { k: "계약자", v: d.contract.contractor, full: true },
-      { k: "담당RC", v: d.contract.rc, full: true },
-    ]);
+    + skContractCoreHtml(d);                       // 계약 정보 (마지막)
   return `<div class="lg-cols"><div>${left}</div><div>${right}</div></div>`;
+}
+
+/* ---- 계약 정보 (SK렌터카 계약정보 IF 연동) ----
+   대분류 '계약정보' 항목을 사고보상 처리에 맞춰 구성. SK렌터카 시스템 연동으로 수신하는 값이다.
+   면책금(=자기부담금) 항목은 '면부책' 섹션으로 통합, 정비·대차 서비스는 면부책 다음에 배치. */
+function skWonSuffix(v) { return (v || v === 0) && String(v) !== "" ? String(v) + "원" : ""; }
+
+/* 면책금(=자기부담금) — '면부책' 표에 통합할 lgTable row 배열 (섹션 헤더 없음) */
+function skDeductEntries(d) {
+  const sk = d.skRent || {};
+  return [
+    { k: "면책약정금액", v: skWonSuffix(sk.deductAgreed), blue: true }, { k: "입금방식", v: sk.deductPayMethod },
+    { k: "통합청구방법", v: sk.deductBilling, full: true },
+    { k: "할증금액", v: skWonSuffix(sk.deductSurcharge) }, { k: "할증사고건수", v: sk.deductSurchargeCount },
+    { k: "총사고발생건수", v: sk.totalAccidents }, { k: "면책금 체납건수", v: sk.deductArrears },
+  ];
+}
+
+/* 정비·대차 서비스 — 수리 기간 중 제공 서비스 (면부책 다음 배치) */
+function skMaintServiceHtml(d) {
+  const sk = d.skRent || {};
+  return `<div class="lg-sect" data-desc="수리 기간 중 제공되는 정비·대차 서비스 조건입니다. 대차 지원 범위·픽업정비 여부에 따라 사고 접수 시 안내가 달라집니다.">정비·대차 서비스<span class="note">※ SK렌터카 연동</span></div>`
+    + lgTable([
+      { k: "정비상품", v: sk.maintProduct, full: true },
+      { k: "방문점검", v: sk.visitCheck }, { k: "픽업정비", v: sk.pickupMaint },
+      { k: "사고/정비대차", v: sk.accidentSub, full: true },
+      { k: "개인대차", v: sk.personalSub, full: true },
+    ]);
+}
+
+/* 계약 정보(계약·차량) — 계약 특정·고객 응대·전손/한도 판단 (우측 컬럼 마지막 섹션) */
+function skContractCoreHtml(d) {
+  const sk = d.skRent || {};
+  const cellDesc = "SK렌터카 시스템과 연동해 받아오는 계약정보입니다. (연동 전에는 예시·미수신)";
+  return `<div class="lg-sect" data-desc="${iEsc(cellDesc)}">계약 정보<span class="note">※ SK렌터카 시스템 연동 수신 (계약정보 IF)</span></div>`
+    + lgTable([
+      { k: "렌트/리스", v: sk.rentType }, { k: "업무구분", v: sk.bizType },
+      { k: "상품/계약번호", v: sk.product, full: true, blue: true },
+      { k: "관리지점", v: sk.branch }, { k: "N/R구분", v: sk.nrType },
+      { k: "고객명", v: sk.custName }, { k: "VIP구분", v: sk.vip },
+      { k: "고객조직", v: sk.custOrg, full: true },
+      { k: "차량번호", v: sk.carNo, blue: true }, { k: "최초등록일", v: sk.firstRegDate },
+      { k: "모델명", v: sk.model, full: true },
+      { k: "현재잔가", v: skWonSuffix(sk.residualValue), full: true },
+    ]);
 }
 
 function ctSetField(st, path, val) {
