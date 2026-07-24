@@ -928,36 +928,57 @@ function intakeContractTab(d) {
       { k: "출동여부", raw: ctSel("comp.dispatched", c.dispatched, ["미출동", "출동", "출동요청"]) },
       { k: "사고내용", raw: ctText("comp.content", c.content, "타사 기재 사고내용"), full: true },
     ]);
-  const right = lgSect("면부책")
+  const right = lgSect("면부책", "※ 면책금(자기부담금) 포함")
     + lgTable([
       { k: "운전한정", v: d.liability.driveLimit, full: true },
       { k: "운전연령", v: d.liability.ageLimit }, { k: "자기부담", v: d.liability.selfPay },
-      { k: "물적할증", v: d.liability.propertySurcharge, full: true },
+      ...skDeductEntries(d),                       // 면책금(=자기부담금) 항목 통합
     ])
-    + lgSect("자차 계약사항")
-    + lgTable([
-      { k: "자차가입", v: d.ownDamage.joined, full: true },
-    ])
+    + skMaintServiceHtml(d)                        // 정비·대차 서비스 (면부책 다음)
     + lgSect("피보험차량")
     + lgTable([
-      { k: "차명/번호", v: joinDot([d.insuredCar.name, d.insuredCar.no]), full: true },
+      { k: "차명/번호", v: joinDot([d.insuredCar.name, d.insuredCar.no]) }, { k: "자차가입여부", v: d.ownDamage.joined },
       { k: "차종", v: d.insuredCar.kind }, { k: "코드", v: d.insuredCar.code, blue: true },
       { k: "차량가액", v: d.insuredCar.priceAB, full: true },
       { k: "총가입금액", v: d.insuredCar.totalJoin, full: true },
       { k: "추가담보", v: d.insuredCar.addCover }, { k: "상세", v: d.insuredCar.detail },
       { k: "특약", v: d.insuredCar.special, full: true },
     ])
-    + skContractSectionsHtml(d);
+    + skContractCoreHtml(d);                       // 계약 정보 (마지막)
   return `<div class="lg-cols"><div>${left}</div><div>${right}</div></div>`;
 }
 
 /* ---- 계약 정보 (SK렌터카 계약정보 IF 연동) ----
-   대분류 '계약정보' 항목을 사고보상 처리에 맞춰 3개 소섹션으로 구성:
-   ① 계약·차량(계약 특정·고객 응대·전손/한도 판단) ② 정비·대차 서비스(수리 기간 서비스)
-   ③ 면책금(사고 정산·면책금 청구 기준). SK렌터카 시스템 연동으로 수신하는 값이다. */
-function skContractSectionsHtml(d) {
+   대분류 '계약정보' 항목을 사고보상 처리에 맞춰 구성. SK렌터카 시스템 연동으로 수신하는 값이다.
+   면책금(=자기부담금) 항목은 '면부책' 섹션으로 통합, 정비·대차 서비스는 면부책 다음에 배치. */
+function skWonSuffix(v) { return (v || v === 0) && String(v) !== "" ? String(v) + "원" : ""; }
+
+/* 면책금(=자기부담금) — '면부책' 표에 통합할 lgTable row 배열 (섹션 헤더 없음) */
+function skDeductEntries(d) {
   const sk = d.skRent || {};
-  const wonSuffix = v => (v || v === 0) && String(v) !== "" ? String(v) + "원" : "";
+  return [
+    { k: "면책약정금액", v: skWonSuffix(sk.deductAgreed), blue: true }, { k: "입금방식", v: sk.deductPayMethod },
+    { k: "통합청구방법", v: sk.deductBilling, full: true },
+    { k: "할증금액", v: skWonSuffix(sk.deductSurcharge) }, { k: "할증사고건수", v: sk.deductSurchargeCount },
+    { k: "총사고발생건수", v: sk.totalAccidents }, { k: "면책금 체납건수", v: sk.deductArrears },
+  ];
+}
+
+/* 정비·대차 서비스 — 수리 기간 중 제공 서비스 (면부책 다음 배치) */
+function skMaintServiceHtml(d) {
+  const sk = d.skRent || {};
+  return `<div class="lg-sect" data-desc="수리 기간 중 제공되는 정비·대차 서비스 조건입니다. 대차 지원 범위·픽업정비 여부에 따라 사고 접수 시 안내가 달라집니다.">정비·대차 서비스<span class="note">※ SK렌터카 연동</span></div>`
+    + lgTable([
+      { k: "정비상품", v: sk.maintProduct, full: true },
+      { k: "방문점검", v: sk.visitCheck }, { k: "픽업정비", v: sk.pickupMaint },
+      { k: "사고/정비대차", v: sk.accidentSub, full: true },
+      { k: "개인대차", v: sk.personalSub, full: true },
+    ]);
+}
+
+/* 계약 정보(계약·차량) — 계약 특정·고객 응대·전손/한도 판단 (우측 컬럼 마지막 섹션) */
+function skContractCoreHtml(d) {
+  const sk = d.skRent || {};
   const cellDesc = "SK렌터카 시스템과 연동해 받아오는 계약정보입니다. (연동 전에는 예시·미수신)";
   return `<div class="lg-sect" data-desc="${iEsc(cellDesc)}">계약 정보<span class="note">※ SK렌터카 시스템 연동 수신 (계약정보 IF)</span></div>`
     + lgTable([
@@ -968,21 +989,7 @@ function skContractSectionsHtml(d) {
       { k: "고객조직", v: sk.custOrg, full: true },
       { k: "차량번호", v: sk.carNo, blue: true }, { k: "최초등록일", v: sk.firstRegDate },
       { k: "모델명", v: sk.model, full: true },
-      { k: "현재잔가", v: wonSuffix(sk.residualValue), full: true },
-    ])
-    + `<div class="lg-sect" data-desc="수리 기간 중 제공되는 정비·대차 서비스 조건입니다. 대차 지원 범위·픽업정비 여부에 따라 사고 접수 시 안내가 달라집니다.">정비·대차 서비스<span class="note">※ SK렌터카 연동</span></div>`
-    + lgTable([
-      { k: "정비상품", v: sk.maintProduct, full: true },
-      { k: "방문점검", v: sk.visitCheck }, { k: "픽업정비", v: sk.pickupMaint },
-      { k: "사고/정비대차", v: sk.accidentSub, full: true },
-      { k: "개인대차", v: sk.personalSub, full: true },
-    ])
-    + `<div class="lg-sect" data-desc="사고 정산 시 고객 청구 면책금의 기준값입니다. 약정금액·입금방식·할증·체납 이력에 따라 면책금 청구액과 통합청구 여부가 결정됩니다.">면책금<span class="note">※ 사고 정산 · 면책금 청구 기준</span></div>`
-    + lgTable([
-      { k: "면책약정금액", v: wonSuffix(sk.deductAgreed), blue: true }, { k: "입금방식", v: sk.deductPayMethod },
-      { k: "통합청구방법", v: sk.deductBilling, full: true },
-      { k: "할증금액", v: wonSuffix(sk.deductSurcharge) }, { k: "할증사고건수", v: sk.deductSurchargeCount },
-      { k: "총사고발생건수", v: sk.totalAccidents }, { k: "면책금 체납건수", v: sk.deductArrears },
+      { k: "현재잔가", v: skWonSuffix(sk.residualValue), full: true },
     ]);
 }
 
