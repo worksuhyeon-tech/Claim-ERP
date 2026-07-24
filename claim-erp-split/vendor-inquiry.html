@@ -63,6 +63,27 @@
     #viewVendor table.vinfo, #viewVendor table.vinfo tbody, #viewVendor table.vinfo tr { display: block; }
     #viewVendor table.vinfo td, #viewVendor table.vinfo th { display: block; width: auto !important; }
   }
+
+  /* --- 기능 설명 툴팁 (버튼 hover 시 노출) — Smart업무처리와 동일 --- */
+  #clTooltip {
+    position: fixed; z-index: 9999; max-width: 300px;
+    background: #1B2430; color: #fff;
+    font-size: 11.5px; font-weight: 500; line-height: 1.55;
+    padding: 8px 11px; border-radius: 9px;
+    box-shadow: 0 8px 22px rgba(16, 30, 54, .3);
+    pointer-events: none; opacity: 0; transform: translateY(4px);
+    transition: opacity .12s ease, transform .12s ease;
+    white-space: normal; word-break: keep-all;
+  }
+  #clTooltip.show { opacity: 1; transform: translateY(0); }
+  #clTooltip::after {
+    content: ""; position: absolute; left: var(--tip-arrow, 50%);
+    width: 9px; height: 9px; background: #1B2430;
+    transform: translateX(-50%) rotate(45deg);
+  }
+  #clTooltip.above::after { bottom: -4px; }
+  #clTooltip.below::after { top: -4px; }
+  #viewVendor [data-desc] { cursor: pointer; }
 </style>
 </head>
 <body>
@@ -248,7 +269,7 @@
                   <input class="lg-in" style="width:150px;display:inline-block" type="text" placeholder="담당자명 입력" />
                   <span class="vbtns">
                     <button type="button" class="lg-mini gray" data-toast="보험업무담당자 이력을 조회합니다. (데모)">이력</button>
-                    <button type="button" class="lg-mini" title="애니카 네트워크의 '어드바이저 등록' 팝업으로 연결됩니다." data-toast="보험업무담당자를 등록했습니다. (데모)">등록</button>
+                    <button type="button" class="lg-mini" data-desc="애니카 네트워크의 '어드바이저 등록' 팝업으로 연결됩니다." data-toast="보험업무담당자를 등록했습니다. (데모)">등록</button>
                     <button type="button" class="lg-mini gray" data-toast="보험업무담당자를 삭제했습니다. (데모)">삭제</button>
                   </span>
                 </td>
@@ -267,7 +288,7 @@
                 <th>주소</th>
                 <td colspan="5">
                   <span class="vval">(25493)</span> 강원 강릉시 율곡로 3081 (교동)
-                  <span class="vbtns"><button type="button" class="lg-mini gray" title="애니카 네트워크 시스템 '협력업체 등록조회' 화면의 사업장소재지 (위도/경도) 좌표 지정 팝업과 동일하게 맞춥니다." data-toast="지도에서 업체 위치정보를 확인합니다. (데모)">위치정보</button></span>
+                  <span class="vbtns"><button type="button" class="lg-mini gray" data-desc="애니카 네트워크 시스템 '협력업체 등록조회' 화면의 사업장소재지 (위도/경도) 좌표 지정 팝업과 동일하게 맞춥니다." data-toast="지도에서 업체 위치정보를 확인합니다. (데모)">위치정보</button></span>
                 </td>
               </tr>
             </tbody>

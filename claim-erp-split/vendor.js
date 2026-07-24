@@ -158,3 +158,53 @@
     body.querySelectorAll("input[data-rowchk]").forEach(chk => { chk.checked = all.checked; });
   });
 })();
+
+/* [data-desc] 요소에 마우스를 올리면(또는 포커스하면) 기능 설명을 말풍선으로 노출 — Smart업무처리와 동일 */
+(function initVendorDescTooltips() {
+  if (!document.getElementById("viewVendor")) return;
+  const tip = document.createElement("div");
+  tip.id = "clTooltip";
+  document.body.appendChild(tip);
+  let current = null;
+
+  function place(el) {
+    const text = el.getAttribute("data-desc");
+    if (!text) return;
+    current = el;
+    tip.textContent = text;
+    tip.classList.remove("above", "below");
+    tip.style.visibility = "hidden";
+    tip.classList.add("show");           // 실제 크기 측정을 위해 표시
+    const r = el.getBoundingClientRect();
+    const tw = tip.offsetWidth, th = tip.offsetHeight;
+    const vw = document.documentElement.clientWidth;
+    const gap = 10;
+    let left = r.left + r.width / 2 - tw / 2;
+    left = Math.max(8, Math.min(left, vw - tw - 8));
+    let top = r.top - th - gap;
+    if (top < 8) { top = r.bottom + gap; tip.classList.add("below"); }
+    else { tip.classList.add("above"); }
+    const arrow = r.left + r.width / 2 - left;
+    tip.style.setProperty("--tip-arrow", Math.max(12, Math.min(arrow, tw - 12)) + "px");
+    tip.style.left = left + "px";
+    tip.style.top = top + "px";
+    tip.style.visibility = "visible";
+  }
+  function hide() { current = null; tip.classList.remove("show"); }
+
+  document.addEventListener("mouseover", e => {
+    const el = e.target.closest("[data-desc]");
+    if (el && el !== current) place(el);
+  });
+  document.addEventListener("mouseout", e => {
+    const el = e.target.closest("[data-desc]");
+    if (el && el === current && !el.contains(e.relatedTarget)) hide();
+  });
+  document.addEventListener("focusin", e => {
+    const el = e.target.closest("[data-desc]");
+    if (el) place(el);
+  });
+  document.addEventListener("focusout", hide);
+  window.addEventListener("scroll", hide, true);
+  document.addEventListener("click", hide, true);
+})();
