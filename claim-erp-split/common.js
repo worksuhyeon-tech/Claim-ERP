@@ -804,13 +804,14 @@ function setProcStatus(id, status) {
 }
 
 /* ===================== 메뉴 간 이동 (파일 분리로 인해 페이지 이동 방식으로 대체) ===================== */
-const VIEW_TITLES = { claims:"미결일괄조회", intake:"Smart업무처리", images:"이미지 시스템", closing:"결재 LIST", assign:"전결·순환배당 관리", ai:"AI 통합대시보드" };
+const VIEW_TITLES = { claims:"미결일괄조회", intake:"Smart업무처리", images:"이미지 시스템", closing:"결재 LIST", assign:"전결·순환배당 관리", vendor:"협력업체조회", ai:"AI 통합대시보드" };
 const VIEW_FILES = {
   claims: "smart-claims.html",
   intake: "smart-intake.html",
   images: "image-system.html",
   closing: "approval-list.html",
   assign: "assignment-management.html",
+  vendor: "vendor-inquiry.html",
   ai: "ai-dashboard.html"
 };
 
