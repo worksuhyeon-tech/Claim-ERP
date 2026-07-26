@@ -937,14 +937,14 @@ function intakeContractTab(d) {
       ...skDeductEntries(d),                       // 면책금(=자기부담금) 항목 통합
     ])
     + skMaintServiceHtml(d)                        // 정비·대차 서비스 (면부책 다음)
-    + lgSect("피보험차량")
+    + `<div class="lg-sect" data-desc="${iEsc("SK렌터카 시스템과 연동해 받아오는 계약정보입니다. (연동 전에는 예시·미수신)")}">피보험차량 &gt; 계약 정보<span class="note">※ SK렌터카 시스템 연동 수신 (계약정보 IF)</span></div>`
     + lgTable([
       { k: "자차가입여부", v: d.ownDamage.joined }, { k: "차종", v: d.insuredCar.kind },
       { k: "현재잔가", v: skResidualHtml(d), full: true },
       { k: "추가담보", v: d.insuredCar.addCover }, { k: "상세", v: d.insuredCar.detail },
       { k: "특약", v: d.insuredCar.special, full: true },
     ])
-    + skContractCoreHtml(d);                       // 계약 정보 (마지막)
+    + skContractCoreHtml(d);                       // 계약 정보 표 (헤더는 위 통합 제목 사용)
   return `<div class="lg-cols"><div>${left}</div><div>${right}</div></div>`;
 }
 
@@ -991,12 +991,11 @@ function skMaintServiceHtml(d) {
     ]);
 }
 
-/* 계약 정보(계약·차량) — 계약 특정·고객 응대·전손/한도 판단 (우측 컬럼 마지막 섹션) */
+/* 계약 정보(계약·차량) 표 — 계약 특정·고객 응대·전손/한도 판단.
+   섹션 헤더는 상위 '피보험차량 > 계약 정보' 통합 제목을 공유하므로 여기서는 표만 렌더한다. */
 function skContractCoreHtml(d) {
   const sk = d.skRent || {};
-  const cellDesc = "SK렌터카 시스템과 연동해 받아오는 계약정보입니다. (연동 전에는 예시·미수신)";
-  return `<div class="lg-sect" data-desc="${iEsc(cellDesc)}">계약 정보<span class="note">※ SK렌터카 시스템 연동 수신 (계약정보 IF)</span></div>`
-    + lgTable([
+  return lgTable([
       { k: "렌트/리스", v: sk.rentType }, { k: "업무구분", v: sk.bizType },
       { k: "상품/계약번호", v: sk.product, full: true, blue: true },
       { k: "관리지점", v: sk.branch }, { k: "N/R구분", v: sk.nrType },
