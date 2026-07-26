@@ -937,7 +937,7 @@ function intakeContractTab(d) {
       ...skDeductEntries(d),                       // 면책금(=자기부담금) 항목 통합
     ])
     + skMaintServiceHtml(d)                        // 정비·대차 서비스 (면부책 다음)
-    + `<div class="lg-sect" data-desc="${iEsc("SK렌터카 시스템과 연동해 받아오는 계약정보입니다. (연동 전에는 예시·미수신)")}">피보험차량 &gt; 계약 정보<span class="note">※ SK렌터카 시스템 연동 수신 (계약정보 IF)</span></div>`
+    + `<div class="lg-sect" data-desc="${iEsc("SK렌터카 시스템과 연동해 받아오는 계약정보입니다. (연동 전에는 예시·미수신)")}">계약 정보<span class="note">※ SK렌터카 시스템 연동 수신 (계약정보 IF)</span></div>`
     + lgTable([
       { k: "자차가입여부", v: d.ownDamage.joined }, { k: "차종", v: d.insuredCar.kind },
       { k: "현재잔가", v: skResidualHtml(d), full: true },
