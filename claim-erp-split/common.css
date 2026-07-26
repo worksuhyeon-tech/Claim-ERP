@@ -1499,7 +1499,9 @@
     display: flex; align-items: center; }
   .lg-idband .seg { padding: 10px 16px; display: flex; align-items: center; font-weight: 700;
     color: #333; border-left: 1px solid #DBE3EF; min-width: 0; }
-  .lg-idband .seg.car { font-size: 15px; font-weight: 800; color: #22252E; }
+  .lg-idband .seg.car { font-size: 15px; font-weight: 800; color: #22252E;
+    flex-direction: column; align-items: flex-start; justify-content: center; gap: 2px; }
+  .lg-idband .seg.car .regdate { font-size: 11px; font-weight: 600; color: #6B7280; }
   .lg-idband .seg.fault { color: #8A4B16; }
   .lg-idband .seg.cust { margin-left: auto; color: #5B6273; font-weight: 600; }
 

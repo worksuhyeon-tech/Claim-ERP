@@ -616,13 +616,15 @@ function intakeListHtml() {
   </div>`;
 }
 
+// 최초등록일 — SK렌터카 연동 계약정보의 차량 최초등록일
+function skFirstRegDate(d) { return (d.skRent && d.skRent.firstRegDate) || ""; }
 function lgIdBand(d) {
   return `<div class="lg-idband">
     <span class="tag">${iEsc(d.procStatus) || "대기"}</span>
     <span class="id">${iEsc(d.id)}</span>
     <span class="seg shop">${iEsc(d.repairShop) || "미입고"}</span>
     <span class="seg fault">${iEsc(d.fault) || "자차 0% (미확정)"}</span>
-    <span class="seg car">${joinDot([d.carModel, d.car]) || "-"}</span>
+    <span class="seg car"><span class="carno">${joinDot([d.carModel, d.car]) || "-"}</span>${skFirstRegDate(d) ? `<span class="regdate">최초등록일 ${iEsc(skFirstRegDate(d))}</span>` : ""}</span>
   </div>`;
 }
 
@@ -937,10 +939,8 @@ function intakeContractTab(d) {
     + skMaintServiceHtml(d)                        // 정비·대차 서비스 (면부책 다음)
     + lgSect("피보험차량")
     + lgTable([
-      { k: "차명/번호", v: joinDot([d.insuredCar.name, d.insuredCar.no]) }, { k: "자차가입여부", v: d.ownDamage.joined },
-      { k: "차종", v: d.insuredCar.kind }, { k: "코드", v: d.insuredCar.code, blue: true },
-      { k: "차량가액", v: d.insuredCar.priceAB, full: true },
-      { k: "총가입금액", v: d.insuredCar.totalJoin, full: true },
+      { k: "자차가입여부", v: d.ownDamage.joined }, { k: "차종", v: d.insuredCar.kind },
+      { k: "현재잔가", v: skResidualHtml(d), full: true },
       { k: "추가담보", v: d.insuredCar.addCover }, { k: "상세", v: d.insuredCar.detail },
       { k: "특약", v: d.insuredCar.special, full: true },
     ])
@@ -952,6 +952,21 @@ function intakeContractTab(d) {
    대분류 '계약정보' 항목을 사고보상 처리에 맞춰 구성. SK렌터카 시스템 연동으로 수신하는 값이다.
    면책금(=자기부담금) 항목은 '면부책' 섹션으로 통합, 정비·대차 서비스는 면부책 다음에 배치. */
 function skWonSuffix(v) { return (v || v === 0) && String(v) !== "" ? String(v) + "원" : ""; }
+
+/* 현재잔가 표시 — 잔가액에 일부보험 비율을 병기 (담보 100% 미가입 시 일부보험 00% 표기).
+   일부보험 비율은 피보험차량 총가입금액(insuredCar.totalJoin)에 내포된 값을 사용한다. */
+function skPartialRateText(d) {
+  const t = (d.insuredCar && d.insuredCar.totalJoin) || "";
+  const m = String(t).match(/일부보험\s*\d+\s*%/);
+  return m ? m[0].replace(/\s+/g, " ") : "";
+}
+function skResidualHtml(d) {
+  const sk = d.skRent || {};
+  const val = skWonSuffix(sk.residualValue);
+  if (!val) return "";
+  const rate = skPartialRateText(d);
+  return rate ? `${val} (${rate})` : val;
+}
 
 /* 면책금(=자기부담금) — '면부책' 표에 통합할 lgTable row 배열 (섹션 헤더 없음) */
 function skDeductEntries(d) {
@@ -985,11 +1000,7 @@ function skContractCoreHtml(d) {
       { k: "렌트/리스", v: sk.rentType }, { k: "업무구분", v: sk.bizType },
       { k: "상품/계약번호", v: sk.product, full: true, blue: true },
       { k: "관리지점", v: sk.branch }, { k: "N/R구분", v: sk.nrType },
-      { k: "고객명", v: sk.custName }, { k: "VIP구분", v: sk.vip },
-      { k: "고객조직", v: sk.custOrg, full: true },
-      { k: "차량번호", v: sk.carNo, blue: true }, { k: "최초등록일", v: sk.firstRegDate },
-      { k: "모델명", v: sk.model, full: true },
-      { k: "현재잔가", v: skWonSuffix(sk.residualValue), full: true },
+      { k: "VIP구분", v: sk.vip },
     ]);
 }
 
