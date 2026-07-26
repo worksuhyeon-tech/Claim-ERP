@@ -933,8 +933,8 @@ function intakeContractTab(d) {
   const right = lgSect("면부책", "※ 면책금(자기부담금) 포함")
     + lgTable([
       { k: "운전한정", v: d.liability.driveLimit, full: true },
-      { k: "운전연령", v: d.liability.ageLimit }, { k: "자기부담", v: d.liability.selfPay },
-      ...skDeductEntries(d),                       // 면책금(=자기부담금) 항목 통합
+      { k: "자기부담", v: d.liability.selfPay }, { k: "입금방식", v: (d.skRent || {}).deductPayMethod },
+      ...skDeductEntries(d),                       // 면책약정금액~ 항목 (운전연령 삭제 위치로 상향 배치)
     ])
     + skMaintServiceHtml(d)                        // 정비·대차 서비스 (면부책 다음)
     + `<div class="lg-sect" data-desc="${iEsc("SK렌터카 시스템과 연동해 받아오는 계약정보입니다. (연동 전에는 예시·미수신)")}">계약 정보<span class="note">※ SK렌터카 시스템 연동 수신 (계약정보 IF)</span></div>`
@@ -968,11 +968,12 @@ function skResidualHtml(d) {
   return rate ? `${val} (${rate})` : val;
 }
 
-/* 면책금(=자기부담금) — '면부책' 표에 통합할 lgTable row 배열 (섹션 헤더 없음) */
+/* 면책금(=자기부담금) — '면부책' 표에 통합할 lgTable row 배열 (섹션 헤더 없음)
+   ※ 입금방식은 '자기부담' 옆으로 상향 배치되어 여기서는 제외한다. */
 function skDeductEntries(d) {
   const sk = d.skRent || {};
   return [
-    { k: "면책약정금액", v: skWonSuffix(sk.deductAgreed), blue: true }, { k: "입금방식", v: sk.deductPayMethod },
+    { k: "면책약정금액", v: skWonSuffix(sk.deductAgreed), blue: true },
     { k: "통합청구방법", v: sk.deductBilling, full: true },
     { k: "할증금액", v: skWonSuffix(sk.deductSurcharge) }, { k: "할증사고건수", v: sk.deductSurchargeCount },
     { k: "총사고발생건수", v: sk.totalAccidents }, { k: "면책금 체납건수", v: sk.deductArrears },
