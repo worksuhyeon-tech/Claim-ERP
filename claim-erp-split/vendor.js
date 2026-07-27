@@ -220,6 +220,17 @@
       return;
     }
 
+    /* 선정평가 → 평가항목/건수 관리 팝업 새 창 열기 (업체 컨텍스트 전달) */
+    if (e.target.closest("#vEvalBtn")) {
+      const nm = (document.getElementById("vBaseName") || {}).textContent || "협력업체";
+      const biz = (document.getElementById("vBaseBiz") || {}).textContent || "-";
+      try { localStorage.setItem("vendorEvalContext", JSON.stringify({ name: nm.trim(), biz: biz.trim() })); } catch (err) {}
+      const url = "vendor-eval.html?name=" + encodeURIComponent(nm.trim()) + "&biz=" + encodeURIComponent(biz.trim());
+      const w = window.open(url, "vendorEval", "width=1120,height=860,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes");
+      if (w) w.focus(); else toast("팝업이 차단되었습니다. 브라우저 팝업 허용 후 다시 시도하세요. (데모)");
+      return;
+    }
+
     /* 안내용 버튼(데모 토스트) */
     const t = e.target.closest("[data-toast]");
     if (t) { toast(t.dataset.toast); return; }
