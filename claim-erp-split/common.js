@@ -1012,19 +1012,35 @@ let APPROVALS = [
     damagedObjectName:"자차1", damageInfo:"스포티지 / 11바7788", repairShopName:"일산협력업체", approvalAmount:300000,
     approvalStatus:"반려", requestedAt:"2026-06-11 10:30", completedAt:"2026-06-13 09:50",
     requesterComment:"면책종결 요청드립니다.", approverId:"EMP013", approverName:"김본부", approverComment:"면책 근거 자료 보완 필요. 재검토 바랍니다." },
-  // VOC (결재레벨 기준)
-  { id:"APR-018", claimNo:"CLM-2026-0017", resolutionNo:"001", approvalType:"VOC", requesterId:"EMP005", requesterName:"문태호",
-    damagedObjectName:"자차1", damageInfo:"카니발 / 12가3456", repairShopName:"일산협력업체", approvalAmount:150000,
+  // 업체관리 — 협력업체조회(업체등급/실적관리·계약정보)에서 상신되는 결재
+  { id:"APR-018", claimNo:"VND-875-86-00015", resolutionNo:"001", approvalType:"업체관리", requesterId:"EMP005", requesterName:"문태호",
+    damagedObjectName:"업체관리", damageInfo:"복강릉서비스기아오토큐 주식회사 / 875-86-00015", repairShopName:"복강릉서비스기아오토큐", approvalAmount:0,
+    vendorName:"복강릉서비스기아오토큐 주식회사", vendorBiz:"875-86-00015",
+    vendorChanges:[
+      { item:"업체등급/실적관리", gubun:"업체구분", before:"SK렌터카", after:"SA (애니카손사)" },
+      { item:"계약정보관리", gubun:"지급처계좌정보(은행)", before:"(011) 농협중앙회", after:"(004) 국민은행" },
+      { item:"계약정보관리", gubun:"지급처계좌정보(계좌)", before:"010123456789", after:"01088822234" },
+    ],
     approvalStatus:"상신중", requestedAt:"2026-07-06 11:25", completedAt:null,
-    requesterComment:"처리 지연 관련 고객 불만 접수. VOC 결재 요청드립니다.", approverId:null, approverName:"", approverComment:"" },
-  { id:"APR-019", claimNo:"CLM-2026-0041", resolutionNo:"001", approvalType:"VOC", requesterId:"EMP005", requesterName:"문태호",
-    damagedObjectName:"대물1", damageInfo:"K5 / 90마2345", repairShopName:"분당협력업체", approvalAmount:0,
+    requesterComment:"업체구분·지급처 계좌 변경 건 결재 요청드립니다.", approverId:null, approverName:"", approverComment:"" },
+  { id:"APR-019", claimNo:"VND-226-81-28803", resolutionNo:"001", approvalType:"업체관리", requesterId:"EMP005", requesterName:"문태호",
+    damagedObjectName:"업체관리", damageInfo:"현대상사㈜ / 226-81-28803", repairShopName:"현대상사㈜", approvalAmount:0,
+    vendorName:"현대상사㈜", vendorBiz:"226-81-28803",
+    vendorChanges:[
+      { item:"업체등급/실적관리", gubun:"업체등급(국산)", before:"일반", after:"우수" },
+      { item:"계약정보관리", gubun:"국산 부품할인율", before:"3%", after:"5%" },
+    ],
     approvalStatus:"상신중", requestedAt:"2026-07-06 16:02", completedAt:null,
-    requesterComment:"응대 관련 VOC 접수. 결재 요청드립니다.", approverId:null, approverName:"", approverComment:"" },
-  { id:"APR-020", claimNo:"CLM-2026-0012", resolutionNo:"001", approvalType:"VOC", requesterId:"EMP005", requesterName:"문태호",
-    damagedObjectName:"자차1", damageInfo:"제네시스 G80 / 299너1997", repairShopName:"수원협력업체", approvalAmount:300000,
+    requesterComment:"업체등급 상향 및 부품할인율 변경 결재 요청드립니다.", approverId:null, approverName:"", approverComment:"" },
+  { id:"APR-020", claimNo:"VND-536-85-00786", resolutionNo:"001", approvalType:"업체관리", requesterId:"EMP005", requesterName:"문태호",
+    damagedObjectName:"업체관리", damageInfo:"(주)로드렌트카 / 536-85-00786", repairShopName:"(주)로드렌트카", approvalAmount:0,
+    vendorName:"(주)로드렌트카", vendorBiz:"536-85-00786",
+    vendorChanges:[
+      { item:"계약정보관리", gubun:"계약여부(국산 Aos)", before:"미계약", after:"계약" },
+      { item:"계약정보관리", gubun:"탈착공임", before:"35,000원", after:"38,920원" },
+    ],
     approvalStatus:"결재완료", requestedAt:"2026-06-20 13:00", completedAt:"2026-06-23 10:20",
-    requesterComment:"VOC 결재 요청드립니다.", approverId:"EMP013", approverName:"김본부", approverComment:"고객 안내 완료 확인. 승인합니다." },
+    requesterComment:"계약 전환 및 공임 변경 결재 요청드립니다.", approverId:"EMP013", approverName:"김본부", approverComment:"계약 조건 확인 완료. 승인합니다." },
 ];
 
 let apprSeeded = false;      // coreInfo/histories 시드 1회 주입 플래그
@@ -1062,7 +1078,7 @@ function apprBuildCoreInfo(item) {
   // 금액 정합 — 대표 결재금액(approvalAmount)을 종류별 항목과 일치시킴
   const 추산액 = (type === "추산") ? amt : Math.round(amt * 1.08 / 1000) * 1000;
   const 면책금 = (type === "면책종결") ? (amt || p.pick([300000, 500000, 700000])) : p.pick([0, 300000, 500000]);
-  const 청구액 = (type === "VOC") ? (amt || p.pick([0, 150000, 300000])) : Math.round(Math.max(amt, 추산액) * 1.12 / 1000) * 1000;
+  const 청구액 = (type === "업체관리") ? (amt || p.pick([0, 150000, 300000])) : Math.round(Math.max(amt, 추산액) * 1.12 / 1000) * 1000;
   const 손해사정액 = Math.round(청구액 * 0.95 / 1000) * 1000;
   const 실지급액 = apprIsPayType(type) ? amt : Math.max(0, 손해사정액 - 면책금);
   const 공급가액 = Math.round(실지급액 / 1.1 / 100) * 100;
