@@ -1345,7 +1345,7 @@ function dmDeductDepositHtml(d) {
       <td class="dm-dd-appr ph ta-c">저장 시 채번</td>
     </tr>`;
   const savedRows = dd.rows.map(r => `<tr>
-      <td>${iEsc(r.gubun)}</td><td>${iEsc(r.date)}</td><td class="ta-r">${iEsc(r.amount)}</td>
+      <td>${iEsc(r.gubun)}</td><td>${iEsc(r.date)}</td><td class="ta-r">${iEsc(r.amount)}${r.amount ? "원" : ""}</td>
       <td>${iEsc(r.payer)}</td><td>${iEsc(r.memo)}</td><td>${iEsc(r.inputter)}</td>
       <td class="dm-dd-appr">${iEsc(r.approvalNo)}</td>
     </tr>`).join("");
@@ -2535,7 +2535,13 @@ function bindIntakeDamage(d) {
   const dd = getDeductDeposit(d.id);
   body.querySelectorAll("[data-dd]").forEach(el => {
     const ev = el.tagName === "SELECT" ? "change" : "input";
-    el.addEventListener(ev, () => { dd.draft[el.dataset.dd] = el.value; });
+    el.addEventListener(ev, () => {
+      if (el.dataset.dd === "amount") {                 // 금액 — 천단위 콤마 자동 표기
+        const digits = el.value.replace(/[^\d]/g, "");
+        el.value = digits ? Number(digits).toLocaleString("en-US") : "";
+      }
+      dd.draft[el.dataset.dd] = el.value;
+    });
   });
   const ddSave = body.querySelector("#dmDeductSave");
   if (ddSave) ddSave.addEventListener("click", () => saveDeductDeposit(d));
