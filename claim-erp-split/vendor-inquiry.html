@@ -513,24 +513,19 @@
             </tbody>
           </table>
 
-          <div class="vcap">브랜드별 부품할인율</div>
+          <div class="vcap">브랜드별 부품할인율 <span class="note" style="font-weight:600;color:#5B6273">브랜드는 공통코드(시스템 &gt; 제작사 국산·외산 &gt; 브랜드) 기준</span></div>
           <div class="vtab-tools" style="margin-bottom:8px">
             <span class="vinline">
-              <select class="lg-sel" style="width:110px"><option>국산</option><option>외산</option></select>
+              <select class="lg-sel" id="vOriginSel" style="width:120px" data-desc="제작사 구분(국산/외산)을 선택하면 해당 구분의 브랜드 목록으로 표가 전환됩니다. 브랜드는 공통코드(중분류 제작사 국산/외산, 소분류 브랜드)에서 관리합니다."><option value="국산">제작사 국산</option><option value="외산">제작사 외산</option></select>
               <button type="button" class="lg-mini gray" data-toast="부품할인율 변경 이력을 조회합니다. (데모)">할인율이력</button>
-              <span class="u" style="margin-left:10px">국산부품할인율</span>
-              <input class="lg-in" style="width:70px;text-align:right" value="5.00"><span class="u">%</span>
+              <span class="u" style="margin-left:10px" id="vOriginLabel">국산부품할인율</span>
+              <input class="lg-in" id="vOriginRate" style="width:70px;text-align:right" value="5.00"><span class="u">%</span>
             </span>
           </div>
           <table class="lg-tbl" style="max-width:360px">
             <colgroup><col style="width:55%"><col style="width:45%"></colgroup>
             <thead><tr><th>브랜드</th><th>부품할인율 (%)</th></tr></thead>
-            <tbody>
-              <tr><td>현대</td><td><input class="lg-in" style="text-align:right" value="5"></td></tr>
-              <tr><td>기아</td><td><input class="lg-in" style="text-align:right" value="5"></td></tr>
-              <tr><td>르노</td><td><input class="lg-in" style="text-align:right" value="3"></td></tr>
-              <tr><td>쌍용</td><td><input class="lg-in" style="text-align:right" value="3"></td></tr>
-            </tbody>
+            <tbody id="vBrandBody"></tbody>
           </table>
           <label class="lg-chk" style="margin-top:10px"><input type="checkbox"> 전자계약서 발송</label>
 

@@ -11,6 +11,21 @@
   /* 담당자 업무구분 — SA 또는 SK (대물-AS·대인·자차 불필요) */
   const TASK_OPTS = ["SA", "SK"];
 
+  /* 브랜드별 부품할인율 — 브랜드는 공통코드 기준으로 채운다.
+     공통코드: 대분류 시스템(SYST) > 중분류 제작사 국산(MKDM)/제작사 외산(MKIM) > 소분류 브랜드.
+     (실제 운영 시 공통코드관리 화면에서 브랜드를 등록/수정/삭제 → 이 목록에 반영) */
+  const BRAND_CODES = {
+    국산: ["현대", "기아", "르노삼성", "KG모빌리티(쌍용)", "쉐보레", "기타"],
+    외산: ["BMW", "메르세데스-벤츠", "아우디", "폭스바겐", "토요타", "렉서스", "혼다", "포드", "볼보", "테슬라", "기타"],
+  };
+  /* 제작사 구분별 기본 부품할인율(%) — 상단 요약값 */
+  const ORIGIN_RATE = { 국산: "5.00", 외산: "0.00" };
+  /* 브랜드별 부품할인율(%) 편집 상태 — 구분 전환 시에도 입력값 유지 (데모 시드) */
+  const brandRates = {
+    국산: { "현대": "5", "기아": "5", "르노삼성": "3", "KG모빌리티(쌍용)": "3", "쉐보레": "3", "기타": "0" },
+    외산: {},
+  };
+
   /* 은행명 드롭다운 — 국내 이용 빈도(개인고객 접근성·시장규모) 기준 조회순서
      (엑셀 '정렬기준' 시트: 국내은행·상호금융 → 외국계 → 증권 → 구/폐지 코드 순) */
   const BANK_OPTS = [
@@ -143,11 +158,28 @@
     sel.innerHTML = optionsHtml(BANK_OPTS, cur);
   });
 
+  /* 브랜드별 부품할인율 — 선택된 제작사 구분(국산/외산)의 공통코드 브랜드로 표 렌더 */
+  function currentOrigin() { const s = document.getElementById("vOriginSel"); return (s && s.value) || "국산"; }
+  function renderBrandRates() {
+    const body = document.getElementById("vBrandBody");
+    if (!body) return;
+    const origin = currentOrigin();
+    const rates = brandRates[origin] || (brandRates[origin] = {});
+    body.innerHTML = (BRAND_CODES[origin] || []).map(b =>
+      `<tr><td>${esc(b)}</td><td><input class="lg-in" style="text-align:right" data-brand="${esc(b)}" value="${esc(rates[b] || "0")}"></td></tr>`
+    ).join("");
+    const label = document.getElementById("vOriginLabel");
+    if (label) label.textContent = origin + "부품할인율";
+    const rate = document.getElementById("vOriginRate");
+    if (rate) rate.value = ORIGIN_RATE[origin] || "0.00";
+  }
+
   /* 시드 렌더 */
   const relatedBody = document.getElementById("vRelatedBody");
   if (relatedBody) relatedBody.innerHTML = RELATED_SEED.map(relatedRow).join("");
   const staffBody = document.getElementById("vStaffBody");
   if (staffBody) staffBody.innerHTML = STAFF_SEED.map(staffRow).join("");
+  renderBrandRates();
 
   /* 탭 전환 */
   const tabs = root.querySelector("#vTabs");
@@ -250,12 +282,22 @@
     }
   });
 
-  /* 전체선택 체크박스 */
+  /* 전체선택 체크박스 / 제작사 구분(국산·외산) 전환 */
   root.addEventListener("change", e => {
     const all = e.target.closest("input[data-checkall]");
-    if (!all) return;
-    const body = all.closest("table").querySelector("tbody");
-    body.querySelectorAll("input[data-rowchk]").forEach(chk => { chk.checked = all.checked; });
+    if (all) {
+      const body = all.closest("table").querySelector("tbody");
+      body.querySelectorAll("input[data-rowchk]").forEach(chk => { chk.checked = all.checked; });
+      return;
+    }
+    if (e.target.id === "vOriginSel") { renderBrandRates(); return; }
+  });
+
+  /* 브랜드별 부품할인율 입력값 유지 (구분 전환 시에도 보존) + 기본 요약율 반영 */
+  root.addEventListener("input", e => {
+    const bi = e.target.closest("[data-brand]");
+    if (bi) { (brandRates[currentOrigin()] || {})[bi.dataset.brand] = bi.value; return; }
+    if (e.target.id === "vOriginRate") { ORIGIN_RATE[currentOrigin()] = e.target.value; return; }
   });
 })();
 
