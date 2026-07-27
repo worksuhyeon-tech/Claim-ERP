@@ -267,12 +267,14 @@
     const t = e.target.closest("[data-toast]");
     if (t) { toast(t.dataset.toast); return; }
 
-    /* 저장 / 검색 */
-    if (e.target.closest("#vSaveBtn") || e.target.closest("#vSaveBtn2")) {
+    /* 저장 / 검색 — 섹션별 저장 버튼([data-vsave])과 전체 저장(#vSaveBtn/#vSaveBtn2) 공통 처리 */
+    const saveBtn = e.target.closest("[data-vsave]") || e.target.closest("#vSaveBtn") || e.target.closest("#vSaveBtn2");
+    if (saveBtn) {
+      const label = saveBtn.dataset.vsave ? saveBtn.dataset.vsave + "을(를) " : "협력업체 정보를 ";
       const r = closePreviousStaff();
       toast(r.closed
-        ? `협력업체 정보를 저장했습니다. 직전 담당자 ${r.closed}명의 종료일을 ${r.date}(입력일 D-1)로 자동 처리했습니다. (데모)`
-        : "협력업체 정보를 저장했습니다. (데모)");
+        ? `${label}저장했습니다. 직전 담당자 ${r.closed}명의 종료일을 ${r.date}(입력일 D-1)로 자동 처리했습니다. (데모)`
+        : `${label}저장했습니다. (데모)`);
       return;
     }
     if (e.target.closest("#vSearchBtn")) {
@@ -291,7 +293,21 @@
       return;
     }
     if (e.target.id === "vOriginSel") { renderBrandRates(); return; }
+    if (e.target.closest("[data-actradio]")) { applyContractActivation(e.target.closest("[data-actradio]").dataset.actradio); return; }
   });
+
+  /* 계약여부='계약'일 때만 계약일자·계약약관·계약적용일자·계약기간 활성화 (첫 라디오='계약') */
+  function applyContractActivation(grp) {
+    const radios = root.querySelectorAll(`input[name="vc-${grp}"]`);
+    const contracted = radios[0] && radios[0].checked;
+    root.querySelectorAll(`[data-actgrp="${grp}"]`).forEach(el => {
+      el.disabled = !contracted;
+      const lbl = el.closest("label");
+      if (lbl) lbl.classList.toggle("dis", !contracted);
+    });
+  }
+  applyContractActivation("dom");
+  applyContractActivation("imp");
 
   /* 브랜드별 부품할인율 입력값 유지 (구분 전환 시에도 보존) + 기본 요약율 반영 */
   root.addEventListener("input", e => {

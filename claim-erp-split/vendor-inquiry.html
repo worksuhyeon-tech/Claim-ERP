@@ -85,6 +85,35 @@
   #clTooltip.below::after { top: -4px; }
   #viewVendor [data-desc] { cursor: pointer; }
 
+  /* 대섹션 헤더 바 (1·2·3 관리 그룹) */
+  #viewVendor .lg-sect.v-secbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  #viewVendor .v-secbar .v-secsp { flex: 1; }
+  #viewVendor .v-secbar .lg-abtn { padding: 5px 16px; }
+  #viewVendor .v-level {
+    font-size: 11px; font-weight: 700; color: #2F5BB7; background: #EEF3FB;
+    border: 1px solid #CFE0F5; border-radius: 10px; padding: 2px 9px; white-space: nowrap; cursor: help; }
+
+  /* 계약여부 — AOS 사용 계약 / 수용성 도장 그룹 분리 */
+  #viewVendor .v-contbl .v-grp { background: #EAF1FB; color: #20457E; }
+  #viewVendor .v-contbl .v-grp2 { background: #FBF1E6; color: #7A4A12; }
+  #viewVendor .v-contbl .v-sep, #viewVendor .v-contbl .v-sepcell {
+    background: #EFF1F5; border-top: none; border-bottom: none; padding: 0; }
+  #viewVendor .v-contbl input:disabled { background: #F1F2F6; color: #AEB4C2; cursor: not-allowed; }
+  #viewVendor .v-contbl .vradio label.dis { color: #AEB4C2; cursor: not-allowed; }
+
+  /* 계약 저장 → 전자계약서 → 결재 동선 */
+  #viewVendor .v-actionrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+  #viewVendor .v-actionrow .v-secsp { flex: 1; }
+
+  /* Pro(예정) 버튼 — 개발요건 미포함 표시 */
+  #viewVendor .v-pro {
+    display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;
+    font-size: 12px; font-weight: 700; color: #8A6D1F; background: #FDF6E3;
+    border: 1px dashed #E4C978; border-radius: 8px; cursor: not-allowed; }
+  #viewVendor .v-pro .pro-badge {
+    font-size: 10px; font-weight: 800; color: #fff; letter-spacing: .3px;
+    background: linear-gradient(90deg, #E0A93B, #C6871B); border-radius: 6px; padding: 1px 6px; }
+
   /* 적용종료일 — 무기한(달력/키인) vs 종료(잠금) */
   #viewVendor .vend { width: 140px; }
   #viewVendor .vend-lock {
@@ -238,8 +267,16 @@
 
         <div class="lg-body">
 
-          <!-- 1. 기본정보 -->
-          <div class="lg-sect">기본정보 <span class="note">협력업체 등록화면에서 연계된 기본정보</span></div>
+          <!-- ============ 1. 업체 기본정보 관리 ============ -->
+          <div class="lg-sect v-secbar" data-desc="업체 기본정보 관리 그룹입니다. 기본정보·업체 상세관리·보험업무담당자 관리를 하나의 '저장' 버튼으로 저장하며, 결재레벨 1레벨(담당자)부터 저장할 수 있습니다.">
+            <span>1. 업체 기본정보 관리</span>
+            <span class="v-secsp"></span>
+            <span class="v-level" data-desc="이 섹션은 결재레벨 1레벨(담당자)부터 저장할 수 있습니다.">결재레벨 1↑ 저장</span>
+            <button type="button" class="lg-abtn primary" data-vsave="업체 기본정보 관리" data-desc="기본정보·업체 상세관리·보험업무담당자 관리를 한 번에 저장합니다. 결재레벨 1레벨(담당자)도 저장 가능합니다.">저장</button>
+          </div>
+
+          <!-- ① 기본 정보 -->
+          <div class="vcap" data-desc="협력업체 등록화면에서 연계되어 표시되는 기본정보입니다.">① 기본 정보 <span class="note" style="font-weight:600;color:#5B6273">협력업체등록 화면에서 연계된 정보</span></div>
           <table class="vinfo">
             <colgroup><col style="width:13%"><col style="width:22%"><col style="width:13%"><col style="width:19%"><col style="width:13%"><col style="width:20%"></colgroup>
             <tbody>
@@ -300,27 +337,8 @@
             </tbody>
           </table>
 
-          <!-- 2. 지급처(계좌) 정보 -->
-          <div class="lg-sect">지급처(계좌) 정보 <span class="note">이 업체로 보험금을 지급할 계좌</span></div>
-          <table class="lg-tbl" style="table-layout:auto">
-            <colgroup><col style="width:14%"><col style="width:16%"><col style="width:22%"><col style="width:16%"><col style="width:20%"><col style="width:12%"></colgroup>
-            <thead>
-              <tr><th>계좌구분</th><th>예금주코드</th><th>예금주명</th><th>은행명</th><th>계좌번호</th><th>지급구분</th></tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><select class="lg-sel"><option>법인계좌</option><option>개인계좌</option></select></td>
-                <td><input class="lg-in" value="110110101010"></td>
-                <td><input class="lg-in" value="복강릉서비스기아오토큐"></td>
-                <td><select class="lg-sel" data-bankselect data-selected="(011) 농협중앙회" data-desc="지급 계좌의 은행을 선택합니다. 국내 개인고객 이용 빈도(정렬기준) 순으로 정렬되어 있습니다."></select></td>
-                <td><input class="lg-in" value="3010222222222"></td>
-                <td><select class="lg-sel"><option>정비</option><option>부품</option><option>유리</option><option>렌트</option><option>실런트</option></select></td>
-              </tr>
-            </tbody>
-          </table>
-
-          <!-- 3. 업체 상세관리 (탭) -->
-          <div class="lg-sect">업체 상세관리</div>
+          <!-- ② 업체 상세관리 (탭) -->
+          <div class="vcap" data-desc="협력업체의 업무 담당자와 자주 거래하는 유관업체 정보를 탭으로 관리합니다.">② 업체 상세관리</div>
           <div class="lg-tabs" id="vTabs">
             <div class="lg-tab active" data-tab="staff">담당자</div>
             <div class="lg-tab" data-tab="related">유관업체정보관리</div>
@@ -369,146 +387,164 @@
 
           </div><!-- /.lg-tabbody -->
 
-          <!-- 4. 업체관리정보 -->
-          <div class="lg-sect">업체관리정보</div>
-          <div class="vtab-tools" style="margin-bottom:8px">
-            <button type="button" class="lg-mini gray" id="vEvalBtn" data-desc="협력업체 선정평가(평가항목·건수 관리) 화면을 새 창으로 엽니다. 관리자는 평가항목을 추가/수정/삭제하고, 평가 대상 건수(비율)를 제어합니다.">선정평가</button>
-            <button type="button" class="lg-mini gray" data-toast="업체 실적관리 화면을 엽니다. (데모)">실적관리</button>
-          </div>
+          <!-- ③ 보험업무담당자 관리 -->
+          <div class="vcap" data-desc="입고안내 SMS 수신번호와 보험업무 Key Man 연락처를 관리합니다.">③ 보험업무담당자 관리 <span class="note" style="font-weight:600;color:#5B6273">입고안내 SMS · 보험업무 Key Man</span></div>
           <table class="vinfo">
             <colgroup><col style="width:15%"><col style="width:35%"><col style="width:15%"><col style="width:35%"></colgroup>
             <tbody>
               <tr>
                 <th>입고안내 SMS 1</th>
                 <td>
-                  <span class="vphone"><input class="lg-in" value="010"><span class="sep">-</span><input class="lg-in" value="9898"><span class="sep">-</span><input class="lg-in" value="4045"></span>
+                  <span class="vphone"><input class="lg-in" value="010" data-desc="차량 입고 안내 SMS를 받을 첫 번째 번호입니다."><span class="sep">-</span><input class="lg-in" value="9898"><span class="sep">-</span><input class="lg-in" value="4045"></span>
                 </td>
                 <th>입고안내 SMS 2</th>
                 <td>
-                  <span class="vphone"><input class="lg-in" value="010"><span class="sep">-</span><input class="lg-in" value="7167"><span class="sep">-</span><input class="lg-in" value="4972"></span>
+                  <span class="vphone"><input class="lg-in" value="010" data-desc="차량 입고 안내 SMS를 받을 두 번째 번호입니다."><span class="sep">-</span><input class="lg-in" value="7167"><span class="sep">-</span><input class="lg-in" value="4972"></span>
                 </td>
               </tr>
               <tr>
                 <th>보험업무 Key Man 1</th>
                 <td>
-                  <span class="vphone"><input class="lg-in" value="010"><span class="sep">-</span><input class="lg-in" value="4121"><span class="sep">-</span><input class="lg-in" value="7566"></span>
+                  <span class="vphone"><input class="lg-in" value="010" data-desc="보험업무 주 담당(Key Man) 연락처입니다."><span class="sep">-</span><input class="lg-in" value="4121"><span class="sep">-</span><input class="lg-in" value="7566"></span>
                 </td>
                 <th>보험업무 Key Man 2</th>
                 <td>
-                  <span class="vphone"><input class="lg-in" placeholder="010"><span class="sep">-</span><input class="lg-in"><span class="sep">-</span><input class="lg-in"></span>
+                  <span class="vphone"><input class="lg-in" placeholder="010" data-desc="보험업무 보조 담당(Key Man) 연락처입니다."><span class="sep">-</span><input class="lg-in"><span class="sep">-</span><input class="lg-in"></span>
                 </td>
               </tr>
+            </tbody>
+          </table>
+
+          <!-- ============ 2. 업체등급 / 실적관리 ============ -->
+          <div class="lg-sect v-secbar" data-desc="업체등급/실적관리 그룹입니다. 담당자가 임의로 변경할 수 없으며, 전결 규정상 결재레벨 2레벨 이상만 저장할 수 있고 저장 이력이 관리됩니다.">
+            <span>2. 업체등급 / 실적관리</span>
+            <span class="note" style="font-weight:600;color:#5B6273">담당자 임의 변경 불가 · 저장이력 관리</span>
+            <span class="v-secsp"></span>
+            <span class="v-level" data-desc="전결 규정상 이 섹션은 결재레벨 2레벨 이상만 저장할 수 있습니다.">결재레벨 2↑ 저장</span>
+            <button type="button" class="lg-mini gray" data-toast="업체등급/실적 저장 이력을 조회합니다. (데모)" data-desc="업체등급·실적 변경 저장 이력을 조회합니다.">저장이력</button>
+            <button type="button" class="lg-abtn primary" data-vsave="업체등급/실적관리" data-desc="업체등급·실적 정보를 저장합니다. 담당자 임의 변경은 불가하며 결재레벨 2레벨 이상만 저장됩니다.">저장</button>
+          </div>
+          <div class="vtab-tools" style="margin-bottom:8px">
+            <button type="button" class="lg-mini gray" id="vEvalBtn" data-desc="협력업체 선정평가(평가항목·건수 관리) 화면을 새 창으로 엽니다. 관리자는 평가항목을 추가/수정/삭제하고, 평가 대상 건수(비율)를 제어합니다.">선정평가</button>
+            <button type="button" class="lg-mini gray" data-toast="업체 실적관리 화면을 엽니다. (데모)" data-desc="업체 실적(선정평가 심사 통계 등) 관리 화면을 엽니다.">실적관리</button>
+          </div>
+          <table class="vinfo">
+            <colgroup><col style="width:15%"><col style="width:35%"><col style="width:15%"><col style="width:35%"></colgroup>
+            <tbody>
               <tr>
                 <th>대표자휴대폰</th>
                 <td>
-                  <span class="vphone"><input class="lg-in" value="010"><span class="sep">-</span><input class="lg-in" value="1234"><span class="sep">-</span><input class="lg-in" value="1234"></span>
+                  <span class="vphone"><input class="lg-in" value="010" data-desc="협력업체 대표자 휴대폰 번호입니다."><span class="sep">-</span><input class="lg-in" value="1234"><span class="sep">-</span><input class="lg-in" value="1234"></span>
                 </td>
                 <th>이메일</th>
                 <td>
-                  <span class="vinline"><input class="lg-in" style="width:120px" value="motors1234"><span class="u">@</span><input class="lg-in" style="width:120px" value="daum.net"></span>
+                  <span class="vinline"><input class="lg-in" style="width:120px" value="motors1234" data-desc="협력업체 대표 이메일 주소입니다."><span class="u">@</span><input class="lg-in" style="width:120px" value="daum.net"></span>
                 </td>
               </tr>
               <tr>
                 <th>업체구분</th>
                 <td>
-                  <select class="lg-sel" style="width:120px"><option>우수</option><option>일반</option><option>주의</option><option>거래중지</option></select>
+                  <select class="lg-sel" style="width:150px" data-desc="담당 구분입니다. SA(애니카손사) 또는 SK 로 지정합니다."><option>SA (애니카손사)</option><option>SK</option></select>
                 </td>
-                <th>업력</th>
+                <th>업체등급</th>
                 <td>
                   <span class="vinline">
-                    <select class="lg-sel" style="width:90px"><option>SA</option><option>A</option><option>B</option><option>C</option></select>
-                    <span class="u" style="margin-left:12px">제작구분</span>
-                    <label class="lg-chk"><input type="checkbox" checked> 국산</label>
-                    <label class="lg-chk"><input type="checkbox"> 외산</label>
+                    <span class="u">국산</span>
+                    <select class="lg-sel" style="width:90px" data-desc="국산 제작사 기준 업체등급입니다. (우수/일반/관리)"><option>우수</option><option>일반</option><option>관리</option></select>
+                    <span class="u" style="margin-left:12px">외산</span>
+                    <select class="lg-sel" style="width:90px" data-desc="외산 제작사 기준 업체등급입니다. (우수/일반/관리)"><option>우수</option><option>일반</option><option>관리</option></select>
                   </span>
                 </td>
               </tr>
             </tbody>
           </table>
 
-          <!-- 5. 계약정보 (수가) -->
-          <div class="lg-sect">계약정보 <span class="note">계약여부 · 계약요금(공임) · 적용요율 · 브랜드별 부품할인율</span></div>
+          <!-- ============ 3. 계약정보 관리 ============ -->
+          <div class="lg-sect v-secbar" data-desc="계약정보 관리 그룹입니다. 지급처 계좌·계약여부·계약요금(공임)·브랜드별 부품할인율을 관리합니다. 결재레벨 2레벨은 상신, 결재레벨 3레벨은 최종결재가 가능합니다.">
+            <span>3. 계약정보 관리</span>
+            <span class="note" style="font-weight:600;color:#5B6273">지급처 계좌 · 계약여부 · 계약요금(공임) · 브랜드별 부품할인율</span>
+            <span class="v-secsp"></span>
+            <span class="v-level" data-desc="결재레벨 2레벨은 상신, 결재레벨 3레벨은 최종결재가 가능합니다.">레벨2 상신 · 레벨3 최종결재</span>
+          </div>
 
-          <div class="vcap">계약여부</div>
-          <div class="lg-scroll">
-          <table class="lg-tbl" style="min-width:900px">
-            <colgroup><col style="width:120px"><col style="width:150px"><col style="width:110px"><col style="width:130px"><col style="width:120px"><col style="width:100px"><col style="width:110px"><col style="width:110px"></colgroup>
+          <!-- 지급처(계좌) 정보 (계약정보 관리로 이동) -->
+          <div class="vcap" data-desc="이 업체로 보험금을 지급할 계좌 정보입니다.">지급처(계좌) 정보 <span class="note" style="font-weight:600;color:#5B6273">이 업체로 보험금을 지급할 계좌</span></div>
+          <table class="lg-tbl" style="table-layout:auto">
+            <colgroup><col style="width:14%"><col style="width:16%"><col style="width:22%"><col style="width:16%"><col style="width:20%"><col style="width:12%"></colgroup>
             <thead>
-              <tr><th>구분</th><th>계약여부</th><th>계약일자</th><th>계약약관</th><th>계약적용일자</th><th>계약기간</th><th>수용성도장율</th><th>적용일자</th></tr>
+              <tr><th>계좌구분</th><th>예금주코드</th><th>예금주명</th><th>은행명</th><th>계좌번호</th><th>지급구분</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><select class="lg-sel"><option>법인계좌</option><option>개인계좌</option></select></td>
+                <td><input class="lg-in" value="110110101010"></td>
+                <td><input class="lg-in" value="복강릉서비스기아오토큐"></td>
+                <td><select class="lg-sel" data-bankselect data-selected="(011) 농협중앙회" data-desc="지급 계좌의 은행을 선택합니다. 국내 개인고객 이용 빈도(정렬기준) 순으로 정렬되어 있습니다."></select></td>
+                <td><input class="lg-in" value="3010222222222"></td>
+                <td><select class="lg-sel"><option>정비</option><option>부품</option><option>유리</option><option>렌트</option><option>실런트</option></select></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="vcap" data-desc="좌측 'AOS 사용 계약'과 우측 '수용성 도장'은 서로 다른 계약 항목입니다. 계약여부를 '계약'으로 선택하면 계약일자·계약약관·계약적용일자·계약기간이 활성화됩니다.">계약여부 <span class="note" style="font-weight:600;color:#5B6273">좌: AOS 사용 계약 · 우: 수용성 도장 (별개 항목)</span></div>
+          <div class="lg-scroll">
+          <table class="lg-tbl v-contbl" style="min-width:980px">
+            <colgroup><col style="width:110px"><col style="width:150px"><col style="width:110px"><col style="width:130px"><col style="width:120px"><col style="width:100px"><col style="width:26px"><col style="width:110px"><col style="width:110px"></colgroup>
+            <thead>
+              <tr>
+                <th rowspan="2">구분</th>
+                <th colspan="5" class="v-grp" data-desc="AOS(애니카 사고접수 시스템) 사용에 대한 계약 항목입니다.">AOS 사용 계약</th>
+                <th rowspan="2" class="v-sep"></th>
+                <th colspan="2" class="v-grp2" data-desc="수용성 도장에 대한 적용 항목입니다. 좌측 AOS 계약과는 별개입니다.">수용성 도장</th>
+              </tr>
+              <tr>
+                <th>계약여부</th><th>계약일자</th><th>계약약관</th><th>계약적용일자</th><th>계약기간</th>
+                <th>수용성도장율</th><th>적용일자</th>
+              </tr>
             </thead>
             <tbody>
               <tr>
                 <td class="blue">국산 (Aos)</td>
                 <td>
-                  <span class="vradio"><label><input type="radio" name="vc-dom" checked> 계약</label><label><input type="radio" name="vc-dom"> 미계약</label></span>
+                  <span class="vradio" data-desc="'계약' 선택 시 우측 계약일자·계약약관·계약적용일자·계약기간이 활성화됩니다."><label><input type="radio" name="vc-dom" data-actradio="dom" checked> 계약</label><label><input type="radio" name="vc-dom" data-actradio="dom"> 미계약</label></span>
                 </td>
-                <td><input class="lg-in" value="2026.01.07"></td>
+                <td><input class="lg-in" data-actgrp="dom" value="2026.01.07"></td>
                 <td>
-                  <span class="vradio"><label><input type="radio" name="vt-dom" checked> 동의</label><label><input type="radio" name="vt-dom"> 미동의</label></span>
+                  <span class="vradio"><label><input type="radio" name="vt-dom" data-actgrp="dom" checked> 동의</label><label><input type="radio" name="vt-dom" data-actgrp="dom"> 미동의</label></span>
                 </td>
-                <td><input class="lg-in" value="2026.01.01"></td>
-                <td><span class="vinline"><input class="lg-in" style="width:48px;text-align:right" value="0"><span class="u">개월</span></span></td>
-                <td><input class="lg-in" style="text-align:right" value="152.00"></td>
-                <td><input class="lg-in" value="2020.06.02"></td>
+                <td><input class="lg-in" data-actgrp="dom" value="2026.01.01"></td>
+                <td><span class="vinline"><input class="lg-in" style="width:48px;text-align:right" data-actgrp="dom" value="0"><span class="u">개월</span></span></td>
+                <td class="v-sepcell"></td>
+                <td><input class="lg-in" style="text-align:right" value="152.00" data-desc="수용성 도장율입니다. (AOS 계약과 별개)"></td>
+                <td><input class="lg-in" value="2020.06.02" data-desc="수용성 도장 적용일자입니다. (AOS 계약과 별개)"></td>
               </tr>
               <tr>
                 <td class="blue">외제 (Aos)</td>
                 <td>
-                  <span class="vradio"><label><input type="radio" name="vc-imp"> 계약</label><label><input type="radio" name="vc-imp" checked> 미계약</label></span>
+                  <span class="vradio" data-desc="'계약' 선택 시 우측 계약일자·계약약관·계약적용일자·계약기간이 활성화됩니다."><label><input type="radio" name="vc-imp" data-actradio="imp"> 계약</label><label><input type="radio" name="vc-imp" data-actradio="imp" checked> 미계약</label></span>
                 </td>
-                <td><input class="lg-in" placeholder="YYYY.MM.DD"></td>
+                <td><input class="lg-in" data-actgrp="imp" placeholder="YYYY.MM.DD"></td>
                 <td>
-                  <span class="vradio"><label><input type="radio" name="vt-imp"> 동의</label><label><input type="radio" name="vt-imp" checked> 미동의</label></span>
+                  <span class="vradio"><label><input type="radio" name="vt-imp" data-actgrp="imp"> 동의</label><label><input type="radio" name="vt-imp" data-actgrp="imp" checked> 미동의</label></span>
                 </td>
-                <td><input class="lg-in" placeholder="YYYY.MM.DD"></td>
-                <td><span class="vinline"><input class="lg-in" style="width:48px;text-align:right" value="0"><span class="u">개월</span></span></td>
-                <td><input class="lg-in" style="text-align:right" value="0.00"></td>
-                <td><input class="lg-in" placeholder="YYYY.MM.DD"></td>
+                <td><input class="lg-in" data-actgrp="imp" placeholder="YYYY.MM.DD"></td>
+                <td><span class="vinline"><input class="lg-in" style="width:48px;text-align:right" data-actgrp="imp" value="0"><span class="u">개월</span></span></td>
+                <td class="v-sepcell"></td>
+                <td><input class="lg-in" style="text-align:right" value="0.00" data-desc="수용성 도장율입니다. (AOS 계약과 별개)"></td>
+                <td><input class="lg-in" placeholder="YYYY.MM.DD" data-desc="수용성 도장 적용일자입니다. (AOS 계약과 별개)"></td>
               </tr>
             </tbody>
           </table>
           </div>
 
-          <div class="vcap">계약요금 (공임)</div>
-          <table class="lg-tbl">
-            <colgroup><col style="width:16%"><col style="width:17%"><col style="width:16%"><col style="width:17%"><col style="width:16%"><col style="width:18%"></colgroup>
-            <thead><tr><th>탈착공임</th><th></th><th>판금공임</th><th></th><th>도장공임</th><th></th></tr></thead>
+          <div class="vcap" data-desc="탈착·판금·도장 공임의 계약요금을 각 공임 옆에서 바로 입력합니다.">계약요금 (공임)</div>
+          <table class="vinfo" style="max-width:760px">
+            <colgroup><col style="width:15%"><col style="width:18%"><col style="width:15%"><col style="width:18%"><col style="width:15%"><col style="width:19%"></colgroup>
             <tbody>
               <tr>
-                <th>계약요금</th><td><input class="lg-in" style="text-align:right" value="38,920"></td>
-                <th>계약요금</th><td><input class="lg-in" style="text-align:right" value="38,920"></td>
-                <th>계약요금</th><td><input class="lg-in" style="text-align:right" value="38,920"></td>
-              </tr>
-            </tbody>
-          </table>
-
-          <div class="vcap">적용요율</div>
-          <table class="vinfo">
-            <colgroup><col style="width:15%"><col style="width:35%"><col style="width:15%"><col style="width:35%"></colgroup>
-            <tbody>
-              <tr>
-                <th>인센티브</th>
-                <td>
-                  <span class="vinline">
-                    <label class="lg-chk"><input type="checkbox"> 인센티브 적용</label>
-                    <span class="u" style="margin-left:10px">적용률</span>
-                    <input class="lg-in" style="width:70px;text-align:right" value="0.00"><span class="u">%</span>
-                  </span>
-                </td>
-                <th>적용기간</th>
-                <td>
-                  <span class="vinline"><input class="lg-in" type="date" style="width:140px"><span class="u">~</span><input class="lg-in" type="date" style="width:140px"></span>
-                </td>
-              </tr>
-              <tr>
-                <th>인센티브 공임</th>
-                <td colspan="3">
-                  <span class="vinline">
-                    <span class="u">탈착</span><input class="lg-in" style="width:80px;text-align:right" value="0">
-                    <span class="u" style="margin-left:8px">판금</span><input class="lg-in" style="width:80px;text-align:right" value="0">
-                    <span class="u" style="margin-left:8px">도장</span><input class="lg-in" style="width:80px;text-align:right" value="0">
-                  </span>
-                </td>
+                <th>탈착공임</th><td><span class="vinline"><input class="lg-in" style="width:110px;text-align:right" value="38,920" data-desc="탈착공임 계약요금을 입력합니다."><span class="u">원</span></span></td>
+                <th>판금공임</th><td><span class="vinline"><input class="lg-in" style="width:110px;text-align:right" value="38,920" data-desc="판금공임 계약요금을 입력합니다."><span class="u">원</span></span></td>
+                <th>도장공임</th><td><span class="vinline"><input class="lg-in" style="width:110px;text-align:right" value="38,920" data-desc="도장공임 계약요금을 입력합니다."><span class="u">원</span></span></td>
               </tr>
             </tbody>
           </table>
@@ -527,33 +563,34 @@
             <thead><tr><th>브랜드</th><th>부품할인율 (%)</th></tr></thead>
             <tbody id="vBrandBody"></tbody>
           </table>
-          <label class="lg-chk" style="margin-top:10px"><input type="checkbox"> 전자계약서 발송</label>
+          <!-- 계약정보 저장 → 전자계약서 발송(Pro) → 결재 동선 -->
+          <div class="v-actionrow">
+            <button type="button" class="lg-abtn primary" data-vsave="계약정보 관리" data-desc="입력한 계약정보(지급처 계좌·계약여부·계약요금·부품할인율)를 저장합니다. 저장 후 전자계약서 발송/결재를 진행하세요.">계약정보 저장</button>
+            <button type="button" class="v-pro" disabled data-desc="전자계약서 발송 기능은 2026년 9월 말일까지 개발요건에 포함되지 않습니다. (Pro 예정 기능)">전자계약서 발송 <span class="pro-badge">Pro</span></button>
+          </div>
 
-          <!-- 6. 결재 -->
-          <div class="lg-sect">결재</div>
+          <!-- 결재 -->
+          <div class="vcap" data-desc="계약정보 저장 후 상신(레벨2) 또는 최종결재(레벨3)를 진행합니다.">결재 <span class="note" style="font-weight:600;color:#5B6273">계약정보 저장 후 상신 또는 최종결재</span></div>
           <table class="vinfo">
-            <colgroup><col style="width:13%"><col style="width:20%"><col style="width:13%"><col style="width:20%"><col style="width:13%"><col style="width:21%"></colgroup>
+            <colgroup><col style="width:13%"><col style="width:37%"><col style="width:13%"><col style="width:37%"></colgroup>
             <tbody>
               <tr>
-                <th>결재구분</th>
-                <td>
-                  <select class="lg-sel" style="width:120px"><option>상신</option><option>재상신</option><option>상신취소</option></select>
-                </td>
                 <th>비밀번호</th>
-                <td><input class="lg-in" type="password" style="width:130px" placeholder="••••"></td>
+                <td><input class="lg-in" type="password" style="width:130px" placeholder="••••" data-desc="결재 처리 확인용 비밀번호입니다."></td>
                 <th>다음결재자</th>
-                <td>
-                  <span class="vinline"><input class="lg-in" style="width:130px" placeholder="결재자 선택">
-                    <button type="button" class="lg-abtn primary" style="padding:5px 14px" data-toast="결재를 상신했습니다. (데모)">결재</button>
-                  </span>
-                </td>
+                <td><input class="lg-in" style="width:160px" placeholder="결재자 선택" data-desc="다음 결재 단계의 결재자를 지정합니다."></td>
               </tr>
               <tr>
                 <th>의견</th>
-                <td colspan="5"><textarea class="lg-ta" rows="2" placeholder="결재 의견을 입력하세요"></textarea></td>
+                <td colspan="3"><textarea class="lg-ta" rows="2" placeholder="결재 의견을 입력하세요"></textarea></td>
               </tr>
             </tbody>
           </table>
+          <div class="v-actionrow">
+            <span class="v-secsp"></span>
+            <button type="button" class="lg-abtn" data-toast="계약정보를 상신했습니다. (데모)" data-desc="결재레벨 2레벨은 계약정보를 상신할 수 있습니다.">상신</button>
+            <button type="button" class="lg-abtn primary" data-toast="최종결재 처리했습니다. (데모)" data-desc="결재레벨 3레벨은 계약정보를 최종결재할 수 있습니다.">최종결재</button>
+          </div>
           <div class="vcap">결재 이력</div>
           <table class="lg-tbl">
             <colgroup><col style="width:20%"><col style="width:18%"><col style="width:27%"><col style="width:35%"></colgroup>
