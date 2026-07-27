@@ -1283,7 +1283,7 @@ function getDamageState(id, d) {
     const pdM = period.match(/입고\s*([\d-]+)\s*~\s*출고\s*([\d-]+)/);
     intakeDamageState[id] = {
       plate: ic.no || "", objectName: ic.name || "",
-      firstRegDate: "", owner: "(주)에스케이렌터카",
+      firstRegDate: skFirstRegDate(d), owner: "(주)에스케이렌터카",
       ownState: "분손", procState: "수리", repaired: "예",
       maintSub: (dg.rentClaim === "청구") ? "이용" : "미이용",
       lost: [],
@@ -1314,6 +1314,73 @@ function dmText(f, v, ph) { return `<input type="text" class="lg-cin" data-dm="$
 function dmDate(f, v) { return `<input type="date" class="lg-cin" data-dm="${iEsc(f)}" value="${iEsc(v)}" data-desc="날짜를 선택합니다.">`; }
 function dmNum(f, v) { return `<input type="text" inputmode="numeric" class="lg-cin ta-r" data-dm="${iEsc(f)}" value="${iEsc(v)}" data-desc="금액(원)을 입력합니다.">`; }
 function dmSel(f, v, opts) { return `<select class="lg-csel" data-dm="${iEsc(f)}">${opts.map(o => `<option ${o === v ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>`; }
+function dmRadio(f, v, opts, disabled) {
+  return `<div class="lg-dmradio">${opts.map(o =>
+    `<label class="lg-ctradio${disabled ? " dis" : ""}"><input type="radio" name="dm_${iEsc(f)}" data-dmradio="${iEsc(f)}" value="${iEsc(o)}" ${o === v ? "checked" : ""} ${disabled ? "disabled" : ""}>${iEsc(o)}</label>`
+  ).join("")}</div>`;
+}
+
+/* ---- 면책금 입금내역 (SK 연동) — 피해 진행 아래 섹션 ---- */
+const DD_GUBUN = ["공장입금", "당사수납", "면제", "SM입금", "면책", "지점수납"];
+const DD_EXTRA_COLS = ["상품구분", "기타수익구분", "발생일자", "SR거래처코드", "지점", "고객명", "발생구분", "발생금액", "제외금액", "청구금액", "계약번호", "조직명", "납입자구분", "전표번호", "참조업무명"];
+const intakeDeductDeposit = {};
+function getDeductDeposit(id) {
+  if (!intakeDeductDeposit[id]) intakeDeductDeposit[id] = { rows: [], draft: { gubun: "", date: "", amount: "", payer: "", memo: "" }, extraOpen: false };
+  return intakeDeductDeposit[id];
+}
+function ddApprovalNo() {
+  const n = new Date(), p = x => String(x).padStart(2, "0");
+  return `SKD${n.getFullYear()}${p(n.getMonth() + 1)}${p(n.getDate())}-${Math.floor(Math.random() * 9000) + 1000}`;
+}
+function dmDeductDepositHtml(d) {
+  const dd = getDeductDeposit(d.id), dr = dd.draft;
+  const gubunOpts = ['<option value="">선택</option>'].concat(DD_GUBUN.map(o => `<option ${dr.gubun === o ? "selected" : ""}>${iEsc(o)}</option>`)).join("");
+  const draftRow = `<tr class="dm-dd-draft">
+      <td><select class="lg-csel" data-dd="gubun">${gubunOpts}</select></td>
+      <td><input type="date" class="lg-cin" data-dd="date" value="${iEsc(dr.date)}" data-desc="입금일자(결제일자)를 선택합니다. 우측 달력에서 지정할 수 있습니다."></td>
+      <td><input type="text" inputmode="numeric" class="lg-cin ta-r" data-dd="amount" value="${iEsc(dr.amount)}" placeholder="0" data-desc="입금 금액을 입력합니다."></td>
+      <td><input type="text" class="lg-cin" data-dd="payer" value="${iEsc(dr.payer)}" placeholder="입금자명" data-desc="입금자명을 입력합니다."></td>
+      <td><input type="text" class="lg-cin" data-dd="memo" value="${iEsc(dr.memo)}" placeholder="비고 메모" data-desc="비고 메모를 입력합니다."></td>
+      <td class="ph ta-c">저장 시 자동</td>
+      <td class="dm-dd-appr ph ta-c">저장 시 채번</td>
+    </tr>`;
+  const savedRows = dd.rows.map(r => `<tr>
+      <td>${iEsc(r.gubun)}</td><td>${iEsc(r.date)}</td><td class="ta-r">${iEsc(r.amount)}</td>
+      <td>${iEsc(r.payer)}</td><td>${iEsc(r.memo)}</td><td>${iEsc(r.inputter)}</td>
+      <td class="dm-dd-appr">${iEsc(r.approvalNo)}</td>
+    </tr>`).join("");
+  const extraGrid = `<div class="dm-extra">
+      <button type="button" class="dm-extra-toggle" id="dmExtraToggle" data-desc="사고처리 외 차량 면책금 발생 내역 그리드를 펼치거나 접습니다.">${dd.extraOpen ? "▼" : "▶"} 사고처리 외 차량 면책금 발생 내역</button>
+      <div class="dm-extra-body" id="dmExtraBody" ${dd.extraOpen ? "" : "hidden"}>
+        <div class="dm-extra-search">발생일자
+          <input type="date" class="lg-cin" id="dmExtraFrom" value="2026-05-01"><span class="u">~</span><input type="date" class="lg-cin" id="dmExtraTo" value="2026-07-31">
+          <button type="button" class="dm-ybtn" id="dmExtraSearch" data-desc="지정한 발생일자 범위로 사고처리 외 차량 면책금 발생 내역을 조회합니다. (데모)">검색</button>
+        </div>
+        <div class="lg-scroll">
+          <table class="lg-tbl dm-extra-tbl"><thead><tr>${DD_EXTRA_COLS.map(c => `<th>${iEsc(c)}</th>`).join("")}</tr></thead>
+            <tbody><tr><td colspan="${DD_EXTRA_COLS.length}" class="dm-extra-empty">조회 결과가 없습니다. 발생일자 범위를 지정하고 '검색'을 누르세요. (데모)</td></tr></tbody></table>
+        </div>
+      </div>
+    </div>`;
+  return `<div class="dm-savebox">
+      <div class="dm-savebox-h">
+        <span class="lg-sect-inline">면책금 입금내역 <span class="note">※ SK렌터카 연동</span></span>
+        <span class="dm-savebox-sp"></span>
+        <span class="dm-savebox-tag" data-desc="이 '저장' 버튼은 면책금 입금내역만 저장합니다.">이 표만 저장</span>
+        <button type="button" class="dm-ybtn" id="dmDeductSave" data-desc="면책금 입금내역을 저장합니다. 저장 시 입력자(담당자)와 승인번호가 자동 채번됩니다.">저장</button>
+      </div>
+      <div class="lg-scroll">
+        <table class="lg-tbl dm-dd-tbl">
+          <thead><tr>
+            <th>입금구분<span class="dm-req">*</span></th><th>입금일자(결제일자)<span class="dm-req">*</span></th><th>금액<span class="dm-req">*</span></th>
+            <th>입금자명</th><th>비고</th><th>입력자</th><th class="dm-dd-appr">승인번호</th>
+          </tr></thead>
+          <tbody>${draftRow}${savedRows}</tbody>
+        </table>
+      </div>
+      ${extraGrid}
+    </div>`;
+}
 function dmSkVal(v) { return `<span class="lg-skval">${iEsc(v) || "미수신"}<span class="lg-sktag">SK</span></span>`; }
 function dmLostHtml(s) {
   return `<div class="lg-ctchecks">` + DM_LOST_OPTS.map(x =>
@@ -1339,12 +1406,11 @@ function intakeDamageTab(d) {
     + lgTable([
       { k: "차량번호", raw: dmText("plate", s.plate, "12가3456") },
       { k: "피해물명", raw: dmText("objectName", s.objectName, "차량명") },
-      { k: "최초등록일", raw: dmDate("firstRegDate", s.firstRegDate) },
-      { k: "소유자", raw: dmText("owner", s.owner, "소유자(법인명)") },
+      { k: "최초등록일", raw: dmSkVal(s.firstRegDate), full: true },
       { k: "자차상태", raw: dmSel("ownState", s.ownState, DM_OWN_STATES) },
       { k: "처리상태", raw: `<select class="lg-csel" id="dmProcState" data-dm="procState">${procOpts.map(o => `<option ${o === s.procState ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>` },
-      { k: "수리여부", raw: `<select class="lg-csel" id="dmRepaired" data-dm="repaired" ${s.ownState !== "분손" ? "disabled" : ""}>${["예", "아니요"].map(o => `<option ${o === s.repaired ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>` },
-      { k: "정비대차", raw: dmSel("maintSub", s.maintSub, ["이용", "미이용"]) },
+      { k: "수리여부", raw: dmRadio("repaired", s.repaired, ["예", "아니요"], s.ownState !== "분손") },
+      { k: "정비대차", raw: dmRadio("maintSub", s.maintSub, ["미이용", "이용"]) },
       { k: "분실대상", raw: dmLostHtml(s), full: true },
       { k: "차량구입액", raw: dmSkVal(s.buyPrice) },
       { k: "사고시가액", raw: dmSkVal(s.accidentValue) },
@@ -1393,7 +1459,7 @@ function intakeDamageTab(d) {
        </div>`
     + approve;
 
-  return `<div class="lg-cols"><div>${left}</div><div>${right}</div></div>${carDamage}`;
+  return `<div class="lg-cols"><div>${left}</div><div>${right}</div></div>${carDamage}${dmDeductDepositHtml(d)}`;
 }
 
 function renderIntakeTab(name, d) {
@@ -2444,12 +2510,18 @@ function bindIntakeDamage(d) {
         s.procState = opts[0] || "";
         const ps = body.querySelector("#dmProcState");
         if (ps) ps.innerHTML = opts.map(o => `<option ${o === s.procState ? "selected" : ""}>${iEsc(o)}</option>`).join("");
-        const rep = body.querySelector("#dmRepaired");
-        if (rep) rep.disabled = (el.value !== "분손");
+        const dis = el.value !== "분손";           // 수리여부 라디오 활성/비활성
+        body.querySelectorAll('[data-dmradio="repaired"]').forEach(r => {
+          r.disabled = dis;
+          const lb = r.closest("label"); if (lb) lb.classList.toggle("dis", dis);
+        });
       }
       if (el.dataset.dm === "estimate") dmRecalcEstimate(body, s);
     });
   });
+  body.querySelectorAll("[data-dmradio]").forEach(r => r.addEventListener("change", () => {  // 수리여부·정비대차 라디오
+    if (r.checked) dmSetField(s, r.dataset.dmradio, r.value);
+  }));
   body.querySelectorAll("[data-dmlost]").forEach(cb => cb.addEventListener("change", () => {
     const v = cb.dataset.dmlost;
     if (cb.checked) { if (!s.lost.includes(v)) s.lost.push(v); }
@@ -2457,6 +2529,37 @@ function bindIntakeDamage(d) {
   }));
   const sb = body.querySelector("#dmShopSearch");
   if (sb) sb.addEventListener("click", () => openShopSearchModal(d, s));
+
+  // 면책금 입금내역 — 입력 draft 동기화 / 저장(입력자·승인번호 자동) / 발생내역 토글·검색
+  const dd = getDeductDeposit(d.id);
+  body.querySelectorAll("[data-dd]").forEach(el => {
+    const ev = el.tagName === "SELECT" ? "change" : "input";
+    el.addEventListener(ev, () => { dd.draft[el.dataset.dd] = el.value; });
+  });
+  const ddSave = body.querySelector("#dmDeductSave");
+  if (ddSave) ddSave.addEventListener("click", () => saveDeductDeposit(d));
+  const et = body.querySelector("#dmExtraToggle");
+  if (et) et.addEventListener("click", () => {
+    dd.extraOpen = !dd.extraOpen;
+    const eb = body.querySelector("#dmExtraBody");
+    if (eb) eb.hidden = !dd.extraOpen;
+    et.firstChild ? (et.textContent = (dd.extraOpen ? "▼" : "▶") + " 사고처리 외 차량 면책금 발생 내역") : null;
+  });
+  const es = body.querySelector("#dmExtraSearch");
+  if (es) es.addEventListener("click", () => showToast("사고처리 외 차량 면책금 발생 내역을 조회했습니다. (데모)"));
+}
+// 면책금 입금내역 저장 — 필수값 검증 후 입력자(담당자)·승인번호 자동 채번
+function saveDeductDeposit(d) {
+  const dd = getDeductDeposit(d.id), dr = dd.draft;
+  if (!dr.gubun || !dr.date || !dr.amount) { showToast("입금구분·입금일자·금액은 필수입력입니다. (데모)"); return; }
+  const claim = (typeof CLAIMS !== "undefined") ? CLAIMS.find(x => x.id === d.id) : null;
+  const inputter = (claim && claim.manager) || "담당자";   // 담당자 저장 → 입력자=담당자 (공업사 입력 시 '정비공장')
+  const approvalNo = ddApprovalNo();
+  dd.rows.push({ gubun: dr.gubun, date: dr.date, amount: dr.amount, payer: dr.payer, memo: dr.memo, inputter, approvalNo });
+  dd.draft = { gubun: "", date: "", amount: "", payer: "", memo: "" };
+  $("#intakeBody").innerHTML = renderIntakeTab("damage", d);
+  bindIntakeDamage(d);
+  showToast(`면책금 입금내역을 저장했습니다. 입력자 ${inputter} · 승인번호 ${approvalNo} 채번 (데모)`);
 }
 // 공업사 검색·지정 팝업
 function openShopSearchModal(d, s) {
