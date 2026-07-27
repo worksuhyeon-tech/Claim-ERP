@@ -1415,7 +1415,8 @@ function intakeDamageTab(d) {
       { k: "차량구입액", raw: dmSkVal(s.buyPrice) },
       { k: "사고시가액", raw: dmSkVal(s.accidentValue) },
       { k: "예상잔존가", raw: `${dmSkVal(s.bookValue)} <span class="lg-cinhint">장부가액</span>`, full: true },
-    ]);
+    ])
+    + dmDeductDepositHtml(d);        // 면책금 입금내역 — '피해 진행' 아래(좌측 컬럼)에 배치
   const right = lgSect("공업사 · 수리", "※ AOS 연동 우선 · 미연동 시 SK 수신")
     + lgTable([
       { k: "공업사", raw: dmShopFieldHtml(s), full: true },
@@ -1459,7 +1460,7 @@ function intakeDamageTab(d) {
        </div>`
     + approve;
 
-  return `<div class="lg-cols"><div>${left}</div><div>${right}</div></div>${carDamage}${dmDeductDepositHtml(d)}`;
+  return `<div class="lg-cols"><div>${left}</div><div>${right}</div></div>${carDamage}`;
 }
 
 function renderIntakeTab(name, d) {
