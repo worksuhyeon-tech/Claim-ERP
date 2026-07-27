@@ -29,6 +29,7 @@
 
   /* 인라인 필드 묶음 */
   #viewVendor .vinline { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  #viewVendor .vinline.vwon { flex-wrap: nowrap; white-space: nowrap; gap: 5px; }
   #viewVendor .vinline .u { color: #5B6273; font-weight: 700; }
   #viewVendor .vradio { display: inline-flex; gap: 12px; align-items: center; }
   #viewVendor .vradio label { display: inline-flex; gap: 4px; align-items: center; cursor: pointer; color: #3C4050; font-weight: 700; }
@@ -550,13 +551,13 @@
           </div>
 
           <div class="vcap" data-desc="탈착·판금·도장 공임의 계약요금을 각 공임 옆에서 바로 입력합니다.">계약요금 (공임)</div>
-          <table class="vinfo" style="max-width:760px">
-            <colgroup><col style="width:15%"><col style="width:18%"><col style="width:15%"><col style="width:18%"><col style="width:15%"><col style="width:19%"></colgroup>
+          <table class="vinfo" style="max-width:800px">
+            <colgroup><col style="width:13%"><col style="width:20%"><col style="width:13%"><col style="width:20%"><col style="width:13%"><col style="width:21%"></colgroup>
             <tbody>
               <tr>
-                <th>탈착공임</th><td><span class="vinline"><input class="lg-in" style="width:110px;text-align:right" value="38,920" data-desc="탈착공임 계약요금을 입력합니다."><span class="u">원</span></span></td>
-                <th>판금공임</th><td><span class="vinline"><input class="lg-in" style="width:110px;text-align:right" value="38,920" data-desc="판금공임 계약요금을 입력합니다."><span class="u">원</span></span></td>
-                <th>도장공임</th><td><span class="vinline"><input class="lg-in" style="width:110px;text-align:right" value="38,920" data-desc="도장공임 계약요금을 입력합니다."><span class="u">원</span></span></td>
+                <th>탈착공임</th><td><span class="vinline vwon"><input class="lg-in" style="width:96px;text-align:right" value="38,920" data-desc="탈착공임 계약요금을 입력합니다."><span class="u">원</span></span></td>
+                <th>판금공임</th><td><span class="vinline vwon"><input class="lg-in" style="width:96px;text-align:right" value="38,920" data-desc="판금공임 계약요금을 입력합니다."><span class="u">원</span></span></td>
+                <th>도장공임</th><td><span class="vinline vwon"><input class="lg-in" style="width:96px;text-align:right" value="38,920" data-desc="도장공임 계약요금을 입력합니다."><span class="u">원</span></span></td>
               </tr>
             </tbody>
           </table>
