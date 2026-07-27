@@ -186,6 +186,14 @@
   .lg-msgbtn:hover { background: #DCE7FA; border-color: #2F5BB7; }
   .lg-msgbtn svg { width: 15px; height: 15px; }
 
+  /* 사고장소 — 입력칸 + GPS(지도 검색) 아이콘 */
+  .lg-ctplace { display: flex; align-items: center; gap: 6px; }
+  .lg-ctplace .lg-cin { flex: 1 1 auto; min-width: 0; }
+  .lg-gpsbtn { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 26px;
+    border: 1px solid #C6D7F2; border-radius: 6px; background: #EAF0FB; color: #2F5BB7; cursor: pointer; flex: none; padding: 0; }
+  .lg-gpsbtn:hover { background: #DCE7FA; border-color: #2F5BB7; }
+  .lg-gpsbtn svg { width: 16px; height: 16px; }
+
   /* ===== 피해 진행 정보 탭 — 편집 컨트롤 ===== */
   .lg-cin.ta-r { text-align: right; }
   .lg-skval { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; color: #242832; }

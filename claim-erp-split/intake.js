@@ -743,14 +743,17 @@ function intakeWorkbenchHtml(d) {
 const CT_LICENSE_TYPES = ["1종대형", "1종보통", "1종특수", "2종보통", "2종소형", "원동기", "무면허", "해당없음"];
 // 운전자-피보험자 '관계' 선택 목록
 const CT_REL_TYPES = ["피보험자 본인", "지정운전자", "임직원(직원/대표)", "배우자", "자녀", "부모", "렌터카임차인", "형제/친인척", "며느리", "사위", "대리운전", "취급업자", "기타", "미탑승", "절취운전"];
-const CT_ACC_MAJORS = ["차대차", "차량단독", "차대인", "타차일방", "계약위반(음주·약물 등)"];
+const CT_ACC_MAJORS = ["차대차", "차량단독", "차대인", "타차일방", "계약위반(음주·약물 등)", "비사고"];
 const CT_ACC_DETAILS = {
   "차대차": ["추돌", "후진사고", "주/정차 중 사고", "차선변경(가해)", "차선변경(피해)", "신호위반", "교차로 진입", "측면 접촉"],
-  "차량단독": ["기타 피해물 접촉", "로드킬", "비래/낙하물", "도난", "전복", "전도", "침수", "화재", "가드레일 접촉"],
+  "차량단독": ["기타 피해물 접촉", "로드킬", "비래/낙하물", "도난", "전복", "전도", "자연재해", "화재", "가드레일 접촉"],
   "차대인": ["횡단보도", "PM(개인형이동장치) 사고", "무단횡단", "보도 통행 중", "이면도로 사고"],
   "타차일방": ["신호대기 중 추돌 피해", "주정차 중 피해", "상대 중앙선 침범", "상대 신호위반"],
   "계약위반(음주·약물 등)": ["음주운전", "약물운전", "무면허운전", "사고후 미조치(뺑소니)"],
+  "비사고": ["혼유", "타이어교환", "와이퍼교환", "전기적고장"],
 };
+// 대사고유형 — '중앙선침범'은 사고유형=차대차일 때, 그 외는 세부분류=자연재해일 때만 선택 가능
+const CT_MAJOR_ACC = ["중앙선침범", "침수", "태풍", "지진", "산사태", "우박"];
 const CT_TASKS = ["Moral사고", "당일사고", "근접배서", "심야사고", "범위위배", "무면허운전", "타차운전"];
 // 시스템이 사고·계약 데이터로 자동 판단하는 항목(담당자 수정 불가)
 const CT_AUTO_TASKS = ["당일사고", "근접배서", "심야사고"];
@@ -776,10 +779,11 @@ function getContractState(id, d) {
       licenseNo: dr.licenseNo || "", licenseType: (dr.license || "").split("/")[0].trim() || "2종보통",
       datetime: A.datetime || "", place: A.place || "", placeDetail: A.placeDetail || "",
       content: A.content || "", note: A.note || "",
-      accMajor: "차대차", accDetail: CT_ACC_DETAILS["차대차"][0],
+      accMajor: "차대차", accDetail: CT_ACC_DETAILS["차대차"][0], majorAccType: "",
       selfFault: (String((d.ownDamage || {}).faultRate || "").match(/(\d+)\s*%/) || [])[1] || "",   // 자차과실(%)
       tasks: (A.otherDrive && A.otherDrive !== "해당없음") ? ["타차운전"] : [], moralNote: "",
       police: (A.police === "신고접수") ? "신고" : "미신고", policeStation: "", policeOfficer: "", policeOfficerPhone: "",
+      towed: "아니요",
       comp: { insurer: "", caseNo: "", staff: "", staffPhone: "", faultRate: "", faultFixed: "미확정", place: A.place || "", accType: "", dispatched: "미출동", content: "" },
     };
   }
@@ -873,6 +877,35 @@ function ctTaskChecksHtml(d, st) {
   }).join("");
   return `<div class="lg-ctchecks" id="ctTaskArea">${items}</div>`;
 }
+/* 사고장소 — 입력칸 + GPS(지도 검색) 아이콘 버튼 */
+function ctPlaceHtml(st) {
+  const gps = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.6"/></svg>`;
+  return `<div class="lg-ctplace">`
+    + `<input type="text" class="lg-cin" data-ct="place" value="${iEsc(st.place)}" placeholder="사고 발생 장소" data-desc="담당자가 직접 수정하고 저장하는 입력 항목입니다.">`
+    + `<button type="button" class="lg-gpsbtn" id="ctPlaceSearch" title="지도(GPS)에서 사고장소 검색" aria-label="지도에서 사고장소 검색" data-desc="GPS·지도로 사고장소를 검색해 주소를 불러옵니다.">${gps}</button>`
+    + `</div>`;
+}
+/* 대사고유형 — 조건부 활성 옵션 (중앙선침범=차대차, 그 외=자연재해) */
+function ctMajorAccEnabled(st, opt) {
+  return opt === "중앙선침범" ? st.accMajor === "차대차" : st.accDetail === "자연재해";
+}
+function ctMajorAccOptionsHtml(st) {
+  return ['<option value="">선택</option>'].concat(CT_MAJOR_ACC.map(o =>
+    `<option ${st.majorAccType === o ? "selected" : ""} ${ctMajorAccEnabled(st, o) ? "" : "disabled"}>${iEsc(o)}</option>`
+  )).join("");
+}
+function ctMajorAccHtml(st) {
+  const anyEnabled = CT_MAJOR_ACC.some(o => ctMajorAccEnabled(st, o));
+  return `<select class="lg-csel" id="ctMajorAcc" data-ct="majorAccType" ${anyEnabled ? "" : "disabled"} data-desc="대사고유형입니다. '중앙선침범'은 사고유형이 '차대차'일 때, 그 외(침수·태풍·지진·산사태·우박)는 세부분류가 '자연재해'일 때 선택할 수 있습니다.">${ctMajorAccOptionsHtml(st)}</select>`;
+}
+/* 견인여부 — 예/아니요 라디오 */
+function ctTowHtml(st) {
+  const yes = st.towed === "예";
+  return `<div class="lg-ctpolice">
+    <label class="lg-ctradio" data-desc="사고 차량을 견인한 건입니다."><input type="radio" name="ctTow" value="예" ${yes ? "checked" : ""}>예</label>
+    <label class="lg-ctradio" data-desc="견인하지 않은 건입니다."><input type="radio" name="ctTow" value="아니요" ${!yes ? "checked" : ""}>아니요</label>
+  </div>`;
+}
 function ctPoliceHtml(st) {
   const rep = st.police === "신고";
   return `<div class="lg-ctpolice">
@@ -890,7 +923,22 @@ function intakeContractTab(d) {
   const st = getContractState(d.id, d);
   const detailOpts = (CT_ACC_DETAILS[st.accMajor] || []);
   const c = st.comp;
-  const left = lgSect("사고 관련자", "※ 운전자 접수 / 저장 · 담당자 수정 가능")
+  const left = lgSect("사고 정보", "※ 담당자 수정 가능")
+    + lgTable([
+      { k: "사고일시", raw: ctText("datetime", st.datetime, "YYYY-MM-DD HH:MM"), full: true },
+      { k: "사고장소", raw: ctPlaceHtml(st), full: true },
+      { k: "장소상세", raw: ctText("placeDetail", st.placeDetail, "상세 위치"), full: true },
+      { k: "내용", raw: ctText("content", st.content, "사고 경위·내용"), full: true },
+      { k: "사고유형", raw: ctSel("accMajor", st.accMajor, CT_ACC_MAJORS) },
+      { k: "세부분류", raw: `<select class="lg-csel" id="ctAccDetail" data-ct="accDetail">${detailOpts.map(o => `<option ${o === st.accDetail ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>` },
+      { k: "대사고유형", raw: ctMajorAccHtml(st) },
+      { k: "자차과실", raw: ctFaultHtml(st) },
+      { k: "특이사항", raw: ctText("note", st.note, "특이사항"), full: true },
+      { k: "조사Task", raw: ctTaskChecksHtml(d, st), full: true },
+      { k: "경찰접수", raw: ctPoliceHtml(st), full: true },
+      { k: "견인여부", raw: ctTowHtml(st), full: true },
+    ])
+    + lgSect("사고 관련자", "※ 운전자 접수 / 저장 · 담당자 수정 가능")
     + lgTable([
       { k: "운전자", raw: ctText("driverName", st.driverName, "운전자명") },
       { k: "연락처", raw: ctText("phone", st.phone, "010-0000-0000") },
@@ -903,19 +951,6 @@ function intakeContractTab(d) {
       { k: "통보자", v: `${P.notifier.name || ""} ${P.notifier.rel ? "(" + P.notifier.rel + ")" : ""}`.trim() },
       { k: "연락처", v: P.notifier.phone, blue: true },
       { k: "개동", raw: ctAgreeMsgHtml(d, st), full: true },
-    ])
-    + lgSect("사고 정보", "※ 담당자 수정 가능")
-    + lgTable([
-      { k: "사고일시", raw: ctText("datetime", st.datetime, "YYYY-MM-DD HH:MM"), full: true },
-      { k: "사고장소", raw: ctText("place", st.place, "사고 발생 장소"), full: true },
-      { k: "장소상세", raw: ctText("placeDetail", st.placeDetail, "상세 위치"), full: true },
-      { k: "내용", raw: ctText("content", st.content, "사고 경위·내용"), full: true },
-      { k: "사고유형", raw: ctSel("accMajor", st.accMajor, CT_ACC_MAJORS) },
-      { k: "세부분류", raw: `<select class="lg-csel" id="ctAccDetail" data-ct="accDetail">${detailOpts.map(o => `<option ${o === st.accDetail ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>` },
-      { k: "자차과실", raw: ctFaultHtml(st) },
-      { k: "특이사항", raw: ctText("note", st.note, "특이사항"), full: true },
-      { k: "조사Task", raw: ctTaskChecksHtml(d, st), full: true },
-      { k: "경찰접수", raw: ctPoliceHtml(st), full: true },
     ])
     + `<div class="lg-sect">경합 보험사 접수 정보<button class="lg-mini" type="button" id="ctCompFetch" data-desc="상대측(타 보험사) 접수 정보를 조회해 아래 항목을 자동으로 불러옵니다. (연동 시 실제 타사 데이터)">타사 정보 조회</button></div>`
     + lgTable([
@@ -1037,7 +1072,9 @@ function bindIntakeContract(d) {
         st.accDetail = opts[0] || "";
         const sel = body.querySelector("#ctAccDetail");
         if (sel) sel.innerHTML = opts.map(o => `<option ${o === st.accDetail ? "selected" : ""}>${iEsc(o)}</option>`).join("");
+        refreshMajorAcc();                         // 사고유형 변경 → 대사고유형 활성 옵션 갱신
       }
+      if (el.dataset.ct === "accDetail") { refreshMajorAcc(); }   // 세부분류 변경 → 대사고유형 활성 옵션 갱신
       if (el.dataset.ct === "datetime") {          // 사고일시 변경 → 자동판단 조사 Task(심야사고 등) 재계산
         const area = body.querySelector("#ctTaskArea");
         if (area) { area.outerHTML = ctTaskChecksHtml(d, st); bindTaskChecks(); }
@@ -1052,12 +1089,33 @@ function bindIntakeContract(d) {
     }));
   }
   bindTaskChecks();
+  // 대사고유형 활성 옵션 갱신 (사고유형/세부분류 조건에 맞춰 선택 가능 항목 재계산)
+  function refreshMajorAcc() {
+    const sel = body.querySelector("#ctMajorAcc");
+    if (!sel) return;
+    if (!ctMajorAccEnabled(st, st.majorAccType)) st.majorAccType = "";
+    sel.innerHTML = ctMajorAccOptionsHtml(st);
+    sel.disabled = !CT_MAJOR_ACC.some(o => ctMajorAccEnabled(st, o));
+  }
   body.querySelectorAll('input[name="ctPolice"]').forEach(r => r.addEventListener("change", () => {
     if (!r.checked) return;
     st.police = r.value;
     const wrap = body.querySelector("#ctPoliceStationWrap");
     if (wrap) wrap.classList.toggle("lg-hide", r.value !== "신고");
   }));
+  body.querySelectorAll('input[name="ctTow"]').forEach(r => r.addEventListener("change", () => {
+    if (r.checked) st.towed = r.value;               // 견인여부 예/아니요
+  }));
+  const psb = body.querySelector("#ctPlaceSearch");   // 사고장소 GPS·지도 검색 (데모)
+  if (psb) psb.addEventListener("click", () => {
+    const kw = window.prompt("사고장소를 검색하세요. (GPS·지도 연동 예정)", st.place || "");
+    if (kw == null) return;
+    const val = kw.trim();
+    const input = body.querySelector('[data-ct="place"]');
+    if (input) input.value = val;
+    st.place = val;
+    if (typeof showToast === "function") showToast(val ? `사고장소를 '${val}'(으)로 설정했습니다. (데모)` : "사고장소를 비웠습니다. (데모)");
+  });
   const fb = body.querySelector("#ctCompFetch");
   if (fb) fb.addEventListener("click", () => fetchCompetitorInfo(d, st));
   const mb = body.querySelector("#ctMsgBtn");
