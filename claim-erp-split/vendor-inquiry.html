@@ -85,6 +85,19 @@
   #clTooltip.below::after { top: -4px; }
   #viewVendor [data-desc] { cursor: pointer; }
 
+  /* 저장 범위 박스 — 섹션별 '저장' 버튼이 저장하는 항목 범위를 시각적으로 구분 */
+  #viewVendor .v-savebox {
+    position: relative; border: 1.5px solid #E7CC8A; border-radius: 12px;
+    background: #FFFDF8; padding: 4px 14px 16px; margin: 16px 0;
+    transition: border-color .15s ease, box-shadow .15s ease; }
+  #viewVendor .v-savebox > .lg-sect.v-secbar {
+    margin: 10px 0 10px; padding-bottom: 10px; border-bottom: 1px dashed #EAD9AE; }
+  #viewVendor .v-savebox.hi { border-color: #E0A93B; box-shadow: 0 0 0 3px rgba(224, 169, 59, .18); }
+  #viewVendor .v-savebox.hi::after {
+    content: "이 박스 안의 항목이 저장됩니다"; position: absolute; top: -10px; right: 16px;
+    background: #E0A93B; color: #fff; font-size: 10.5px; font-weight: 800;
+    padding: 2px 10px; border-radius: 999px; white-space: nowrap; }
+
   /* 대섹션 헤더 바 (1·2·3 관리 그룹) */
   #viewVendor .lg-sect.v-secbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   #viewVendor .v-secbar .v-secsp { flex: 1; }
@@ -268,6 +281,7 @@
         <div class="lg-body">
 
           <!-- ============ 1. 업체 기본정보 관리 ============ -->
+          <div class="v-savebox">
           <div class="lg-sect v-secbar" data-desc="업체 기본정보 관리 그룹입니다. 기본정보·업체 상세관리·보험업무담당자 관리를 하나의 '저장' 버튼으로 저장하며, 결재레벨 1레벨(담당자)부터 저장할 수 있습니다.">
             <span>1. 업체 기본정보 관리</span>
             <span class="v-secsp"></span>
@@ -287,33 +301,19 @@
                 <td><span class="vval" id="vBaseBiz">875-86-00015</span></td>
               </tr>
               <tr>
-                <th>BP ID</th>
-                <td><span class="vval">G935530000</span></td>
                 <th>제휴사 지점코드</th>
                 <td><span class="vmuted">미지정</span></td>
                 <th>법인번호</th>
                 <td><span class="vval">141111-0047445</span></td>
+                <th>설립일</th>
+                <td><span class="vval">2015.02.17</span></td>
               </tr>
               <tr>
                 <th>대표자명 / 주민번호</th>
                 <td colspan="3">
                   <span class="vval">이종철</span> &nbsp; <span class="vval">650810-2*****</span>
                   <span class="vbtns">
-                    <button type="button" class="lg-mini gray" data-toast="대표자 변경 이력을 조회합니다. (데모)">이력</button>
-                    <button type="button" class="lg-mini gray" data-toast="대표자 정보 수정 화면을 엽니다. (데모)">정보수정</button>
-                  </span>
-                </td>
-                <th>설립일</th>
-                <td><span class="vval">2015.02.17</span></td>
-              </tr>
-              <tr>
-                <th>보험업무담당자</th>
-                <td colspan="3">
-                  <input class="lg-in" style="width:150px;display:inline-block" type="text" placeholder="담당자명 입력" />
-                  <span class="vbtns">
-                    <button type="button" class="lg-mini gray" data-toast="보험업무담당자 이력을 조회합니다. (데모)">이력</button>
-                    <button type="button" class="lg-mini" data-desc="애니카 네트워크의 '어드바이저 등록' 팝업으로 연결됩니다." data-toast="보험업무담당자를 등록했습니다. (데모)">등록</button>
-                    <button type="button" class="lg-mini gray" data-toast="보험업무담당자를 삭제했습니다. (데모)">삭제</button>
+                    <button type="button" class="lg-mini gray" data-desc="애니카네트워크의 '협력업체등록' 페이지로 연결합니다." data-toast="애니카네트워크 '협력업체등록' 페이지로 이동합니다. (데모)">정보수정</button>
                   </span>
                 </td>
                 <th>폐업일</th>
@@ -415,7 +415,10 @@
             </tbody>
           </table>
 
+          </div><!-- /v-savebox 1 -->
+
           <!-- ============ 2. 업체등급 / 실적관리 ============ -->
+          <div class="v-savebox">
           <div class="lg-sect v-secbar" data-desc="업체등급/실적관리 그룹입니다. 담당자가 임의로 변경할 수 없으며, 전결 규정상 결재레벨 2레벨 이상만 저장할 수 있고 저장 이력이 관리됩니다.">
             <span>2. 업체등급 / 실적관리</span>
             <span class="note" style="font-weight:600;color:#5B6273">담당자 임의 변경 불가 · 저장이력 관리</span>
@@ -459,7 +462,10 @@
             </tbody>
           </table>
 
+          </div><!-- /v-savebox 2 -->
+
           <!-- ============ 3. 계약정보 관리 ============ -->
+          <div class="v-savebox">
           <div class="lg-sect v-secbar" data-desc="계약정보 관리 그룹입니다. 지급처 계좌·계약여부·계약요금(공임)·브랜드별 부품할인율을 관리합니다. 결재레벨 2레벨은 상신, 결재레벨 3레벨은 최종결재가 가능합니다.">
             <span>3. 계약정보 관리</span>
             <span class="note" style="font-weight:600;color:#5B6273">지급처 계좌 · 계약여부 · 계약요금(공임) · 브랜드별 부품할인율</span>
@@ -599,6 +605,8 @@
               <tr><td>서미나</td><td class="blue">최종결재</td><td>2026.04.10 12:47:49</td><td class="ph">—</td></tr>
             </tbody>
           </table>
+
+          </div><!-- /v-savebox 3 -->
 
           <!-- 하단 액션바 -->
           <div class="lg-actionbar">

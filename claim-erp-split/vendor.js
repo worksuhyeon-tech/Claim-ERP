@@ -309,6 +309,18 @@
   applyContractActivation("dom");
   applyContractActivation("imp");
 
+  /* 섹션별 '저장' 버튼에 hover/focus 시 해당 저장 박스를 강조 — 저장 범위를 시각적으로 안내 */
+  function toggleSaveBox(target, on) {
+    const btn = target && target.closest && target.closest("[data-vsave]");
+    if (!btn) return;
+    const box = btn.closest(".v-savebox");
+    if (box) box.classList.toggle("hi", on);
+  }
+  root.addEventListener("mouseover", e => toggleSaveBox(e.target, true));
+  root.addEventListener("mouseout", e => toggleSaveBox(e.target, false));
+  root.addEventListener("focusin", e => toggleSaveBox(e.target, true));
+  root.addEventListener("focusout", e => toggleSaveBox(e.target, false));
+
   /* 브랜드별 부품할인율 입력값 유지 (구분 전환 시에도 보존) + 기본 요약율 반영 */
   root.addEventListener("input", e => {
     const bi = e.target.closest("[data-brand]");
