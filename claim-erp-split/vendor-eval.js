@@ -182,7 +182,7 @@
         <p class="ve-desc">전건 평가는 비효율이므로, 이 업체에 <b>지급/종결</b>되는 건 중 <b>지정 비율(%)</b>만 평가 대상으로 삼습니다.
           비율을 조정하면 평가 대상 건수가 자동으로 재계산됩니다.</p>
         <div class="ve-qgrid">
-          <label class="ve-qrow"><span>총 지급/종결 건수</span><b>${quota.totalCount}건</b></label>
+          <label class="ve-qrow"><span>총 지급/종결 건수 <i class="ve-help" data-desc="전월 종결건수 기준입니다.">*</i></span><b>${quota.totalCount}건</b></label>
           <label class="ve-qrow"><span>평가 비율(%)</span>
             <span><input id="veRatio" class="ve-in ve-num" type="number" min="0" max="100" value="${esc(quota.ratioPct)}"> %</span>
           </label>
@@ -436,6 +436,34 @@
     if (a === "up" && oi > 0) { const t = list[oi]; list[oi] = list[oi - 1]; list[oi - 1] = t; renderOptionPanel(); return; }
     if (a === "down" && oi < list.length - 1) { const t = list[oi]; list[oi] = list[oi + 1]; list[oi + 1] = t; renderOptionPanel(); return; }
   }
+
+  /* ================= 기능 설명 툴팁 ([data-desc] hover/focus 시 노출) ================= */
+  (function initEvalTooltips() {
+    const tip = document.createElement("div");
+    tip.id = "veTip";
+    document.body.appendChild(tip);
+    let current = null;
+    function place(el) {
+      const text = el.getAttribute("data-desc");
+      if (!text) return;
+      current = el; tip.textContent = text;
+      tip.classList.remove("above", "below");
+      tip.style.visibility = "hidden"; tip.classList.add("show");
+      const r = el.getBoundingClientRect(), tw = tip.offsetWidth, th = tip.offsetHeight;
+      const vw = document.documentElement.clientWidth, gap = 9;
+      let left = Math.max(8, Math.min(r.left + r.width / 2 - tw / 2, vw - tw - 8));
+      let top = r.top - th - gap;
+      if (top < 8) { top = r.bottom + gap; tip.classList.add("below"); } else { tip.classList.add("above"); }
+      tip.style.setProperty("--tip-arrow", Math.max(12, Math.min(r.left + r.width / 2 - left, tw - 12)) + "px");
+      tip.style.left = left + "px"; tip.style.top = top + "px"; tip.style.visibility = "visible";
+    }
+    function hide() { current = null; tip.classList.remove("show"); }
+    document.addEventListener("mouseover", e => { const el = e.target.closest("[data-desc]"); if (el && el !== current) place(el); });
+    document.addEventListener("mouseout", e => { const el = e.target.closest("[data-desc]"); if (el && el === current && !el.contains(e.relatedTarget)) hide(); });
+    document.addEventListener("focusin", e => { const el = e.target.closest("[data-desc]"); if (el) place(el); });
+    document.addEventListener("focusout", hide);
+    window.addEventListener("scroll", hide, true);
+  })();
 
   /* ================= 초기 렌더 ================= */
   const hdMeta = byId("veVendorName");

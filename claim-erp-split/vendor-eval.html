@@ -116,6 +116,22 @@
   .pv-total b{ font-size:20px; color:var(--blue-dark); font-weight:800; margin-left:6px; }
   .pv-total span{ color:var(--text-dim); font-weight:600; }
 
+  /* 도움말 마커 (*) */
+  .ve-help{ display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px;
+    font-size:11px; font-weight:800; font-style:normal; color:#B45309; background:var(--amber-soft);
+    border:1px solid #F0E4C0; border-radius:50%; cursor:help; vertical-align:middle; }
+
+  /* 기능 설명 툴팁 */
+  #veTip{ position:fixed; z-index:60; max-width:280px; background:#1B2430; color:#fff;
+    font-size:11.5px; font-weight:500; line-height:1.55; padding:8px 11px; border-radius:9px;
+    box-shadow:0 8px 22px rgba(16,30,54,.3); pointer-events:none; opacity:0; transform:translateY(4px);
+    transition:opacity .12s ease, transform .12s ease; white-space:normal; word-break:keep-all; }
+  #veTip.show{ opacity:1; transform:translateY(0); }
+  #veTip::after{ content:""; position:absolute; left:var(--tip-arrow,50%); width:9px; height:9px;
+    background:#1B2430; transform:translateX(-50%) rotate(45deg); }
+  #veTip.above::after{ bottom:-4px; }
+  #veTip.below::after{ top:-4px; }
+
   /* 토스트 */
   .ve-toast{ position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(12px); background:#1B2430; color:#fff;
     font-size:13px; font-weight:600; padding:10px 16px; border-radius:10px; box-shadow:0 8px 24px rgba(16,30,54,.24);
