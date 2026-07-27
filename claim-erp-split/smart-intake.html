@@ -186,6 +186,21 @@
   .lg-msgbtn:hover { background: #DCE7FA; border-color: #2F5BB7; }
   .lg-msgbtn svg { width: 15px; height: 15px; }
 
+  /* 사고 관련자 — 운전자/면허 블록 (이미지 기준 레이아웃) */
+  .lg-drvtbl { margin-bottom: 4px; }
+  .lg-drv { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .lg-drv .lg-drv-name { width: 130px; flex: none; }
+  .lg-drv .lg-csel { width: auto; min-width: 120px; }
+  .lg-drv .lg-drv-lno { width: 210px; flex: none; }
+  .lg-drv-note { font-size: 11px; color: #8A90A3; }
+  .lg-lstatus { font-size: 12px; font-weight: 700; padding: 3px 11px; border-radius: 999px; white-space: nowrap; }
+  .lg-lstatus b { font-weight: 800; margin-left: 2px; }
+  .lg-lstatus.ok { background: #E7F5EC; color: #15803D; }
+  .lg-lstatus.warn { background: #FDECEC; color: #DC2626; }
+  .lg-lstatus.na { background: #EEF1F6; color: #5B6273; }
+  .lg-comp-ts { margin-left: 10px; font-size: 11.5px; font-weight: 700; color: #2F5BB7;
+    background: #EEF3FB; border: 1px solid #CFE0F5; border-radius: 999px; padding: 2px 9px; }
+
   /* 사고장소 — 입력칸 + GPS(지도 검색) 아이콘 */
   .lg-ctplace { display: flex; align-items: center; gap: 6px; }
   .lg-ctplace .lg-cin { flex: 1 1 auto; min-width: 0; }

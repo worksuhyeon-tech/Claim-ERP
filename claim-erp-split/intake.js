@@ -776,7 +776,7 @@ function getContractState(id, d) {
     intakeContractState[id] = {
       driverName: dr.name || "", driverRel: dr.rel || "", birth: dr.birth || "",
       birthFront: bp.front, birthBack: bp.back, birthAge: bp.age, phone: dr.phone || "",
-      licenseNo: dr.licenseNo || "", licenseType: (dr.license || "").split("/")[0].trim() || "2종보통",
+      licenseNo: dr.licenseNo || "", licenseType: (dr.license || "").split("/")[0].trim() || "2종보통", licenseStatus: "미확인",
       datetime: A.datetime || "", place: A.place || "", placeDetail: A.placeDetail || "",
       content: A.content || "", note: A.note || "",
       accMajor: "차대차", accDetail: CT_ACC_DETAILS["차대차"][0], majorAccType: "",
@@ -839,6 +839,38 @@ function ctBirthHtml(st) {
     + `<span class="lg-birth-mask">●●●●●●</span>`
     + `<span class="lg-birth-age">만 <input type="text" class="lg-cin lg-birth-ageval" id="ctBirthAge" value="${iEsc(ageVal)}" disabled aria-label="만 나이 자동계산" data-desc="생년월일을 입력하면 만 나이가 자동으로 계산됩니다. 담당자가 직접 입력할 수 없습니다."> 세</span>`
     + `</div>`;
+}
+/* 면허상태 배지 — 쿠콘 운전면허조회로 검증한 상태 */
+function ctLicenseStatusHtml(st) {
+  const s = st.licenseStatus || "미확인";
+  const cls = s === "정상" ? "ok" : (s === "미확인" ? "na" : "warn");
+  return `<span class="lg-lstatus ${cls}" id="ctLicenseStatus" data-desc="쿠콘(KooKoon) 운전면허 조회로 검증된 면허상태입니다.">면허상태 <b>${iEsc(s)}</b></span>`;
+}
+/* 사고 관련자 — 운전자/관계/생년월일/면허 정보 (이미지 기준 레이아웃) */
+function ctDriverBlockHtml(d, st) {
+  const relOpts = (st.driverRel && !CT_REL_TYPES.includes(st.driverRel)) ? [st.driverRel].concat(CT_REL_TYPES) : CT_REL_TYPES;
+  const searchIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>`;
+  const callIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L8 9.6a16 16 0 0 0 6 6l1.2-1.1a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6a2 2 0 0 1 1.7 2z"/></svg>`;
+  return `<table class="lg-tbl lg-drvtbl"><colgroup><col style="width:110px"><col></colgroup><tbody>`
+    + `<tr><th>운전자</th><td><div class="lg-drv">`
+    +   ctSel("driverRel", st.driverRel, relOpts)
+    +   `<input type="text" class="lg-cin lg-drv-name" data-ct="driverName" value="${iEsc(st.driverName)}" placeholder="운전자명" data-desc="담당자가 직접 수정하고 저장하는 입력 항목입니다.">`
+    +   ctBirthHtml(st)
+    +   `<button type="button" class="lg-gpsbtn" id="ctDriverLookup" title="운전자 실명·정보 조회" aria-label="운전자 정보 조회" data-desc="주민등록번호로 운전자 실명·정보를 조회합니다. (데모)">${searchIcon}</button>`
+    +   `<button type="button" class="lg-gpsbtn" id="ctDriverCall" title="전화·문자 발송" aria-label="전화·문자 발송" data-desc="운전자에게 전화·알림톡/문자메세지를 발송하는 창을 엽니다.">${callIcon}</button>`
+    + `</div></td></tr>`
+    + `<tr><th>연락처</th><td>${ctText("phone", st.phone, "010-0000-0000")}</td></tr>`
+    + `<tr><th>면허/음주정보</th><td><div class="lg-drv">`
+    +   `<button type="button" class="lg-mini" id="ctLicenseLookup" data-desc="쿠콘(KooKoon) 운전면허 API와 연동해 면허번호를 받아오고 면허상태를 검증합니다. (데모)">운전면허조회</button>`
+    +   `<button type="button" class="lg-mini gray" id="ctLicenseManual" data-desc="면허 정보를 담당자가 직접 입력합니다.">직접입력</button>`
+    +   `<span class="lg-drv-note">※ 음주정보는 사고일자 기준 경찰서 사고종결 건만 표시됩니다.</span>`
+    + `</div></td></tr>`
+    + `<tr><th>면허번호</th><td><div class="lg-drv">`
+    +   ctSel("licenseType", st.licenseType, CT_LICENSE_TYPES)
+    +   `<input type="text" class="lg-cin lg-drv-lno" data-ct="licenseNo" value="${iEsc(st.licenseNo)}" placeholder="00-00-000000-00" data-desc="담당자가 직접 수정하고 저장하는 입력 항목입니다.">`
+    +   ctLicenseStatusHtml(st)
+    + `</div></td></tr>`
+    + `</tbody></table>`;
 }
 /* 개인정보동의 값 + 알림톡·문자 발송 아이콘 버튼 */
 function ctAgreeMsgHtml(d, st) {
@@ -939,20 +971,15 @@ function intakeContractTab(d) {
       { k: "견인여부", raw: ctTowHtml(st), full: true },
     ])
     + lgSect("사고 관련자", "※ 운전자 접수 / 저장 · 담당자 수정 가능")
+    + ctDriverBlockHtml(d, st)
     + lgTable([
-      { k: "운전자", raw: ctText("driverName", st.driverName, "운전자명") },
-      { k: "연락처", raw: ctText("phone", st.phone, "010-0000-0000") },
-      { k: "생년월일", raw: ctBirthHtml(st) },
-      { k: "관계", raw: ctSel("driverRel", st.driverRel, (st.driverRel && !CT_REL_TYPES.includes(st.driverRel)) ? [st.driverRel].concat(CT_REL_TYPES) : CT_REL_TYPES) },
-      { k: "면허종류", raw: ctSel("licenseType", st.licenseType, CT_LICENSE_TYPES) },
-      { k: "면허번호", raw: ctText("licenseNo", st.licenseNo, "00-00-000000-00") },
       { k: "소유자", v: P.owner.name }, { k: "연락처", v: P.owner.phone, blue: true },
       { k: "피보험자", v: P.insured.name }, { k: "연락처", v: P.insured.phone, blue: true },
       { k: "통보자", v: `${P.notifier.name || ""} ${P.notifier.rel ? "(" + P.notifier.rel + ")" : ""}`.trim() },
       { k: "연락처", v: P.notifier.phone, blue: true },
       { k: "개동", raw: ctAgreeMsgHtml(d, st), full: true },
     ])
-    + `<div class="lg-sect">경합 보험사 접수 정보<button class="lg-mini" type="button" id="ctCompFetch" data-desc="상대측(타 보험사) 접수 정보를 조회해 아래 항목을 자동으로 불러옵니다. (연동 시 실제 타사 데이터)">타사 정보 조회</button></div>`
+    + `<div class="lg-sect">경합 보험사 접수 정보<button class="lg-mini" type="button" id="ctCompFetch" data-desc="상대측(타 보험사) 접수 정보를 조회해 아래 항목을 자동으로 불러옵니다. (연동 시 실제 타사 데이터)">타사 정보 조회</button>${c.fetchedAt ? `<span class="lg-comp-ts" data-desc="타사 정보를 조회한 기준 시각입니다.">조회기준 ${iEsc(c.fetchedAt)}</span>` : ""}</div>`
     + lgTable([
       { k: "경합 보험사명", raw: ctText("comp.insurer", c.insurer, "예: DB손해보험") },
       { k: "접수번호", raw: ctText("comp.caseNo", c.caseNo, "타사 접수번호") },
@@ -1120,12 +1147,40 @@ function bindIntakeContract(d) {
   if (fb) fb.addEventListener("click", () => fetchCompetitorInfo(d, st));
   const mb = body.querySelector("#ctMsgBtn");
   if (mb) mb.addEventListener("click", () => openMsgSendWindow(d));
+  const ll = body.querySelector("#ctLicenseLookup");         // 쿠콘 운전면허조회
+  if (ll) ll.addEventListener("click", () => fetchLicenseKooKoon(d, st));
+  const lm = body.querySelector("#ctLicenseManual");         // 면허 직접입력
+  if (lm) lm.addEventListener("click", () => {
+    const inp = body.querySelector('[data-ct="licenseNo"]');
+    if (inp) inp.focus();
+    if (typeof showToast === "function") showToast("면허번호를 직접 입력하세요. (데모)");
+  });
+  const dl = body.querySelector("#ctDriverLookup");          // 운전자 실명·정보 조회
+  if (dl) dl.addEventListener("click", () => { if (typeof showToast === "function") showToast("운전자 실명·정보를 조회했습니다. (데모)"); });
+  const dc = body.querySelector("#ctDriverCall");            // 운전자 전화·문자
+  if (dc) dc.addEventListener("click", () => openMsgSendWindow(d));
+}
+// 현재 시각 타임스탬프 (yyyy-mm-dd hh:mm)
+function ctNowStamp() {
+  const n = new Date(), p = x => String(x).padStart(2, "0");
+  return `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())} ${p(n.getHours())}:${p(n.getMinutes())}`;
+}
+// 쿠콘(KooKoon) 운전면허 조회 — 데모: 면허번호 자동 수신 + 면허상태 검증
+function fetchLicenseKooKoon(d, st) {
+  const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const regions = ["11", "21", "16", "13", "19", "15", "18", "24", "28", "26", "25", "32", "31", "39", "38"];
+  st.licenseNo = `${regions[rnd(0, regions.length - 1)]}-${rnd(10, 99)}-${rnd(100000, 999999)}-${rnd(10, 99)}`;
+  st.licenseStatus = Math.random() < 0.82 ? "정상" : ["정지", "취소", "적성검사 미필", "갱신 대상"][rnd(0, 3)];
+  $("#intakeBody").innerHTML = renderIntakeTab("contract", d);
+  bindIntakeContract(d);
+  showToast(`쿠콘 운전면허조회 완료 — 면허번호 ${st.licenseNo} · 면허상태 ${st.licenseStatus} (데모)`);
 }
 // 타사(경합 보험사) 정보 조회 — 데모: 임의 접수정보를 끌어와 채운다.
 function fetchCompetitorInfo(d, st) {
   const pick = a => a[Math.floor(Math.random() * a.length)];
   const rnd = (min, max) => min + Math.floor(Math.random() * (max - min + 1));
   st.comp = {
+    fetchedAt: ctNowStamp(),
     insurer: pick(["DB손해보험", "삼성화재", "현대해상", "KB손해보험", "메리츠화재", "롯데손해보험"]),
     caseNo: `2026-${rnd(1000000, 9999999)}`,
     staff: pick(["김", "이", "박", "최", "정", "강"]) + pick(["성민", "지훈", "서연", "도윤", "하늘", "예린"]),
@@ -2571,7 +2626,6 @@ function renderIntake() {
   let closeType = intakeCloseType[id];
   if (!closeType || !allowClose[closeType]) closeType = allowClose["지급"] ? "지급" : (allowClose["면책"] ? "면책" : (closeType || "지급"));
   if (anyClose) intakeCloseType[id] = closeType; // 종결 가능할 때만 선택값 확정
-  const unresolvedText = (d.unresolved && d.unresolved.length) ? d.unresolved.join(", ") : "없음";
   const queryType = INTAKE_QUERY_TYPES.includes(intakeQueryType) ? intakeQueryType : INTAKE_QUERY_TYPES[0];
   root.innerHTML = `
     <button class="lg-back" type="button" id="intakeBack" data-desc="미결일괄조회 목록 화면으로 돌아갑니다.">← 목록으로</button>
@@ -2596,7 +2650,6 @@ function renderIntake() {
           </div>
           <div class="lg-tabbody" id="intakeBody">${renderIntakeTab(intakeTab, d)}</div>
           <div class="lg-actionbar">
-            <span class="lg-std" data-desc="현재 이 사고건에 남아 있는 미결 속성(재통화·VOC 등) 태그입니다.">미결 태그: ${iEsc(unresolvedText)}</span>
             <span class="sp"></span>
             <span class="lg-savetag ${curSaved ? "on" : ""}" data-desc="현재 '${iEsc(tabLabel)}' 탭의 저장 여부입니다. 계약 사고 정보와 피해 진행 정보를 모두 저장해야 '면책' 종결이, 여기에 더해 '청구 견적 정보' 탭에서만 '지급' 종결이 가능합니다.">${curSaved ? "저장됨 ✓" : "미저장"}</span>
             <div class="lg-close-type" role="radiogroup" aria-label="종결 구분">
