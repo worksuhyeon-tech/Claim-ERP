@@ -177,8 +177,8 @@
     const rates = brandRates[origin] || (brandRates[origin] = {});
     const brands = BRAND_CODES[origin] || [];
     if (brands.length > 12) {
-      // 3열 레이아웃 (컬럼별 세로 분배)
-      const cols = 3, per = Math.ceil(brands.length / cols);
+      // 4열 레이아웃 (컬럼별 세로 분배)
+      const cols = 4, per = Math.ceil(brands.length / cols);
       let body = "";
       for (let r = 0; r < per; r++) {
         let tr = "<tr>";
@@ -286,6 +286,21 @@
       const url = "vendor-eval.html?name=" + encodeURIComponent(nm.trim()) + "&biz=" + encodeURIComponent(biz.trim());
       const w = window.open(url, "vendorEval", "width=1120,height=860,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes");
       if (w) w.focus(); else toast("팝업이 차단되었습니다. 브라우저 팝업 허용 후 다시 시도하세요. (데모)");
+      return;
+    }
+
+    /* 부품할인율 일괄적용 — 상단 %값을 현재 구분의 모든 브랜드 칸에 적용 */
+    if (e.target.closest("#vBulkApply")) {
+      const origin = currentOrigin();
+      const raw = (document.getElementById("vOriginRate") || {}).value;
+      const num = parseFloat(raw);
+      const val = isNaN(num) ? "0" : String(num);
+      const rates = brandRates[origin] || (brandRates[origin] = {});
+      root.querySelectorAll("#vBrandWrap input[data-brand]").forEach(inp => {
+        inp.value = val;
+        rates[inp.dataset.brand] = val;
+      });
+      toast(`${origin} 부품할인율 ${val}%를 전체 브랜드에 일괄 적용했습니다. (데모)`);
       return;
     }
 
