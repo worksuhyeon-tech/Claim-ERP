@@ -158,6 +158,13 @@ function apprVendorDocHtml(item) {
     <div class="doc-grp"><div class="doc-grp-h">업체 기본정보</div><div class="doc-rows">
       <div class="dk">업체명</div><div class="dv">${item.vendorName || "-"}</div>
       <div class="dk">사업자번호</div><div class="dv">${item.vendorBiz || "-"}</div>
+      <div class="dk">주소</div><div class="dv">${item.vendorAddr || "-"}</div>
+      <div class="dk">연락처</div><div class="dv">${item.vendorPhone || "-"}</div>
+      <div class="dk">대표자</div><div class="dv">${item.vendorCeo || "-"}${item.vendorCeoPhone ? ` (${item.vendorCeoPhone})` : ""}</div>
+      <div class="dk">보험업무 Keyman</div><div class="dv">${item.vendorKeyman || "-"}${item.vendorKeymanPhone ? ` (${item.vendorKeymanPhone})` : ""}</div>
+      <div class="dk">업체구분</div><div class="dv">${item.vendorType || "-"}</div>
+      <div class="dk">업체등급</div><div class="dv">${item.vendorGrade || "-"}</div>
+      <div class="dk">담당자</div><div class="dv">${item.vendorManager || "-"}</div>
     </div></div>
     <div class="vch-wrap"><table class="vch-tbl">
       <thead><tr><th>항목</th><th>구분</th><th>변경전</th><th>변경후</th></tr></thead>

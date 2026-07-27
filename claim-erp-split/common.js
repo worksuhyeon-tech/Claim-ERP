@@ -1016,6 +1016,9 @@ let APPROVALS = [
   { id:"APR-018", claimNo:"VND-875-86-00015", resolutionNo:"001", approvalType:"업체관리", requesterId:"EMP005", requesterName:"문태호",
     damagedObjectName:"업체관리", damageInfo:"복강릉서비스기아오토큐 주식회사 / 875-86-00015", repairShopName:"복강릉서비스기아오토큐", approvalAmount:0,
     vendorName:"복강릉서비스기아오토큐 주식회사", vendorBiz:"875-86-00015",
+    vendorAddr:"강원 강릉시 율곡로 3081 (교동)", vendorPhone:"033-647-7233",
+    vendorCeo:"이종철", vendorCeoPhone:"010-1234-1234", vendorKeyman:"김서준", vendorKeymanPhone:"010-4121-7566",
+    vendorType:"SA (애니카손사)", vendorGrade:"국산 우수 / 외산 일반", vendorManager:"문태호",
     vendorChanges:[
       { item:"업체등급/실적관리", gubun:"업체구분", before:"SK렌터카", after:"SA (애니카손사)" },
       { item:"계약정보관리", gubun:"지급처계좌정보(은행)", before:"(011) 농협중앙회", after:"(004) 국민은행" },
@@ -1026,6 +1029,9 @@ let APPROVALS = [
   { id:"APR-019", claimNo:"VND-226-81-28803", resolutionNo:"001", approvalType:"업체관리", requesterId:"EMP005", requesterName:"문태호",
     damagedObjectName:"업체관리", damageInfo:"현대상사㈜ / 226-81-28803", repairShopName:"현대상사㈜", approvalAmount:0,
     vendorName:"현대상사㈜", vendorBiz:"226-81-28803",
+    vendorAddr:"강원 강릉시 경강로 2045", vendorPhone:"033-648-0872",
+    vendorCeo:"박현대", vendorCeoPhone:"010-6809-7879", vendorKeyman:"이관리", vendorKeymanPhone:"010-3311-2255",
+    vendorType:"SK", vendorGrade:"국산 우수 / 외산 우수", vendorManager:"문태호",
     vendorChanges:[
       { item:"업체등급/실적관리", gubun:"업체등급(국산)", before:"일반", after:"우수" },
       { item:"계약정보관리", gubun:"국산 부품할인율", before:"3%", after:"5%" },
@@ -1035,6 +1041,9 @@ let APPROVALS = [
   { id:"APR-020", claimNo:"VND-536-85-00786", resolutionNo:"001", approvalType:"업체관리", requesterId:"EMP005", requesterName:"문태호",
     damagedObjectName:"업체관리", damageInfo:"(주)로드렌트카 / 536-85-00786", repairShopName:"(주)로드렌트카", approvalAmount:0,
     vendorName:"(주)로드렌트카", vendorBiz:"536-85-00786",
+    vendorAddr:"강원 강릉시 하슬라로 128", vendorPhone:"033-647-7233",
+    vendorCeo:"정로드", vendorCeoPhone:"010-7167-4972", vendorKeyman:"최책임", vendorKeymanPhone:"010-9898-4045",
+    vendorType:"SA (애니카손사)", vendorGrade:"국산 일반 / 외산 관리", vendorManager:"문태호",
     vendorChanges:[
       { item:"계약정보관리", gubun:"계약여부(국산 Aos)", before:"미계약", after:"계약" },
       { item:"계약정보관리", gubun:"탈착공임", before:"35,000원", after:"38,920원" },
