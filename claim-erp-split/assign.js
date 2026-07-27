@@ -38,6 +38,9 @@ function assignCloseAuthLabel(s) {
   if (s.canClosePayment) return "지급";
   return "없음";
 }
+// 결재레벨 표기/배지 (1레벨 일반직원 / 2레벨 센터선임 / 3레벨 센터장·부장)
+function assignLvlLabel(lvl) { return lvl >= 3 ? "3레벨" : lvl === 2 ? "2레벨" : "1레벨"; }
+function assignLvlBadge(lvl) { return lvl >= 3 ? "rev-appr" : lvl === 2 ? "s-hold" : "s-todo"; }
 // 부재 기간 판정: absenceStart~absenceEnd 사이면 부재중
 function assignAbsentAt(s, when) {
   if (!s.absenceStart || !s.absenceEnd || !when) return false;
@@ -249,7 +252,7 @@ function renderAssignGrid() {
       <td class="ta-c"><input type="checkbox" ${sel ? "checked" : ""} tabindex="-1" aria-label="선택" style="pointer-events:none"></td>
       <td class="sa-name">${s.name}</td>
       <td>${s.employeeNo}</td>
-      <td class="ta-c">${s.approvalLevel >= 3 ? "3레벨" : "1레벨"}</td>
+      <td class="ta-c">${assignLvlLabel(s.approvalLevel)}</td>
       <td class="num">${assignWon(s.estimateLimit)}</td>
       <td class="num">${assignWon(s.paymentLimit)}</td>
       <td class="ta-c">${assignCloseAuthLabel(s)}</td>
@@ -357,7 +360,7 @@ function renderAssignPanel() {
 
   panel.innerHTML = `
     <div class="panel-head">
-      <div class="ph-top"><span class="pid">${d.name}</span><span class="badge ${d.approvalLevel >= 3 ? "rev-appr" : "s-doing"}">${d.approvalLevel >= 3 ? "3레벨" : "1레벨"}</span></div>
+      <div class="ph-top"><span class="pid">${d.name}</span><span class="badge ${assignLvlBadge(d.approvalLevel)}">${assignLvlLabel(d.approvalLevel)}</span></div>
       <div class="ph-sub">${d.position} · ${d.employeeNo} · ${d.center}</div>
     </div>
     <div class="panel-body">
@@ -365,7 +368,8 @@ function renderAssignPanel() {
         <div class="sec-title">1. 권한 / 한도</div>
         <div class="sa-form">
           <div class="sa-radio">
-            <label><input type="radio" name="saLevel" value="1" ${d.approvalLevel < 3 ? "checked" : ""}> 1레벨 일반직원</label>
+            <label><input type="radio" name="saLevel" value="1" ${d.approvalLevel <= 1 ? "checked" : ""}> 1레벨 일반직원</label>
+            <label title="2레벨(센터선임)은 협력업체조회 화면에서 업체등급·실적관리를 수행할 수 있는 권한입니다."><input type="radio" name="saLevel" value="2" ${d.approvalLevel === 2 ? "checked" : ""}> 2레벨 센터선임</label>
             <label><input type="radio" name="saLevel" value="3" ${d.approvalLevel >= 3 ? "checked" : ""}> 3레벨 센터장/부장</label>
           </div>
           <div class="sa-row"><label class="k">추산한도</label><input class="sa-input" id="saEstimate" inputmode="numeric" value="${assignWon(d.estimateLimit)}"></div>
@@ -382,8 +386,8 @@ function renderAssignPanel() {
         <div class="sa-form">
           <div class="sa-row"><label class="k">일 배당한도</label><input class="sa-input" id="saDaily" inputmode="numeric" value="${d.dailyAssignmentLimit}" title="999 입력 시 무제한(되는대로 배당)"></div>
           <div class="sa-row"><label class="k">배당방식</label><select class="sa-select" id="saMode">${optTags(ASSIGN_MODES, d.assignmentMode)}</select></div>
-          <div class="sa-row"><label class="k">지역그룹</label><select class="sa-select" id="saRegion">${optTags(ASSIGN_REGION_GROUPS, d.regionGroup)}</select></div>
-          <div class="sa-row"><label class="k">업체그룹</label><select class="sa-select" id="saVendor">${optTags(ASSIGN_VENDOR_GROUPS, d.vendorGroup)}</select></div>
+          <div class="sa-row"><label class="k">지역그룹</label><select class="sa-select" id="saRegion" title="지역그룹은 애니카네트워크시스템 '공통코드목록'의 코드항목을 활용합니다. (대분류 시스템 > 중분류 예: 보상_사고지역 > 소분류 지역) — 그룹 묶음 방식은 추후 확정">${optTags(ASSIGN_REGION_GROUPS, d.regionGroup)}</select></div>
+          <div class="sa-row"><label class="k">업체그룹</label><select class="sa-select" id="saVendor" title="업체그룹은 애니카네트워크시스템 '공통코드목록'의 코드항목을 활용합니다. (대분류 시스템 > 중분류 예: 보상_업체그룹 > 소분류 업체그룹) — 그룹 묶음 방식은 추후 확정">${optTags(ASSIGN_VENDOR_GROUPS, d.vendorGroup)}</select></div>
           <div class="sa-row"><label class="k">현재배당</label><input class="sa-input ro" value="${d.todayAssignedCount} 건" readonly></div>
           <div class="sa-row"><label class="k">잔여배당</label><input class="sa-input ro" id="saRemain" value="${assignIsUnlimited(d) ? "무제한" : assignRemaining(d) + " 건"}" readonly></div>
         </div>

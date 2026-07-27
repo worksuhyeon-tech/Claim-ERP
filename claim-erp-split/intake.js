@@ -455,7 +455,7 @@ function defaultDetail(c, w) {
       personalSub: p.pick(["불포함", "포함"]),
       // 면책금 (사고 정산)
       deductAgreed: won(p.pick([100000, 200000, 300000, 500000])),
-      deductBilling: p.pick(["개별 정액", "통합 청구", "개별 실비"]),
+      deductBilling: p.pick(["개별 정액", "통합청구", "완전자차"]),
       deductPayMethod: p.pick(["완전자차", "선택안함"]),
       totalAccidents: `${p.int(0, 6)}건`,
       deductArrears: `${p.int(0, 4)}건`,
@@ -616,13 +616,15 @@ function intakeListHtml() {
   </div>`;
 }
 
+// 최초등록일 — SK렌터카 연동 계약정보의 차량 최초등록일
+function skFirstRegDate(d) { return (d.skRent && d.skRent.firstRegDate) || ""; }
 function lgIdBand(d) {
   return `<div class="lg-idband">
     <span class="tag">${iEsc(d.procStatus) || "대기"}</span>
     <span class="id">${iEsc(d.id)}</span>
     <span class="seg shop">${iEsc(d.repairShop) || "미입고"}</span>
     <span class="seg fault">${iEsc(d.fault) || "자차 0% (미확정)"}</span>
-    <span class="seg car">${joinDot([d.carModel, d.car]) || "-"}</span>
+    <span class="seg car"><span class="carno">${joinDot([d.carModel, d.car]) || "-"}</span>${skFirstRegDate(d) ? `<span class="regdate">최초등록일 ${iEsc(skFirstRegDate(d))}</span>` : ""}</span>
   </div>`;
 }
 
@@ -741,14 +743,17 @@ function intakeWorkbenchHtml(d) {
 const CT_LICENSE_TYPES = ["1종대형", "1종보통", "1종특수", "2종보통", "2종소형", "원동기", "무면허", "해당없음"];
 // 운전자-피보험자 '관계' 선택 목록
 const CT_REL_TYPES = ["피보험자 본인", "지정운전자", "임직원(직원/대표)", "배우자", "자녀", "부모", "렌터카임차인", "형제/친인척", "며느리", "사위", "대리운전", "취급업자", "기타", "미탑승", "절취운전"];
-const CT_ACC_MAJORS = ["차대차", "차량단독", "차대인", "타차일방", "계약위반(음주·약물 등)"];
+const CT_ACC_MAJORS = ["차대차", "차량단독", "차대인", "타차일방", "계약위반(음주·약물 등)", "비사고"];
 const CT_ACC_DETAILS = {
   "차대차": ["추돌", "후진사고", "주/정차 중 사고", "차선변경(가해)", "차선변경(피해)", "신호위반", "교차로 진입", "측면 접촉"],
-  "차량단독": ["기타 피해물 접촉", "로드킬", "비래/낙하물", "도난", "전복", "전도", "침수", "화재", "가드레일 접촉"],
+  "차량단독": ["기타 피해물 접촉", "로드킬", "비래/낙하물", "도난", "전복", "전도", "자연재해", "화재", "가드레일 접촉"],
   "차대인": ["횡단보도", "PM(개인형이동장치) 사고", "무단횡단", "보도 통행 중", "이면도로 사고"],
   "타차일방": ["신호대기 중 추돌 피해", "주정차 중 피해", "상대 중앙선 침범", "상대 신호위반"],
   "계약위반(음주·약물 등)": ["음주운전", "약물운전", "무면허운전", "사고후 미조치(뺑소니)"],
+  "비사고": ["혼유", "타이어교환", "와이퍼교환", "전기적고장"],
 };
+// 대사고유형 — '중앙선침범'은 사고유형=차대차일 때, 그 외는 세부분류=자연재해일 때만 선택 가능
+const CT_MAJOR_ACC = ["중앙선침범", "침수", "태풍", "지진", "산사태", "우박"];
 const CT_TASKS = ["Moral사고", "당일사고", "근접배서", "심야사고", "범위위배", "무면허운전", "타차운전"];
 // 시스템이 사고·계약 데이터로 자동 판단하는 항목(담당자 수정 불가)
 const CT_AUTO_TASKS = ["당일사고", "근접배서", "심야사고"];
@@ -771,13 +776,14 @@ function getContractState(id, d) {
     intakeContractState[id] = {
       driverName: dr.name || "", driverRel: dr.rel || "", birth: dr.birth || "",
       birthFront: bp.front, birthBack: bp.back, birthAge: bp.age, phone: dr.phone || "",
-      licenseNo: dr.licenseNo || "", licenseType: (dr.license || "").split("/")[0].trim() || "2종보통",
+      licenseNo: dr.licenseNo || "", licenseType: (dr.license || "").split("/")[0].trim() || "2종보통", licenseStatus: "미확인",
       datetime: A.datetime || "", place: A.place || "", placeDetail: A.placeDetail || "",
       content: A.content || "", note: A.note || "",
-      accMajor: "차대차", accDetail: CT_ACC_DETAILS["차대차"][0],
+      accMajor: "차대차", accDetail: CT_ACC_DETAILS["차대차"][0], majorAccType: "",
       selfFault: (String((d.ownDamage || {}).faultRate || "").match(/(\d+)\s*%/) || [])[1] || "",   // 자차과실(%)
       tasks: (A.otherDrive && A.otherDrive !== "해당없음") ? ["타차운전"] : [], moralNote: "",
       police: (A.police === "신고접수") ? "신고" : "미신고", policeStation: "", policeOfficer: "", policeOfficerPhone: "",
+      towed: "아니요",
       comp: { insurer: "", caseNo: "", staff: "", staffPhone: "", faultRate: "", faultFixed: "미확정", place: A.place || "", accType: "", dispatched: "미출동", content: "" },
     };
   }
@@ -834,6 +840,38 @@ function ctBirthHtml(st) {
     + `<span class="lg-birth-age">만 <input type="text" class="lg-cin lg-birth-ageval" id="ctBirthAge" value="${iEsc(ageVal)}" disabled aria-label="만 나이 자동계산" data-desc="생년월일을 입력하면 만 나이가 자동으로 계산됩니다. 담당자가 직접 입력할 수 없습니다."> 세</span>`
     + `</div>`;
 }
+/* 면허상태 배지 — 쿠콘 운전면허조회로 검증한 상태 */
+function ctLicenseStatusHtml(st) {
+  const s = st.licenseStatus || "미확인";
+  const cls = s === "정상" ? "ok" : (s === "미확인" ? "na" : "warn");
+  return `<span class="lg-lstatus ${cls}" id="ctLicenseStatus" data-desc="쿠콘(KooKoon) 운전면허 조회로 검증된 면허상태입니다.">면허상태 <b>${iEsc(s)}</b></span>`;
+}
+/* 사고 관련자 — 운전자/관계/생년월일/면허 정보 (이미지 기준 레이아웃) */
+function ctDriverBlockHtml(d, st) {
+  const relOpts = (st.driverRel && !CT_REL_TYPES.includes(st.driverRel)) ? [st.driverRel].concat(CT_REL_TYPES) : CT_REL_TYPES;
+  const searchIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>`;
+  const callIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2 4.2 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.7c.1.9.3 1.8.6 2.6a2 2 0 0 1-.5 2.1L8 9.6a16 16 0 0 0 6 6l1.2-1.1a2 2 0 0 1 2.1-.5c.8.3 1.7.5 2.6.6a2 2 0 0 1 1.7 2z"/></svg>`;
+  return `<table class="lg-tbl lg-drvtbl"><colgroup><col style="width:110px"><col></colgroup><tbody>`
+    + `<tr><th>운전자</th><td><div class="lg-drv">`
+    +   ctSel("driverRel", st.driverRel, relOpts)
+    +   `<input type="text" class="lg-cin lg-drv-name" data-ct="driverName" value="${iEsc(st.driverName)}" placeholder="운전자명" data-desc="담당자가 직접 수정하고 저장하는 입력 항목입니다.">`
+    +   ctBirthHtml(st)
+    +   `<button type="button" class="lg-gpsbtn" id="ctDriverLookup" title="운전자 실명·정보 조회" aria-label="운전자 정보 조회" data-desc="주민등록번호로 운전자 실명·정보를 조회합니다. (데모)">${searchIcon}</button>`
+    +   `<button type="button" class="lg-gpsbtn" id="ctDriverCall" title="전화·문자 발송" aria-label="전화·문자 발송" data-desc="운전자에게 전화·알림톡/문자메세지를 발송하는 창을 엽니다.">${callIcon}</button>`
+    + `</div></td></tr>`
+    + `<tr><th>연락처</th><td>${ctText("phone", st.phone, "010-0000-0000")}</td></tr>`
+    + `<tr><th>면허/음주정보</th><td><div class="lg-drv">`
+    +   `<button type="button" class="lg-mini" id="ctLicenseLookup" data-desc="쿠콘(KooKoon) 운전면허 API와 연동해 면허번호를 받아오고 면허상태를 검증합니다. (데모)">운전면허조회</button>`
+    +   `<button type="button" class="lg-mini gray" id="ctLicenseManual" data-desc="면허 정보를 담당자가 직접 입력합니다.">직접입력</button>`
+    +   `<span class="lg-drv-note">※ 음주정보는 사고일자 기준 경찰서 사고종결 건만 표시됩니다.</span>`
+    + `</div></td></tr>`
+    + `<tr><th>면허번호</th><td><div class="lg-drv">`
+    +   ctSel("licenseType", st.licenseType, CT_LICENSE_TYPES)
+    +   `<input type="text" class="lg-cin lg-drv-lno" data-ct="licenseNo" value="${iEsc(st.licenseNo)}" placeholder="00-00-000000-00" data-desc="담당자가 직접 수정하고 저장하는 입력 항목입니다.">`
+    +   ctLicenseStatusHtml(st)
+    + `</div></td></tr>`
+    + `</tbody></table>`;
+}
 /* 개인정보동의 값 + 알림톡·문자 발송 아이콘 버튼 */
 function ctAgreeMsgHtml(d, st) {
   const msgIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>`;
@@ -871,6 +909,35 @@ function ctTaskChecksHtml(d, st) {
   }).join("");
   return `<div class="lg-ctchecks" id="ctTaskArea">${items}</div>`;
 }
+/* 사고장소 — 입력칸 + GPS(지도 검색) 아이콘 버튼 */
+function ctPlaceHtml(st) {
+  const gps = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.6"/></svg>`;
+  return `<div class="lg-ctplace">`
+    + `<input type="text" class="lg-cin" data-ct="place" value="${iEsc(st.place)}" placeholder="사고 발생 장소" data-desc="담당자가 직접 수정하고 저장하는 입력 항목입니다.">`
+    + `<button type="button" class="lg-gpsbtn" id="ctPlaceSearch" title="지도(GPS)에서 사고장소 검색" aria-label="지도에서 사고장소 검색" data-desc="GPS·지도로 사고장소를 검색해 주소를 불러옵니다.">${gps}</button>`
+    + `</div>`;
+}
+/* 대사고유형 — 조건부 활성 옵션 (중앙선침범=차대차, 그 외=자연재해) */
+function ctMajorAccEnabled(st, opt) {
+  return opt === "중앙선침범" ? st.accMajor === "차대차" : st.accDetail === "자연재해";
+}
+function ctMajorAccOptionsHtml(st) {
+  return ['<option value="">선택</option>'].concat(CT_MAJOR_ACC.map(o =>
+    `<option ${st.majorAccType === o ? "selected" : ""} ${ctMajorAccEnabled(st, o) ? "" : "disabled"}>${iEsc(o)}</option>`
+  )).join("");
+}
+function ctMajorAccHtml(st) {
+  const anyEnabled = CT_MAJOR_ACC.some(o => ctMajorAccEnabled(st, o));
+  return `<select class="lg-csel" id="ctMajorAcc" data-ct="majorAccType" ${anyEnabled ? "" : "disabled"} data-desc="대사고유형입니다. '중앙선침범'은 사고유형이 '차대차'일 때, 그 외(침수·태풍·지진·산사태·우박)는 세부분류가 '자연재해'일 때 선택할 수 있습니다.">${ctMajorAccOptionsHtml(st)}</select>`;
+}
+/* 견인여부 — 예/아니요 라디오 */
+function ctTowHtml(st) {
+  const yes = st.towed === "예";
+  return `<div class="lg-ctpolice">
+    <label class="lg-ctradio" data-desc="사고 차량을 견인한 건입니다."><input type="radio" name="ctTow" value="예" ${yes ? "checked" : ""}>예</label>
+    <label class="lg-ctradio" data-desc="견인하지 않은 건입니다."><input type="radio" name="ctTow" value="아니요" ${!yes ? "checked" : ""}>아니요</label>
+  </div>`;
+}
 function ctPoliceHtml(st) {
   const rep = st.police === "신고";
   return `<div class="lg-ctpolice">
@@ -888,34 +955,31 @@ function intakeContractTab(d) {
   const st = getContractState(d.id, d);
   const detailOpts = (CT_ACC_DETAILS[st.accMajor] || []);
   const c = st.comp;
-  const left = lgSect("사고 관련자", "※ 운전자 접수 / 저장 · 담당자 수정 가능")
+  const left = lgSect("사고 정보", "※ 담당자 수정 가능")
     + lgTable([
-      { k: "운전자", raw: ctText("driverName", st.driverName, "운전자명") },
-      { k: "연락처", raw: ctText("phone", st.phone, "010-0000-0000") },
-      { k: "생년월일", raw: ctBirthHtml(st) },
-      { k: "관계", raw: ctSel("driverRel", st.driverRel, (st.driverRel && !CT_REL_TYPES.includes(st.driverRel)) ? [st.driverRel].concat(CT_REL_TYPES) : CT_REL_TYPES) },
-      { k: "면허종류", raw: ctSel("licenseType", st.licenseType, CT_LICENSE_TYPES) },
-      { k: "면허번호", raw: ctText("licenseNo", st.licenseNo, "00-00-000000-00") },
+      { k: "사고일시", raw: ctText("datetime", st.datetime, "YYYY-MM-DD HH:MM"), full: true },
+      { k: "사고장소", raw: ctPlaceHtml(st), full: true },
+      { k: "장소상세", raw: ctText("placeDetail", st.placeDetail, "상세 위치"), full: true },
+      { k: "내용", raw: ctText("content", st.content, "사고 경위·내용"), full: true },
+      { k: "사고유형", raw: ctSel("accMajor", st.accMajor, CT_ACC_MAJORS) },
+      { k: "세부분류", raw: `<select class="lg-csel" id="ctAccDetail" data-ct="accDetail">${detailOpts.map(o => `<option ${o === st.accDetail ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>` },
+      { k: "대사고유형", raw: ctMajorAccHtml(st) },
+      { k: "자차과실", raw: ctFaultHtml(st) },
+      { k: "특이사항", raw: ctText("note", st.note, "특이사항"), full: true },
+      { k: "조사Task", raw: ctTaskChecksHtml(d, st), full: true },
+      { k: "경찰접수", raw: ctPoliceHtml(st), full: true },
+      { k: "견인여부", raw: ctTowHtml(st), full: true },
+    ])
+    + lgSect("사고 관련자", "※ 운전자 접수 / 저장 · 담당자 수정 가능")
+    + ctDriverBlockHtml(d, st)
+    + lgTable([
       { k: "소유자", v: P.owner.name }, { k: "연락처", v: P.owner.phone, blue: true },
       { k: "피보험자", v: P.insured.name }, { k: "연락처", v: P.insured.phone, blue: true },
       { k: "통보자", v: `${P.notifier.name || ""} ${P.notifier.rel ? "(" + P.notifier.rel + ")" : ""}`.trim() },
       { k: "연락처", v: P.notifier.phone, blue: true },
       { k: "개동", raw: ctAgreeMsgHtml(d, st), full: true },
     ])
-    + lgSect("사고 정보", "※ 담당자 수정 가능")
-    + lgTable([
-      { k: "사고일시", raw: ctText("datetime", st.datetime, "YYYY-MM-DD HH:MM"), full: true },
-      { k: "사고장소", raw: ctText("place", st.place, "사고 발생 장소"), full: true },
-      { k: "장소상세", raw: ctText("placeDetail", st.placeDetail, "상세 위치"), full: true },
-      { k: "내용", raw: ctText("content", st.content, "사고 경위·내용"), full: true },
-      { k: "사고유형", raw: ctSel("accMajor", st.accMajor, CT_ACC_MAJORS) },
-      { k: "세부분류", raw: `<select class="lg-csel" id="ctAccDetail" data-ct="accDetail">${detailOpts.map(o => `<option ${o === st.accDetail ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>` },
-      { k: "자차과실", raw: ctFaultHtml(st) },
-      { k: "특이사항", raw: ctText("note", st.note, "특이사항"), full: true },
-      { k: "조사Task", raw: ctTaskChecksHtml(d, st), full: true },
-      { k: "경찰접수", raw: ctPoliceHtml(st), full: true },
-    ])
-    + `<div class="lg-sect">경합 보험사 접수 정보<button class="lg-mini" type="button" id="ctCompFetch" data-desc="상대측(타 보험사) 접수 정보를 조회해 아래 항목을 자동으로 불러옵니다. (연동 시 실제 타사 데이터)">타사 정보 조회</button></div>`
+    + `<div class="lg-sect">경합 보험사 접수 정보<button class="lg-mini" type="button" id="ctCompFetch" data-desc="상대측(타 보험사) 접수 정보를 조회해 아래 항목을 자동으로 불러옵니다. (연동 시 실제 타사 데이터)">타사 정보 조회</button>${c.fetchedAt ? `<span class="lg-comp-ts" data-desc="타사 정보를 조회한 기준 시각입니다.">조회기준 ${iEsc(c.fetchedAt)}</span>` : ""}</div>`
     + lgTable([
       { k: "경합 보험사명", raw: ctText("comp.insurer", c.insurer, "예: DB손해보험") },
       { k: "접수번호", raw: ctText("comp.caseNo", c.caseNo, "타사 접수번호") },
@@ -931,20 +995,18 @@ function intakeContractTab(d) {
   const right = lgSect("면부책", "※ 면책금(자기부담금) 포함")
     + lgTable([
       { k: "운전한정", v: d.liability.driveLimit, full: true },
-      { k: "운전연령", v: d.liability.ageLimit }, { k: "자기부담", v: d.liability.selfPay },
-      ...skDeductEntries(d),                       // 면책금(=자기부담금) 항목 통합
+      { k: "자기부담", v: d.liability.selfPay }, { k: "입금방식", v: (d.skRent || {}).deductPayMethod },
+      ...skDeductEntries(d),                       // 면책약정금액~ 항목 (운전연령 삭제 위치로 상향 배치)
     ])
     + skMaintServiceHtml(d)                        // 정비·대차 서비스 (면부책 다음)
-    + lgSect("피보험차량")
+    + `<div class="lg-sect" data-desc="${iEsc("SK렌터카 시스템과 연동해 받아오는 계약정보입니다. (연동 전에는 예시·미수신)")}">계약 정보<span class="note">※ SK렌터카 시스템 연동 수신 (계약정보 IF)</span></div>`
     + lgTable([
-      { k: "차명/번호", v: joinDot([d.insuredCar.name, d.insuredCar.no]) }, { k: "자차가입여부", v: d.ownDamage.joined },
-      { k: "차종", v: d.insuredCar.kind }, { k: "코드", v: d.insuredCar.code, blue: true },
-      { k: "차량가액", v: d.insuredCar.priceAB, full: true },
-      { k: "총가입금액", v: d.insuredCar.totalJoin, full: true },
+      { k: "자차가입여부", v: d.ownDamage.joined }, { k: "차종", v: d.insuredCar.kind },
+      { k: "현재잔가", v: skResidualHtml(d), full: true },
       { k: "추가담보", v: d.insuredCar.addCover }, { k: "상세", v: d.insuredCar.detail },
       { k: "특약", v: d.insuredCar.special, full: true },
     ])
-    + skContractCoreHtml(d);                       // 계약 정보 (마지막)
+    + skContractCoreHtml(d);                       // 계약 정보 표 (헤더는 위 통합 제목 사용)
   return `<div class="lg-cols"><div>${left}</div><div>${right}</div></div>`;
 }
 
@@ -953,11 +1015,27 @@ function intakeContractTab(d) {
    면책금(=자기부담금) 항목은 '면부책' 섹션으로 통합, 정비·대차 서비스는 면부책 다음에 배치. */
 function skWonSuffix(v) { return (v || v === 0) && String(v) !== "" ? String(v) + "원" : ""; }
 
-/* 면책금(=자기부담금) — '면부책' 표에 통합할 lgTable row 배열 (섹션 헤더 없음) */
+/* 현재잔가 표시 — 잔가액에 일부보험 비율을 병기 (담보 100% 미가입 시 일부보험 00% 표기).
+   일부보험 비율은 피보험차량 총가입금액(insuredCar.totalJoin)에 내포된 값을 사용한다. */
+function skPartialRateText(d) {
+  const t = (d.insuredCar && d.insuredCar.totalJoin) || "";
+  const m = String(t).match(/일부보험\s*\d+\s*%/);
+  return m ? m[0].replace(/\s+/g, " ") : "";
+}
+function skResidualHtml(d) {
+  const sk = d.skRent || {};
+  const val = skWonSuffix(sk.residualValue);
+  if (!val) return "";
+  const rate = skPartialRateText(d);
+  return rate ? `${val} (${rate})` : val;
+}
+
+/* 면책금(=자기부담금) — '면부책' 표에 통합할 lgTable row 배열 (섹션 헤더 없음)
+   ※ 입금방식은 '자기부담' 옆으로 상향 배치되어 여기서는 제외한다. */
 function skDeductEntries(d) {
   const sk = d.skRent || {};
   return [
-    { k: "면책약정금액", v: skWonSuffix(sk.deductAgreed), blue: true }, { k: "입금방식", v: sk.deductPayMethod },
+    { k: "면책약정금액", v: skWonSuffix(sk.deductAgreed), blue: true },
     { k: "통합청구방법", v: sk.deductBilling, full: true },
     { k: "할증금액", v: skWonSuffix(sk.deductSurcharge) }, { k: "할증사고건수", v: sk.deductSurchargeCount },
     { k: "총사고발생건수", v: sk.totalAccidents }, { k: "면책금 체납건수", v: sk.deductArrears },
@@ -976,20 +1054,15 @@ function skMaintServiceHtml(d) {
     ]);
 }
 
-/* 계약 정보(계약·차량) — 계약 특정·고객 응대·전손/한도 판단 (우측 컬럼 마지막 섹션) */
+/* 계약 정보(계약·차량) 표 — 계약 특정·고객 응대·전손/한도 판단.
+   섹션 헤더는 상위 '피보험차량 > 계약 정보' 통합 제목을 공유하므로 여기서는 표만 렌더한다. */
 function skContractCoreHtml(d) {
   const sk = d.skRent || {};
-  const cellDesc = "SK렌터카 시스템과 연동해 받아오는 계약정보입니다. (연동 전에는 예시·미수신)";
-  return `<div class="lg-sect" data-desc="${iEsc(cellDesc)}">계약 정보<span class="note">※ SK렌터카 시스템 연동 수신 (계약정보 IF)</span></div>`
-    + lgTable([
+  return lgTable([
       { k: "렌트/리스", v: sk.rentType }, { k: "업무구분", v: sk.bizType },
       { k: "상품/계약번호", v: sk.product, full: true, blue: true },
       { k: "관리지점", v: sk.branch }, { k: "N/R구분", v: sk.nrType },
-      { k: "고객명", v: sk.custName }, { k: "VIP구분", v: sk.vip },
-      { k: "고객조직", v: sk.custOrg, full: true },
-      { k: "차량번호", v: sk.carNo, blue: true }, { k: "최초등록일", v: sk.firstRegDate },
-      { k: "모델명", v: sk.model, full: true },
-      { k: "현재잔가", v: skWonSuffix(sk.residualValue), full: true },
+      { k: "VIP구분", v: sk.vip },
     ]);
 }
 
@@ -1026,7 +1099,9 @@ function bindIntakeContract(d) {
         st.accDetail = opts[0] || "";
         const sel = body.querySelector("#ctAccDetail");
         if (sel) sel.innerHTML = opts.map(o => `<option ${o === st.accDetail ? "selected" : ""}>${iEsc(o)}</option>`).join("");
+        refreshMajorAcc();                         // 사고유형 변경 → 대사고유형 활성 옵션 갱신
       }
+      if (el.dataset.ct === "accDetail") { refreshMajorAcc(); }   // 세부분류 변경 → 대사고유형 활성 옵션 갱신
       if (el.dataset.ct === "datetime") {          // 사고일시 변경 → 자동판단 조사 Task(심야사고 등) 재계산
         const area = body.querySelector("#ctTaskArea");
         if (area) { area.outerHTML = ctTaskChecksHtml(d, st); bindTaskChecks(); }
@@ -1041,22 +1116,71 @@ function bindIntakeContract(d) {
     }));
   }
   bindTaskChecks();
+  // 대사고유형 활성 옵션 갱신 (사고유형/세부분류 조건에 맞춰 선택 가능 항목 재계산)
+  function refreshMajorAcc() {
+    const sel = body.querySelector("#ctMajorAcc");
+    if (!sel) return;
+    if (!ctMajorAccEnabled(st, st.majorAccType)) st.majorAccType = "";
+    sel.innerHTML = ctMajorAccOptionsHtml(st);
+    sel.disabled = !CT_MAJOR_ACC.some(o => ctMajorAccEnabled(st, o));
+  }
   body.querySelectorAll('input[name="ctPolice"]').forEach(r => r.addEventListener("change", () => {
     if (!r.checked) return;
     st.police = r.value;
     const wrap = body.querySelector("#ctPoliceStationWrap");
     if (wrap) wrap.classList.toggle("lg-hide", r.value !== "신고");
   }));
+  body.querySelectorAll('input[name="ctTow"]').forEach(r => r.addEventListener("change", () => {
+    if (r.checked) st.towed = r.value;               // 견인여부 예/아니요
+  }));
+  const psb = body.querySelector("#ctPlaceSearch");   // 사고장소 GPS·지도 검색 (데모)
+  if (psb) psb.addEventListener("click", () => {
+    const kw = window.prompt("사고장소를 검색하세요. (GPS·지도 연동 예정)", st.place || "");
+    if (kw == null) return;
+    const val = kw.trim();
+    const input = body.querySelector('[data-ct="place"]');
+    if (input) input.value = val;
+    st.place = val;
+    if (typeof showToast === "function") showToast(val ? `사고장소를 '${val}'(으)로 설정했습니다. (데모)` : "사고장소를 비웠습니다. (데모)");
+  });
   const fb = body.querySelector("#ctCompFetch");
   if (fb) fb.addEventListener("click", () => fetchCompetitorInfo(d, st));
   const mb = body.querySelector("#ctMsgBtn");
   if (mb) mb.addEventListener("click", () => openMsgSendWindow(d));
+  const ll = body.querySelector("#ctLicenseLookup");         // 쿠콘 운전면허조회
+  if (ll) ll.addEventListener("click", () => fetchLicenseKooKoon(d, st));
+  const lm = body.querySelector("#ctLicenseManual");         // 면허 직접입력
+  if (lm) lm.addEventListener("click", () => {
+    const inp = body.querySelector('[data-ct="licenseNo"]');
+    if (inp) inp.focus();
+    if (typeof showToast === "function") showToast("면허번호를 직접 입력하세요. (데모)");
+  });
+  const dl = body.querySelector("#ctDriverLookup");          // 운전자 실명·정보 조회
+  if (dl) dl.addEventListener("click", () => { if (typeof showToast === "function") showToast("운전자 실명·정보를 조회했습니다. (데모)"); });
+  const dc = body.querySelector("#ctDriverCall");            // 운전자 전화·문자
+  if (dc) dc.addEventListener("click", () => openMsgSendWindow(d));
+}
+// 현재 시각 타임스탬프 (yyyy-mm-dd hh:mm)
+function ctNowStamp() {
+  const n = new Date(), p = x => String(x).padStart(2, "0");
+  return `${n.getFullYear()}-${p(n.getMonth() + 1)}-${p(n.getDate())} ${p(n.getHours())}:${p(n.getMinutes())}`;
+}
+// 쿠콘(KooKoon) 운전면허 조회 — 데모: 면허번호 자동 수신 + 면허상태 검증
+function fetchLicenseKooKoon(d, st) {
+  const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  const regions = ["11", "21", "16", "13", "19", "15", "18", "24", "28", "26", "25", "32", "31", "39", "38"];
+  st.licenseNo = `${regions[rnd(0, regions.length - 1)]}-${rnd(10, 99)}-${rnd(100000, 999999)}-${rnd(10, 99)}`;
+  st.licenseStatus = Math.random() < 0.82 ? "정상" : ["정지", "취소", "적성검사 미필", "갱신 대상"][rnd(0, 3)];
+  $("#intakeBody").innerHTML = renderIntakeTab("contract", d);
+  bindIntakeContract(d);
+  showToast(`쿠콘 운전면허조회 완료 — 면허번호 ${st.licenseNo} · 면허상태 ${st.licenseStatus} (데모)`);
 }
 // 타사(경합 보험사) 정보 조회 — 데모: 임의 접수정보를 끌어와 채운다.
 function fetchCompetitorInfo(d, st) {
   const pick = a => a[Math.floor(Math.random() * a.length)];
   const rnd = (min, max) => min + Math.floor(Math.random() * (max - min + 1));
   st.comp = {
+    fetchedAt: ctNowStamp(),
     insurer: pick(["DB손해보험", "삼성화재", "현대해상", "KB손해보험", "메리츠화재", "롯데손해보험"]),
     caseNo: `2026-${rnd(1000000, 9999999)}`,
     staff: pick(["김", "이", "박", "최", "정", "강"]) + pick(["성민", "지훈", "서연", "도윤", "하늘", "예린"]),
@@ -1159,7 +1283,7 @@ function getDamageState(id, d) {
     const pdM = period.match(/입고\s*([\d-]+)\s*~\s*출고\s*([\d-]+)/);
     intakeDamageState[id] = {
       plate: ic.no || "", objectName: ic.name || "",
-      firstRegDate: "", owner: "(주)에스케이렌터카",
+      firstRegDate: skFirstRegDate(d), owner: "(주)에스케이렌터카",
       ownState: "분손", procState: "수리", repaired: "예",
       maintSub: (dg.rentClaim === "청구") ? "이용" : "미이용",
       lost: [],
@@ -1190,6 +1314,73 @@ function dmText(f, v, ph) { return `<input type="text" class="lg-cin" data-dm="$
 function dmDate(f, v) { return `<input type="date" class="lg-cin" data-dm="${iEsc(f)}" value="${iEsc(v)}" data-desc="날짜를 선택합니다.">`; }
 function dmNum(f, v) { return `<input type="text" inputmode="numeric" class="lg-cin ta-r" data-dm="${iEsc(f)}" value="${iEsc(v)}" data-desc="금액(원)을 입력합니다.">`; }
 function dmSel(f, v, opts) { return `<select class="lg-csel" data-dm="${iEsc(f)}">${opts.map(o => `<option ${o === v ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>`; }
+function dmRadio(f, v, opts, disabled) {
+  return `<div class="lg-dmradio">${opts.map(o =>
+    `<label class="lg-ctradio${disabled ? " dis" : ""}"><input type="radio" name="dm_${iEsc(f)}" data-dmradio="${iEsc(f)}" value="${iEsc(o)}" ${o === v ? "checked" : ""} ${disabled ? "disabled" : ""}>${iEsc(o)}</label>`
+  ).join("")}</div>`;
+}
+
+/* ---- 면책금 입금내역 (SK 연동) — 피해 진행 아래 섹션 ---- */
+const DD_GUBUN = ["공장입금", "당사수납", "면제", "SM입금", "면책", "지점수납"];
+const DD_EXTRA_COLS = ["상품구분", "기타수익구분", "발생일자", "SR거래처코드", "지점", "고객명", "발생구분", "발생금액", "제외금액", "청구금액", "계약번호", "조직명", "납입자구분", "전표번호", "참조업무명"];
+const intakeDeductDeposit = {};
+function getDeductDeposit(id) {
+  if (!intakeDeductDeposit[id]) intakeDeductDeposit[id] = { rows: [], draft: { gubun: "", date: "", amount: "", payer: "", memo: "" }, extraOpen: false };
+  return intakeDeductDeposit[id];
+}
+function ddApprovalNo() {
+  const n = new Date(), p = x => String(x).padStart(2, "0");
+  return `SKD${n.getFullYear()}${p(n.getMonth() + 1)}${p(n.getDate())}-${Math.floor(Math.random() * 9000) + 1000}`;
+}
+function dmDeductDepositHtml(d) {
+  const dd = getDeductDeposit(d.id), dr = dd.draft;
+  const gubunOpts = ['<option value="">선택</option>'].concat(DD_GUBUN.map(o => `<option ${dr.gubun === o ? "selected" : ""}>${iEsc(o)}</option>`)).join("");
+  const draftRow = `<tr class="dm-dd-draft">
+      <td><select class="lg-csel" data-dd="gubun">${gubunOpts}</select></td>
+      <td><input type="date" class="lg-cin" data-dd="date" value="${iEsc(dr.date)}" data-desc="입금일자(결제일자)를 선택합니다. 우측 달력에서 지정할 수 있습니다."></td>
+      <td><input type="text" inputmode="numeric" class="lg-cin ta-r" data-dd="amount" value="${iEsc(dr.amount)}" placeholder="0" data-desc="입금 금액을 입력합니다."></td>
+      <td><input type="text" class="lg-cin" data-dd="payer" value="${iEsc(dr.payer)}" placeholder="입금자명" data-desc="입금자명을 입력합니다."></td>
+      <td><input type="text" class="lg-cin" data-dd="memo" value="${iEsc(dr.memo)}" placeholder="비고 메모" data-desc="비고 메모를 입력합니다."></td>
+      <td class="ph ta-c">저장 시 자동</td>
+      <td class="dm-dd-appr ph ta-c">저장 시 채번</td>
+    </tr>`;
+  const savedRows = dd.rows.map(r => `<tr>
+      <td>${iEsc(r.gubun)}</td><td>${iEsc(r.date)}</td><td class="ta-r">${iEsc(r.amount)}${r.amount ? "원" : ""}</td>
+      <td>${iEsc(r.payer)}</td><td>${iEsc(r.memo)}</td><td>${iEsc(r.inputter)}</td>
+      <td class="dm-dd-appr">${iEsc(r.approvalNo)}</td>
+    </tr>`).join("");
+  const extraGrid = `<div class="dm-extra">
+      <button type="button" class="dm-extra-toggle" id="dmExtraToggle" data-desc="사고처리 외 차량 면책금 발생 내역 그리드를 펼치거나 접습니다.">${dd.extraOpen ? "▼" : "▶"} 사고처리 외 차량 면책금 발생 내역</button>
+      <div class="dm-extra-body" id="dmExtraBody" ${dd.extraOpen ? "" : "hidden"}>
+        <div class="dm-extra-search">발생일자
+          <input type="date" class="lg-cin" id="dmExtraFrom" value="2026-05-01"><span class="u">~</span><input type="date" class="lg-cin" id="dmExtraTo" value="2026-07-31">
+          <button type="button" class="dm-ybtn" id="dmExtraSearch" data-desc="지정한 발생일자 범위로 사고처리 외 차량 면책금 발생 내역을 조회합니다. (데모)">검색</button>
+        </div>
+        <div class="lg-scroll">
+          <table class="lg-tbl dm-extra-tbl"><thead><tr>${DD_EXTRA_COLS.map(c => `<th>${iEsc(c)}</th>`).join("")}</tr></thead>
+            <tbody><tr><td colspan="${DD_EXTRA_COLS.length}" class="dm-extra-empty">조회 결과가 없습니다. 발생일자 범위를 지정하고 '검색'을 누르세요. (데모)</td></tr></tbody></table>
+        </div>
+      </div>
+    </div>`;
+  return `<div class="dm-savebox">
+      <div class="dm-savebox-h">
+        <span class="lg-sect-inline">면책금 입금내역 <span class="note">※ SK렌터카 연동</span></span>
+        <span class="dm-savebox-sp"></span>
+        <span class="dm-savebox-tag" data-desc="이 '저장' 버튼은 면책금 입금내역만 저장합니다.">이 표만 저장</span>
+        <button type="button" class="dm-ybtn" id="dmDeductSave" data-desc="면책금 입금내역을 저장합니다. 저장 시 입력자(담당자)와 승인번호가 자동 채번됩니다.">저장</button>
+      </div>
+      <div class="lg-scroll">
+        <table class="lg-tbl dm-dd-tbl">
+          <thead><tr>
+            <th>입금구분<span class="dm-req">*</span></th><th>입금일자(결제일자)<span class="dm-req">*</span></th><th>금액<span class="dm-req">*</span></th>
+            <th>입금자명</th><th>비고</th><th>입력자</th><th class="dm-dd-appr">승인번호</th>
+          </tr></thead>
+          <tbody>${draftRow}${savedRows}</tbody>
+        </table>
+      </div>
+      ${extraGrid}
+    </div>`;
+}
 function dmSkVal(v) { return `<span class="lg-skval">${iEsc(v) || "미수신"}<span class="lg-sktag">SK</span></span>`; }
 function dmLostHtml(s) {
   return `<div class="lg-ctchecks">` + DM_LOST_OPTS.map(x =>
@@ -1215,17 +1406,17 @@ function intakeDamageTab(d) {
     + lgTable([
       { k: "차량번호", raw: dmText("plate", s.plate, "12가3456") },
       { k: "피해물명", raw: dmText("objectName", s.objectName, "차량명") },
-      { k: "최초등록일", raw: dmDate("firstRegDate", s.firstRegDate) },
-      { k: "소유자", raw: dmText("owner", s.owner, "소유자(법인명)") },
+      { k: "최초등록일", raw: dmSkVal(s.firstRegDate), full: true },
       { k: "자차상태", raw: dmSel("ownState", s.ownState, DM_OWN_STATES) },
       { k: "처리상태", raw: `<select class="lg-csel" id="dmProcState" data-dm="procState">${procOpts.map(o => `<option ${o === s.procState ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>` },
-      { k: "수리여부", raw: `<select class="lg-csel" id="dmRepaired" data-dm="repaired" ${s.ownState !== "분손" ? "disabled" : ""}>${["예", "아니요"].map(o => `<option ${o === s.repaired ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>` },
-      { k: "정비대차", raw: dmSel("maintSub", s.maintSub, ["이용", "미이용"]) },
+      { k: "수리여부", raw: dmRadio("repaired", s.repaired, ["예", "아니요"], s.ownState !== "분손") },
+      { k: "정비대차", raw: dmRadio("maintSub", s.maintSub, ["미이용", "이용"]) },
       { k: "분실대상", raw: dmLostHtml(s), full: true },
       { k: "차량구입액", raw: dmSkVal(s.buyPrice) },
       { k: "사고시가액", raw: dmSkVal(s.accidentValue) },
       { k: "예상잔존가", raw: `${dmSkVal(s.bookValue)} <span class="lg-cinhint">장부가액</span>`, full: true },
-    ]);
+    ])
+    + dmDeductDepositHtml(d);        // 면책금 입금내역 — '피해 진행' 아래(좌측 컬럼)에 배치
   const right = lgSect("공업사 · 수리", "※ AOS 연동 우선 · 미연동 시 SK 수신")
     + lgTable([
       { k: "공업사", raw: dmShopFieldHtml(s), full: true },
@@ -2320,12 +2511,18 @@ function bindIntakeDamage(d) {
         s.procState = opts[0] || "";
         const ps = body.querySelector("#dmProcState");
         if (ps) ps.innerHTML = opts.map(o => `<option ${o === s.procState ? "selected" : ""}>${iEsc(o)}</option>`).join("");
-        const rep = body.querySelector("#dmRepaired");
-        if (rep) rep.disabled = (el.value !== "분손");
+        const dis = el.value !== "분손";           // 수리여부 라디오 활성/비활성
+        body.querySelectorAll('[data-dmradio="repaired"]').forEach(r => {
+          r.disabled = dis;
+          const lb = r.closest("label"); if (lb) lb.classList.toggle("dis", dis);
+        });
       }
       if (el.dataset.dm === "estimate") dmRecalcEstimate(body, s);
     });
   });
+  body.querySelectorAll("[data-dmradio]").forEach(r => r.addEventListener("change", () => {  // 수리여부·정비대차 라디오
+    if (r.checked) dmSetField(s, r.dataset.dmradio, r.value);
+  }));
   body.querySelectorAll("[data-dmlost]").forEach(cb => cb.addEventListener("change", () => {
     const v = cb.dataset.dmlost;
     if (cb.checked) { if (!s.lost.includes(v)) s.lost.push(v); }
@@ -2333,6 +2530,43 @@ function bindIntakeDamage(d) {
   }));
   const sb = body.querySelector("#dmShopSearch");
   if (sb) sb.addEventListener("click", () => openShopSearchModal(d, s));
+
+  // 면책금 입금내역 — 입력 draft 동기화 / 저장(입력자·승인번호 자동) / 발생내역 토글·검색
+  const dd = getDeductDeposit(d.id);
+  body.querySelectorAll("[data-dd]").forEach(el => {
+    const ev = el.tagName === "SELECT" ? "change" : "input";
+    el.addEventListener(ev, () => {
+      if (el.dataset.dd === "amount") {                 // 금액 — 천단위 콤마 자동 표기
+        const digits = el.value.replace(/[^\d]/g, "");
+        el.value = digits ? Number(digits).toLocaleString("en-US") : "";
+      }
+      dd.draft[el.dataset.dd] = el.value;
+    });
+  });
+  const ddSave = body.querySelector("#dmDeductSave");
+  if (ddSave) ddSave.addEventListener("click", () => saveDeductDeposit(d));
+  const et = body.querySelector("#dmExtraToggle");
+  if (et) et.addEventListener("click", () => {
+    dd.extraOpen = !dd.extraOpen;
+    const eb = body.querySelector("#dmExtraBody");
+    if (eb) eb.hidden = !dd.extraOpen;
+    et.firstChild ? (et.textContent = (dd.extraOpen ? "▼" : "▶") + " 사고처리 외 차량 면책금 발생 내역") : null;
+  });
+  const es = body.querySelector("#dmExtraSearch");
+  if (es) es.addEventListener("click", () => showToast("사고처리 외 차량 면책금 발생 내역을 조회했습니다. (데모)"));
+}
+// 면책금 입금내역 저장 — 필수값 검증 후 입력자(담당자)·승인번호 자동 채번
+function saveDeductDeposit(d) {
+  const dd = getDeductDeposit(d.id), dr = dd.draft;
+  if (!dr.gubun || !dr.date || !dr.amount) { showToast("입금구분·입금일자·금액은 필수입력입니다. (데모)"); return; }
+  const claim = (typeof CLAIMS !== "undefined") ? CLAIMS.find(x => x.id === d.id) : null;
+  const inputter = (claim && claim.manager) || "담당자";   // 담당자 저장 → 입력자=담당자 (공업사 입력 시 '정비공장')
+  const approvalNo = ddApprovalNo();
+  dd.rows.push({ gubun: dr.gubun, date: dr.date, amount: dr.amount, payer: dr.payer, memo: dr.memo, inputter, approvalNo });
+  dd.draft = { gubun: "", date: "", amount: "", payer: "", memo: "" };
+  $("#intakeBody").innerHTML = renderIntakeTab("damage", d);
+  bindIntakeDamage(d);
+  showToast(`면책금 입금내역을 저장했습니다. 입력자 ${inputter} · 승인번호 ${approvalNo} 채번 (데모)`);
 }
 // 공업사 검색·지정 팝업
 function openShopSearchModal(d, s) {
@@ -2502,7 +2736,6 @@ function renderIntake() {
   let closeType = intakeCloseType[id];
   if (!closeType || !allowClose[closeType]) closeType = allowClose["지급"] ? "지급" : (allowClose["면책"] ? "면책" : (closeType || "지급"));
   if (anyClose) intakeCloseType[id] = closeType; // 종결 가능할 때만 선택값 확정
-  const unresolvedText = (d.unresolved && d.unresolved.length) ? d.unresolved.join(", ") : "없음";
   const queryType = INTAKE_QUERY_TYPES.includes(intakeQueryType) ? intakeQueryType : INTAKE_QUERY_TYPES[0];
   root.innerHTML = `
     <button class="lg-back" type="button" id="intakeBack" data-desc="미결일괄조회 목록 화면으로 돌아갑니다.">← 목록으로</button>
@@ -2527,7 +2760,6 @@ function renderIntake() {
           </div>
           <div class="lg-tabbody" id="intakeBody">${renderIntakeTab(intakeTab, d)}</div>
           <div class="lg-actionbar">
-            <span class="lg-std" data-desc="현재 이 사고건에 남아 있는 미결 속성(재통화·VOC 등) 태그입니다.">미결 태그: ${iEsc(unresolvedText)}</span>
             <span class="sp"></span>
             <span class="lg-savetag ${curSaved ? "on" : ""}" data-desc="현재 '${iEsc(tabLabel)}' 탭의 저장 여부입니다. 계약 사고 정보와 피해 진행 정보를 모두 저장해야 '면책' 종결이, 여기에 더해 '청구 견적 정보' 탭에서만 '지급' 종결이 가능합니다.">${curSaved ? "저장됨 ✓" : "미저장"}</span>
             <div class="lg-close-type" role="radiogroup" aria-label="종결 구분">

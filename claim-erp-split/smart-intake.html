@@ -157,6 +157,36 @@
   .lg-ctpolice { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
   .lg-ctradio { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; color: #3A3F4E; cursor: pointer; }
   .lg-ctradio input { accent-color: #2F5BB7; cursor: pointer; }
+  .lg-ctradio.dis { color: #B4BAC6; cursor: not-allowed; }
+  .lg-dmradio { display: inline-flex; align-items: center; gap: 16px; }
+
+  /* 면책금 입금내역 — 저장 범위 박스 */
+  .dm-savebox { border: 1.5px solid #E7CC8A; border-radius: 12px; background: #FFFDF8; padding: 12px 14px 14px; margin: 16px 0 8px; }
+  .dm-savebox-h { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+  .dm-savebox-h .lg-sect-inline { font-weight: 800; font-size: 13px; color: #2B2F3C; }
+  .dm-savebox-h .lg-sect-inline .note { font-weight: 600; font-size: 11.5px; color: #8A6D1F; margin-left: 6px; }
+  .dm-savebox-sp { flex: 1; }
+  .dm-savebox-tag { font-size: 11px; font-weight: 700; color: #8A6D1F; background: #FBF1E6; border: 1px solid #E4C978; border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
+  /* 노란색 버튼 (저장·검색) */
+  .dm-ybtn { font-size: 12.5px; font-weight: 800; color: #6B5416; background: #FDE68A; border: 1px solid #E4C15A; border-radius: 7px; padding: 6px 16px; cursor: pointer; }
+  .dm-ybtn:hover { background: #FCD34D; }
+  .dm-req { color: #DC2626; font-weight: 800; margin-left: 1px; }
+  .dm-dd-tbl th, .dm-dd-tbl td { text-align: center; white-space: nowrap; vertical-align: middle; }
+  .dm-dd-tbl .lg-cin, .dm-dd-tbl .lg-csel { width: 100%; min-width: 90px; }
+  .dm-dd-tbl td.ta-r, .dm-dd-tbl td .ta-r { text-align: right; }
+  .dm-dd-tbl .ta-c { text-align: center; }
+  .dm-dd-appr { border-left: 2px solid #E0E4EC; background: #FafBFD; }
+  .dm-dd-draft td { background: #F6FAFF; }
+  /* 사고처리 외 차량 면책금 발생 내역 — 접기/펼치기 */
+  .dm-extra { margin-top: 14px; }
+  .dm-extra-toggle { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; color: #2B2F3C;
+    background: none; border: none; padding: 4px 0; cursor: pointer; }
+  .dm-extra-toggle:hover { color: #2F5BB7; }
+  .dm-extra-search { display: flex; align-items: center; gap: 8px; margin: 8px 0 10px; font-size: 12.5px; font-weight: 700; color: #3A3F4E; }
+  .dm-extra-search .lg-cin { width: 150px; }
+  .dm-extra-search .u { color: #9AA0B0; }
+  .dm-extra-tbl th, .dm-extra-tbl td { white-space: nowrap; text-align: center; font-size: 11.5px; }
+  .dm-extra-empty { color: #9AA0B0; padding: 18px; }
   .lg-ctstation { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: #5B6273; }
   .lg-ctstation-i { display: inline-flex; align-items: center; gap: 6px; }
   .lg-hide { display: none !important; }
@@ -185,6 +215,29 @@
     border: 1px solid #C6D7F2; border-radius: 6px; background: #EAF0FB; color: #2F5BB7; cursor: pointer; flex: none; padding: 0; }
   .lg-msgbtn:hover { background: #DCE7FA; border-color: #2F5BB7; }
   .lg-msgbtn svg { width: 15px; height: 15px; }
+
+  /* 사고 관련자 — 운전자/면허 블록 (이미지 기준 레이아웃) */
+  .lg-drvtbl { margin-bottom: 4px; }
+  .lg-drv { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .lg-drv .lg-drv-name { width: 130px; flex: none; }
+  .lg-drv .lg-csel { width: auto; min-width: 120px; }
+  .lg-drv .lg-drv-lno { width: 210px; flex: none; }
+  .lg-drv-note { font-size: 11px; color: #8A90A3; }
+  .lg-lstatus { font-size: 12px; font-weight: 700; padding: 3px 11px; border-radius: 999px; white-space: nowrap; }
+  .lg-lstatus b { font-weight: 800; margin-left: 2px; }
+  .lg-lstatus.ok { background: #E7F5EC; color: #15803D; }
+  .lg-lstatus.warn { background: #FDECEC; color: #DC2626; }
+  .lg-lstatus.na { background: #EEF1F6; color: #5B6273; }
+  .lg-comp-ts { margin-left: 10px; font-size: 11.5px; font-weight: 700; color: #2F5BB7;
+    background: #EEF3FB; border: 1px solid #CFE0F5; border-radius: 999px; padding: 2px 9px; }
+
+  /* 사고장소 — 입력칸 + GPS(지도 검색) 아이콘 */
+  .lg-ctplace { display: flex; align-items: center; gap: 6px; }
+  .lg-ctplace .lg-cin { flex: 1 1 auto; min-width: 0; }
+  .lg-gpsbtn { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 26px;
+    border: 1px solid #C6D7F2; border-radius: 6px; background: #EAF0FB; color: #2F5BB7; cursor: pointer; flex: none; padding: 0; }
+  .lg-gpsbtn:hover { background: #DCE7FA; border-color: #2F5BB7; }
+  .lg-gpsbtn svg { width: 16px; height: 16px; }
 
   /* ===== 피해 진행 정보 탭 — 편집 컨트롤 ===== */
   .lg-cin.ta-r { text-align: right; }

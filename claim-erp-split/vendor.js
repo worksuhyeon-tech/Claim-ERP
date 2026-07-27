@@ -11,6 +11,53 @@
   /* 담당자 업무구분 — SA 또는 SK (대물-AS·대인·자차 불필요) */
   const TASK_OPTS = ["SA", "SK"];
 
+  /* 브랜드별 부품할인율 — 브랜드는 자동차 제조사코드(산지 D=국산/F=외산) 기준으로 채운다.
+     공통코드: 대분류 시스템(SYST) > 중분류 제작사 국산/외산 > 소분류 브랜드(제작사코드). */
+  const BRAND_CODES = {
+    국산: ["현대", "기아", "르노(삼성)", "KG모빌리티(쌍용)", "쉐보레(대우)", "기타"],
+    외산: [
+      "BMW", "벤츠", "렉서스", "크라이슬러", "볼보", "아우디", "랜드로버", "GM", "포드", "폭스바겐",
+      "사브", "머큐리", "포르쉐", "페라리", "재규어", "푸조", "시트로엥", "링컨", "시보레", "오펠",
+      "GMC", "캐딜락", "람보르기니", "피아트", "도요타", "마쯔다", "미쯔비시", "이스즈", "혼다", "닛산",
+      "다이하쓰", "닷지", "란치아", "로버", "로터스", "롤스로이스", "르노", "마세라티", "벤틀리", "뷰익",
+      "세아트", "스바루", "스즈키", "알파로메오", "애스턴마틴", "올즈모빌", "인피니티", "허머", "홀덴", "폰티악",
+      "기타", "스카니아", "만", "북기은상", "맥라렌", "테슬라", "MINI",
+    ],
+  };
+  /* 제작사 구분별 기본 부품할인율(%) — 상단 요약값 */
+  const ORIGIN_RATE = { 국산: "5.00", 외산: "0.00" };
+  /* 브랜드별 부품할인율(%) 편집 상태 — 구분 전환 시에도 입력값 유지 (데모 시드) */
+  const brandRates = {
+    국산: { "현대": "5", "기아": "5", "르노(삼성)": "3", "KG모빌리티(쌍용)": "3", "쉐보레(대우)": "3", "기타": "0" },
+    외산: {},
+  };
+
+  /* 은행명 드롭다운 — 국내 이용 빈도(개인고객 접근성·시장규모) 기준 조회순서
+     (엑셀 '정렬기준' 시트: 국내은행·상호금융 → 외국계 → 증권 → 구/폐지 코드 순) */
+  const BANK_OPTS = [
+    "(004) 국민은행", "(088) 신한은행", "(011) 농협중앙회", "(012) 지역농협",
+    "(081) KEB하나은행", "(020) 우리은행", "(090) 카카오뱅크", "(003) 기업은행",
+    "(045) 새마을금고", "(071) 우체국", "(092) 토스뱅크", "(089) 케이뱅크",
+    "(048) 신용협동조합", "(007) 수협", "(023) 제일은행", "(050) 상호저축은행",
+    "(031) IM뱅크((구)대구은행)", "(032) 부산은행", "(039) 경남은행", "(034) 광주은행",
+    "(037) 전북은행", "(035) 제주은행", "(027) 씨티은행", "(002) 산업은행",
+    "(064) 산림조합중앙회", "(054) HSBC", "(051) Ｄ．Ｂ．Ｓ．", "(055) 도이치은행",
+    "(057) JP모간체이스은행", "(060) BOA", "(059) 엠유에프지은행", "(058) 미즈호은행",
+    "(061) BNP파리바은행", "(264) 키움증권", "(230) 미래에셋증권", "(238) 미래에셋증권",
+    "(240) 삼성증권", "(243) 한국투자증권", "(247) NH투자증권", "(218) KB증권",
+    "(271) 토스증권", "(288) 카카오페이증권", "(278) 신한금융투자", "(270) 하나금융투자",
+    "(287) 메리츠증권", "(209) 유안타증권", "(269) 한화투자증권", "(263) 현대차증권",
+    "(225) IBK투자증권", "(265) 이베스트증권", "(266) SK증권", "(280) 유진투자증권",
+    "(262) 하이투자증권", "(291) 신영증권", "(227) KTB투자증권", "(294) 한국포스증권",
+    "(005) 외환은행", "(053) (구)씨티은행", "(001) 한국은행", "(006) (폐)주택은행",
+    "(010) (폐)농협중앙회", "(013) (폐)지역농협", "(014) (폐)지역농협", "(015) (폐)지역농협",
+    "(021) (폐)(구)조흥은행", "(022) (폐)우리은행", "(024) (폐)우리은행", "(025) (폐)서울은행",
+    "(026) (폐)(구)신한은행", "(046) (폐)새마을금고", "(049) (폐)신용협동조합", "(072) (폐)우체국",
+    "(073) (폐)우체국", "(074) (폐)우체국", "(075) (폐)우체국", "(083) (폐)평화은행",
+    "(261) (폐)교보증권", "(267) (폐)대신증권", "(268) (폐)아이엠투자증권", "(279) (폐)동부증권",
+    "(289) (폐)NH투자증권", "(290) (폐)부국증권", "(292) (폐)LIG투자증권",
+  ];
+
   /* 담당자 인사 디렉터리 (성명 → 사번·부서) — 조회 데모용 */
   const STAFF_DIR = {
     "정태순": { no: "10200849", dept: "애니카손사 Claim1팀" },
@@ -110,11 +157,55 @@
     </tr>`;
   }
 
+  /* 은행명 드롭다운 채우기 — [data-bankselect] 셀렉트에 조회순서대로 옵션 주입,
+     data-selected 값(현재 계좌 은행)을 기본 선택으로 표시 */
+  root.querySelectorAll("select[data-bankselect]").forEach(sel => {
+    const cur = sel.getAttribute("data-selected") || "";
+    sel.innerHTML = optionsHtml(BANK_OPTS, cur);
+  });
+
+  /* 브랜드별 부품할인율 — 선택된 제작사 구분(국산/외산)의 제조사코드 브랜드로 표 렌더.
+     외산은 브랜드가 많아 3열(컬럼별 세로 분배) 레이아웃으로 표시한다. */
+  function currentOrigin() { const s = document.getElementById("vOriginSel"); return (s && s.value) || "국산"; }
+  function brandCell(b, rates) {
+    return `<td class="vbr-name">${esc(b)}</td><td><input class="lg-in" style="text-align:right" data-brand="${esc(b)}" value="${esc(rates[b] || "0")}"></td>`;
+  }
+  function renderBrandRates() {
+    const wrap = document.getElementById("vBrandWrap");
+    if (!wrap) return;
+    const origin = currentOrigin();
+    const rates = brandRates[origin] || (brandRates[origin] = {});
+    const brands = BRAND_CODES[origin] || [];
+    if (brands.length > 12) {
+      // 4열 레이아웃 (컬럼별 세로 분배)
+      const cols = 4, per = Math.ceil(brands.length / cols);
+      let body = "";
+      for (let r = 0; r < per; r++) {
+        let tr = "<tr>";
+        for (let c = 0; c < cols; c++) {
+          const idx = c * per + r;
+          tr += idx < brands.length ? brandCell(brands[idx], rates) : "<td></td><td></td>";
+        }
+        body += tr + "</tr>";
+      }
+      const head = "<tr>" + "<th>브랜드</th><th>부품할인율 (%)</th>".repeat(cols) + "</tr>";
+      wrap.innerHTML = `<table class="lg-tbl vbr-tbl"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+    } else {
+      const body = brands.map(b => `<tr>${brandCell(b, rates)}</tr>`).join("");
+      wrap.innerHTML = `<table class="lg-tbl" style="max-width:360px"><colgroup><col style="width:55%"><col style="width:45%"></colgroup><thead><tr><th>브랜드</th><th>부품할인율 (%)</th></tr></thead><tbody>${body}</tbody></table>`;
+    }
+    const label = document.getElementById("vOriginLabel");
+    if (label) label.textContent = origin + "부품할인율";
+    const rate = document.getElementById("vOriginRate");
+    if (rate) rate.value = ORIGIN_RATE[origin] || "0.00";
+  }
+
   /* 시드 렌더 */
   const relatedBody = document.getElementById("vRelatedBody");
   if (relatedBody) relatedBody.innerHTML = RELATED_SEED.map(relatedRow).join("");
   const staffBody = document.getElementById("vStaffBody");
   if (staffBody) staffBody.innerHTML = STAFF_SEED.map(staffRow).join("");
+  renderBrandRates();
 
   /* 탭 전환 */
   const tabs = root.querySelector("#vTabs");
@@ -187,16 +278,44 @@
       return;
     }
 
+    /* 선정평가 → 평가항목/건수 관리 팝업 새 창 열기 (업체 컨텍스트 전달) */
+    if (e.target.closest("#vEvalBtn")) {
+      const nm = (document.getElementById("vBaseName") || {}).textContent || "협력업체";
+      const biz = (document.getElementById("vBaseBiz") || {}).textContent || "-";
+      try { localStorage.setItem("vendorEvalContext", JSON.stringify({ name: nm.trim(), biz: biz.trim() })); } catch (err) {}
+      const url = "vendor-eval.html?name=" + encodeURIComponent(nm.trim()) + "&biz=" + encodeURIComponent(biz.trim());
+      const w = window.open(url, "vendorEval", "width=1120,height=860,menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes");
+      if (w) w.focus(); else toast("팝업이 차단되었습니다. 브라우저 팝업 허용 후 다시 시도하세요. (데모)");
+      return;
+    }
+
+    /* 부품할인율 일괄적용 — 상단 %값을 현재 구분의 모든 브랜드 칸에 적용 */
+    if (e.target.closest("#vBulkApply")) {
+      const origin = currentOrigin();
+      const raw = (document.getElementById("vOriginRate") || {}).value;
+      const num = parseFloat(raw);
+      const val = isNaN(num) ? "0" : String(num);
+      const rates = brandRates[origin] || (brandRates[origin] = {});
+      root.querySelectorAll("#vBrandWrap input[data-brand]").forEach(inp => {
+        inp.value = val;
+        rates[inp.dataset.brand] = val;
+      });
+      toast(`${origin} 부품할인율 ${val}%를 전체 브랜드에 일괄 적용했습니다. (데모)`);
+      return;
+    }
+
     /* 안내용 버튼(데모 토스트) */
     const t = e.target.closest("[data-toast]");
     if (t) { toast(t.dataset.toast); return; }
 
-    /* 저장 / 검색 */
-    if (e.target.closest("#vSaveBtn") || e.target.closest("#vSaveBtn2")) {
+    /* 저장 — 섹션별 저장 버튼([data-vsave]) 처리 */
+    const saveBtn = e.target.closest("[data-vsave]");
+    if (saveBtn) {
+      const label = saveBtn.dataset.vsave ? saveBtn.dataset.vsave + "을(를) " : "협력업체 정보를 ";
       const r = closePreviousStaff();
       toast(r.closed
-        ? `협력업체 정보를 저장했습니다. 직전 담당자 ${r.closed}명의 종료일을 ${r.date}(입력일 D-1)로 자동 처리했습니다. (데모)`
-        : "협력업체 정보를 저장했습니다. (데모)");
+        ? `${label}저장했습니다. 직전 담당자 ${r.closed}명의 종료일을 ${r.date}(입력일 D-1)로 자동 처리했습니다. (데모)`
+        : `${label}저장했습니다. (데모)`);
       return;
     }
     if (e.target.closest("#vSearchBtn")) {
@@ -206,12 +325,48 @@
     }
   });
 
-  /* 전체선택 체크박스 */
+  /* 전체선택 체크박스 / 제작사 구분(국산·외산) 전환 */
   root.addEventListener("change", e => {
     const all = e.target.closest("input[data-checkall]");
-    if (!all) return;
-    const body = all.closest("table").querySelector("tbody");
-    body.querySelectorAll("input[data-rowchk]").forEach(chk => { chk.checked = all.checked; });
+    if (all) {
+      const body = all.closest("table").querySelector("tbody");
+      body.querySelectorAll("input[data-rowchk]").forEach(chk => { chk.checked = all.checked; });
+      return;
+    }
+    if (e.target.id === "vOriginSel") { renderBrandRates(); return; }
+    if (e.target.closest("[data-actradio]")) { applyContractActivation(e.target.closest("[data-actradio]").dataset.actradio); return; }
+  });
+
+  /* 계약여부='계약'일 때만 계약일자·계약약관·계약적용일자·계약기간 활성화 (첫 라디오='계약') */
+  function applyContractActivation(grp) {
+    const radios = root.querySelectorAll(`input[name="vc-${grp}"]`);
+    const contracted = radios[0] && radios[0].checked;
+    root.querySelectorAll(`[data-actgrp="${grp}"]`).forEach(el => {
+      el.disabled = !contracted;
+      const lbl = el.closest("label");
+      if (lbl) lbl.classList.toggle("dis", !contracted);
+    });
+  }
+  applyContractActivation("dom");
+  applyContractActivation("imp");
+
+  /* 섹션별 '저장' 버튼에 hover/focus 시 해당 저장 박스를 강조 — 저장 범위를 시각적으로 안내 */
+  function toggleSaveBox(target, on) {
+    const btn = target && target.closest && target.closest("[data-vsave]");
+    if (!btn) return;
+    const box = btn.closest(".v-savebox");
+    if (box) box.classList.toggle("hi", on);
+  }
+  root.addEventListener("mouseover", e => toggleSaveBox(e.target, true));
+  root.addEventListener("mouseout", e => toggleSaveBox(e.target, false));
+  root.addEventListener("focusin", e => toggleSaveBox(e.target, true));
+  root.addEventListener("focusout", e => toggleSaveBox(e.target, false));
+
+  /* 브랜드별 부품할인율 입력값 유지 (구분 전환 시에도 보존) + 기본 요약율 반영 */
+  root.addEventListener("input", e => {
+    const bi = e.target.closest("[data-brand]");
+    if (bi) { (brandRates[currentOrigin()] || {})[bi.dataset.brand] = bi.value; return; }
+    if (e.target.id === "vOriginRate") { ORIGIN_RATE[currentOrigin()] = e.target.value; return; }
   });
 })();
 
