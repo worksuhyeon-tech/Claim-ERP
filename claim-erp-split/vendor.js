@@ -267,8 +267,8 @@
     const t = e.target.closest("[data-toast]");
     if (t) { toast(t.dataset.toast); return; }
 
-    /* 저장 / 검색 — 섹션별 저장 버튼([data-vsave])과 전체 저장(#vSaveBtn/#vSaveBtn2) 공통 처리 */
-    const saveBtn = e.target.closest("[data-vsave]") || e.target.closest("#vSaveBtn") || e.target.closest("#vSaveBtn2");
+    /* 저장 — 섹션별 저장 버튼([data-vsave]) 처리 */
+    const saveBtn = e.target.closest("[data-vsave]");
     if (saveBtn) {
       const label = saveBtn.dataset.vsave ? saveBtn.dataset.vsave + "을(를) " : "협력업체 정보를 ";
       const r = closePreviousStaff();
