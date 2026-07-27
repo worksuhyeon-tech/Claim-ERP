@@ -1,9 +1,9 @@
 "use strict";
 const activeView = "closing";
 
-const APPR_TYPES = ["추산", "지급(종결)", "면책종결", "추가지급", "VOC"];
+const APPR_TYPES = ["추산", "지급(종결)", "면책종결", "추가지급", "업체관리"];
 const APPR_STATUS_CLASS = { "상신중": "appr-ing", "결재완료": "appr-done", "반려": "appr-reject", "상신취소": "appr-cancel" };
-const APPR_TYPE_COLOR = { "추산": "#2563EB", "지급(종결)": "#15803D", "면책종결": "#7C3AED", "추가지급": "#0891B2", "VOC": "#DC2626" };
+const APPR_TYPE_COLOR = { "추산": "#2563EB", "지급(종결)": "#15803D", "면책종결": "#7C3AED", "추가지급": "#0891B2", "업체관리": "#B45309" };
 const APPR_ACT_CLASS = { "상신": "", "승인": "h-approve", "반려": "h-reject" };
 
 // 결재 공용 기반(APPROVALS·config·시드·헬퍼)은 common.js로 이동 (공유).
@@ -147,8 +147,35 @@ function apprSignHtml(item) {
     <div><div class="sk">결재</div>${stamp}</div>
   </div>`;
 }
+// 업체관리 품의서 — 협력업체조회(업체등급/실적관리·계약정보) 결재 내용을 축약 (변경전/변경후)
+function apprVendorDocHtml(item) {
+  const changes = item.vendorChanges || [];
+  const rows = changes.map(c =>
+    `<tr><td>${c.item}</td><td>${c.gubun}</td><td class="vch-before">${(c.before == null || c.before === "") ? "-" : c.before}</td><td class="vch-after">${(c.after == null || c.after === "") ? "-" : c.after}</td></tr>`
+  ).join("");
+  return `<div class="appr-doc">
+    <div class="doc-head"><span class="doc-title">협력업체 관리 품의서</span><span class="doc-no">${item.vendorBiz || item.claimNo || ""}</span></div>
+    <div class="doc-grp"><div class="doc-grp-h">업체 기본정보</div><div class="doc-rows">
+      <div class="dk">업체명</div><div class="dv">${item.vendorName || "-"}</div>
+      <div class="dk">사업자번호</div><div class="dv">${item.vendorBiz || "-"}</div>
+      <div class="dk">주소</div><div class="dv">${item.vendorAddr || "-"}</div>
+      <div class="dk">연락처</div><div class="dv">${item.vendorPhone || "-"}</div>
+      <div class="dk">대표자</div><div class="dv">${item.vendorCeo || "-"}${item.vendorCeoPhone ? ` (${item.vendorCeoPhone})` : ""}</div>
+      <div class="dk">보험업무 Keyman</div><div class="dv">${item.vendorKeyman || "-"}${item.vendorKeymanPhone ? ` (${item.vendorKeymanPhone})` : ""}</div>
+      <div class="dk">업체구분</div><div class="dv">${item.vendorType || "-"}</div>
+      <div class="dk">업체등급</div><div class="dv">${item.vendorGrade || "-"}</div>
+      <div class="dk">담당자</div><div class="dv">${item.vendorManager || "-"}</div>
+    </div></div>
+    <div class="vch-wrap"><table class="vch-tbl">
+      <thead><tr><th>항목</th><th>구분</th><th>변경전</th><th>변경후</th></tr></thead>
+      <tbody>${rows || `<tr><td colspan="4" class="vch-empty">변경 내역이 없습니다.</td></tr>`}</tbody>
+    </table></div>
+    ${apprSignHtml(item)}
+  </div>`;
+}
 // 패널용 요약 품의서 (핵심만 한눈에)
 function apprDocSummaryHtml(item) {
+  if (item.approvalType === "업체관리") return apprVendorDocHtml(item) + `<button type="button" class="btn doc-full-btn" data-doc-full>품의서 전체보기</button>`;
   const ci = item.coreInfo || {};
   const acc = ci.accident || {}, con = ci.contract || {}, dmg = ci.damage || {}, cls = ci.closing || {};
   const car = `${con.차량명 || "-"}${con.차량번호 ? " · " + con.차량번호 : ""}`;
@@ -175,6 +202,7 @@ function apprDocSectionFull(sec, item) {
   return `<div class="doc-grp"><div class="doc-grp-h">${sec.title}</div><div class="doc-rows">${rows}</div></div>`;
 }
 function apprDocFullHtml(item) {
+  if (item.approvalType === "업체관리") return apprVendorDocHtml(item);
   const secByKey = k => APPR_CORE_SECTIONS.find(s => s.key === k);
   const col = keys => keys.map(k => apprDocSectionFull(secByKey(k), item)).join("");
   return `<div class="appr-doc">
@@ -197,7 +225,7 @@ function openApprDoc(id) {
       <div class="modal-head">
         <div class="modal-title-wrap">
           <div class="modal-eyebrow">${item.approvalType} · ${item.approvalStatus}</div>
-          <h2 class="modal-title">지급 품의서 전체보기</h2>
+          <h2 class="modal-title">${item.approvalType === "업체관리" ? "업체관리 품의서 전체보기" : "지급 품의서 전체보기"}</h2>
           <div class="modal-sub">${item.claimNo} · 결의순번 ${item.resolutionNo} · 상신자 ${item.requesterName}</div>
         </div>
         <button class="modal-close" type="button" aria-label="닫기" data-modal-close>×</button>
@@ -242,7 +270,7 @@ function renderApprPanel() {
         <label class="k" for="apprApprover">결재자</label>
         <select id="apprApprover" class="sa-select">${apprApproverOptions()}</select>
       </div>
-      <div class="sec"><div class="sec-title">지급 품의서</div>${apprDocSummaryHtml(item)}</div>
+      <div class="sec"><div class="sec-title">${item.approvalType === "업체관리" ? "업체관리 품의서" : "지급 품의서"}</div>${apprDocSummaryHtml(item)}</div>
       <div class="sec spd-opinion"><div class="sec-title">결재의견</div>
         <div class="k">상신자 의견</div>
         <div class="spd-ro">${item.requesterComment || "-"}</div>
@@ -254,10 +282,14 @@ function renderApprPanel() {
       <div class="sec"><div class="sec-title">결재이력</div>${apprHistoryHtml(item)}</div>
       <div class="sec"><div class="sec-title">빠른 이동</div>
         <div class="btn-grid">
-          <button class="btn" type="button" data-jump="intake">Smart업무처리 보기</button>
-          <button class="btn" type="button" data-jump="pay">지급결의 화면</button>
-          <button class="btn" type="button" data-jump="contact">고객 컨택이력</button>
-          <button class="btn" type="button" data-jump="image">첨부/이미지 확인</button>
+          ${item.approvalType === "업체관리"
+            ? `<button class="btn" type="button" data-jump="intake">Smart업무처리</button>
+               <button class="btn" type="button" data-jump="vendor">협력업체조회</button>
+               <button class="btn" type="button" data-jump="image">첨부/이미지 확인</button>`
+            : `<button class="btn" type="button" data-jump="intake">Smart업무처리 보기</button>
+               <button class="btn" type="button" data-jump="pay">지급결의 화면</button>
+               <button class="btn" type="button" data-jump="contact">고객 컨택이력</button>
+               <button class="btn" type="button" data-jump="image">첨부/이미지 확인</button>`}
         </div>
       </div>
     </div>
@@ -282,6 +314,7 @@ function renderApprPanel() {
 
 function apprJump(kind, item) {
   if (kind === "intake" && CLAIMS.some(c => c.id === item.claimNo)) { openIntake(item.claimNo); return; }
+  if (kind === "vendor") { if (typeof openViewWindow === "function") openViewWindow("vendor"); else showToast("협력업체조회 화면으로 이동합니다."); return; }
   showToast("해당 화면으로 이동합니다.");
 }
 
