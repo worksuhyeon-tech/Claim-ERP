@@ -11,18 +11,24 @@
   /* 담당자 업무구분 — SA 또는 SK (대물-AS·대인·자차 불필요) */
   const TASK_OPTS = ["SA", "SK"];
 
-  /* 브랜드별 부품할인율 — 브랜드는 공통코드 기준으로 채운다.
-     공통코드: 대분류 시스템(SYST) > 중분류 제작사 국산(MKDM)/제작사 외산(MKIM) > 소분류 브랜드.
-     (실제 운영 시 공통코드관리 화면에서 브랜드를 등록/수정/삭제 → 이 목록에 반영) */
+  /* 브랜드별 부품할인율 — 브랜드는 자동차 제조사코드(산지 D=국산/F=외산) 기준으로 채운다.
+     공통코드: 대분류 시스템(SYST) > 중분류 제작사 국산/외산 > 소분류 브랜드(제작사코드). */
   const BRAND_CODES = {
-    국산: ["현대", "기아", "르노삼성", "KG모빌리티(쌍용)", "쉐보레", "기타"],
-    외산: ["BMW", "메르세데스-벤츠", "아우디", "폭스바겐", "토요타", "렉서스", "혼다", "포드", "볼보", "테슬라", "기타"],
+    국산: ["현대", "기아", "르노(삼성)", "KG모빌리티(쌍용)", "쉐보레(대우)", "기타"],
+    외산: [
+      "BMW", "벤츠", "렉서스", "크라이슬러", "볼보", "아우디", "랜드로버", "GM", "포드", "폭스바겐",
+      "사브", "머큐리", "포르쉐", "페라리", "재규어", "푸조", "시트로엥", "링컨", "시보레", "오펠",
+      "GMC", "캐딜락", "람보르기니", "피아트", "도요타", "마쯔다", "미쯔비시", "이스즈", "혼다", "닛산",
+      "다이하쓰", "닷지", "란치아", "로버", "로터스", "롤스로이스", "르노", "마세라티", "벤틀리", "뷰익",
+      "세아트", "스바루", "스즈키", "알파로메오", "애스턴마틴", "올즈모빌", "인피니티", "허머", "홀덴", "폰티악",
+      "기타", "스카니아", "만", "북기은상", "맥라렌", "테슬라", "MINI",
+    ],
   };
   /* 제작사 구분별 기본 부품할인율(%) — 상단 요약값 */
   const ORIGIN_RATE = { 국산: "5.00", 외산: "0.00" };
   /* 브랜드별 부품할인율(%) 편집 상태 — 구분 전환 시에도 입력값 유지 (데모 시드) */
   const brandRates = {
-    국산: { "현대": "5", "기아": "5", "르노삼성": "3", "KG모빌리티(쌍용)": "3", "쉐보레": "3", "기타": "0" },
+    국산: { "현대": "5", "기아": "5", "르노(삼성)": "3", "KG모빌리티(쌍용)": "3", "쉐보레(대우)": "3", "기타": "0" },
     외산: {},
   };
 
@@ -158,16 +164,36 @@
     sel.innerHTML = optionsHtml(BANK_OPTS, cur);
   });
 
-  /* 브랜드별 부품할인율 — 선택된 제작사 구분(국산/외산)의 공통코드 브랜드로 표 렌더 */
+  /* 브랜드별 부품할인율 — 선택된 제작사 구분(국산/외산)의 제조사코드 브랜드로 표 렌더.
+     외산은 브랜드가 많아 3열(컬럼별 세로 분배) 레이아웃으로 표시한다. */
   function currentOrigin() { const s = document.getElementById("vOriginSel"); return (s && s.value) || "국산"; }
+  function brandCell(b, rates) {
+    return `<td class="vbr-name">${esc(b)}</td><td><input class="lg-in" style="text-align:right" data-brand="${esc(b)}" value="${esc(rates[b] || "0")}"></td>`;
+  }
   function renderBrandRates() {
-    const body = document.getElementById("vBrandBody");
-    if (!body) return;
+    const wrap = document.getElementById("vBrandWrap");
+    if (!wrap) return;
     const origin = currentOrigin();
     const rates = brandRates[origin] || (brandRates[origin] = {});
-    body.innerHTML = (BRAND_CODES[origin] || []).map(b =>
-      `<tr><td>${esc(b)}</td><td><input class="lg-in" style="text-align:right" data-brand="${esc(b)}" value="${esc(rates[b] || "0")}"></td></tr>`
-    ).join("");
+    const brands = BRAND_CODES[origin] || [];
+    if (brands.length > 12) {
+      // 3열 레이아웃 (컬럼별 세로 분배)
+      const cols = 3, per = Math.ceil(brands.length / cols);
+      let body = "";
+      for (let r = 0; r < per; r++) {
+        let tr = "<tr>";
+        for (let c = 0; c < cols; c++) {
+          const idx = c * per + r;
+          tr += idx < brands.length ? brandCell(brands[idx], rates) : "<td></td><td></td>";
+        }
+        body += tr + "</tr>";
+      }
+      const head = "<tr>" + "<th>브랜드</th><th>부품할인율 (%)</th>".repeat(cols) + "</tr>";
+      wrap.innerHTML = `<table class="lg-tbl vbr-tbl"><thead>${head}</thead><tbody>${body}</tbody></table>`;
+    } else {
+      const body = brands.map(b => `<tr>${brandCell(b, rates)}</tr>`).join("");
+      wrap.innerHTML = `<table class="lg-tbl" style="max-width:360px"><colgroup><col style="width:55%"><col style="width:45%"></colgroup><thead><tr><th>브랜드</th><th>부품할인율 (%)</th></tr></thead><tbody>${body}</tbody></table>`;
+    }
     const label = document.getElementById("vOriginLabel");
     if (label) label.textContent = origin + "부품할인율";
     const rate = document.getElementById("vOriginRate");

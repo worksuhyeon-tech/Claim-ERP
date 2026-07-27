@@ -85,6 +85,13 @@
   #clTooltip.below::after { top: -4px; }
   #viewVendor [data-desc] { cursor: pointer; }
 
+  /* 브랜드별 부품할인율 — 외산 3열 레이아웃 */
+  #viewVendor .vbr-tbl { max-width: 780px; }
+  #viewVendor .vbr-tbl th, #viewVendor .vbr-tbl td { text-align: center; }
+  #viewVendor .vbr-tbl .vbr-name { text-align: left; white-space: nowrap; font-weight: 600; }
+  #viewVendor .vbr-tbl input { width: 70px; }
+  #viewVendor .vbr-tbl td:nth-child(2n) { border-right: 2px solid #E0E4EC; }
+
   /* 저장 범위 박스 — 섹션별 '저장' 버튼이 저장하는 항목 범위를 시각적으로 구분 */
   #viewVendor .v-savebox {
     position: relative; border: 1.5px solid #E7CC8A; border-radius: 12px;
@@ -557,17 +564,13 @@
           <div class="vcap">브랜드별 부품할인율 <span class="note" style="font-weight:600;color:#5B6273">브랜드는 공통코드(시스템 &gt; 제작사 국산·외산 &gt; 브랜드) 기준</span></div>
           <div class="vtab-tools" style="margin-bottom:8px">
             <span class="vinline">
-              <select class="lg-sel" id="vOriginSel" style="width:120px" data-desc="제작사 구분(국산/외산)을 선택하면 해당 구분의 브랜드 목록으로 표가 전환됩니다. 브랜드는 공통코드(중분류 제작사 국산/외산, 소분류 브랜드)에서 관리합니다."><option value="국산">제작사 국산</option><option value="외산">제작사 외산</option></select>
+              <select class="lg-sel" id="vOriginSel" style="width:110px" data-desc="제작사 산지 구분(국산=D 도메스틱 / 외산=F 포리널)을 선택하면 해당 구분의 브랜드 목록으로 표가 전환됩니다. 브랜드는 자동차 제조사코드에서 관리합니다."><option value="국산">국산</option><option value="외산">외산</option></select>
               <button type="button" class="lg-mini gray" data-toast="부품할인율 변경 이력을 조회합니다. (데모)">할인율이력</button>
               <span class="u" style="margin-left:10px" id="vOriginLabel">국산부품할인율</span>
               <input class="lg-in" id="vOriginRate" style="width:70px;text-align:right" value="5.00"><span class="u">%</span>
             </span>
           </div>
-          <table class="lg-tbl" style="max-width:360px">
-            <colgroup><col style="width:55%"><col style="width:45%"></colgroup>
-            <thead><tr><th>브랜드</th><th>부품할인율 (%)</th></tr></thead>
-            <tbody id="vBrandBody"></tbody>
-          </table>
+          <div id="vBrandWrap"></div>
           <!-- 계약정보 저장 → 전자계약서 발송(Pro) → 결재 동선 -->
           <div class="v-actionrow">
             <button type="button" class="lg-abtn primary" data-vsave="계약정보 관리" data-desc="입력한 계약정보(지급처 계좌·계약여부·계약요금·부품할인율)를 저장합니다. 저장 후 전자계약서 발송/결재를 진행하세요.">계약정보 저장</button>
