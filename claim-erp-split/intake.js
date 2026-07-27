@@ -455,7 +455,7 @@ function defaultDetail(c, w) {
       personalSub: p.pick(["불포함", "포함"]),
       // 면책금 (사고 정산)
       deductAgreed: won(p.pick([100000, 200000, 300000, 500000])),
-      deductBilling: p.pick(["개별 정액", "통합 청구", "개별 실비"]),
+      deductBilling: p.pick(["개별 정액", "통합청구", "완전자차"]),
       deductPayMethod: p.pick(["완전자차", "선택안함"]),
       totalAccidents: `${p.int(0, 6)}건`,
       deductArrears: `${p.int(0, 4)}건`,
