@@ -1958,7 +1958,10 @@ function intakeEstimateTab(d) {
     const note = extra.length ? "정비 견적(청구서)은 아직 없습니다. 아래는 AI-OCR로 등록한 부품 내역입니다." : "등록된 청구 견적 정보가 없습니다.";
     return `${dmDeductDepositHtml(d)}${intakeEstimatePhotoStrip(d)}<div class="lg-est-emptybar">
       <div class="lg-est-empty">${note}</div>
-      <button type="button" class="ocr-pro-btn" id="ocrProBtn" data-desc="부품청구서를 업로드해 AI-OCR로 전산화하고 부품 지급결의를 생성합니다. (Pro 기능)"><span class="ai">🤖</span> AI-OCR <span class="tag">Pro</span></button>
+      <span class="lg-est-empty-btns">
+        ${typeof aosImportBtnHtml === "function" ? aosImportBtnHtml() : ""}
+        <button type="button" class="ocr-pro-btn" id="ocrProBtn" data-desc="부품청구서를 업로드해 AI-OCR로 전산화하고 부품 지급결의를 생성합니다. (Pro 기능)"><span class="ai">🤖</span> AI-OCR <span class="tag">Pro</span></button>
+      </span>
     </div>${partsTable}${aosBarMaybe(d)}${ocrStageBarHtml(d)}${srApprComponentHtml(d)}`;
   }
   const rows = estimateDocType === "pre" ? doc.pre : doc.claim;
@@ -1987,6 +1990,7 @@ function intakeEstimateTab(d) {
     <button type="button" class="be-tgl ${isPre ? "on" : ""}" data-estdoc="pre" data-desc="입고 전 개략 견적인 '선견적' 내역으로 표를 전환합니다.">선견적</button>
     <button type="button" class="be-tgl ${!isPre ? "on" : ""}" data-estdoc="claim" data-desc="공업사가 정식 청구한 '청구서' 내역으로 표를 전환합니다.">청구서</button>
     <span class="grow"></span>
+    ${typeof aosImportBtnHtml === "function" ? aosImportBtnHtml() : ""}
     <button type="button" class="ocr-pro-btn" id="ocrProBtn" data-desc="부품청구서를 업로드해 AI-OCR로 전산화하고 부품 지급결의를 생성합니다. (Pro 기능)"><span class="ai">🤖</span> AI-OCR <span class="tag">Pro</span></button>
   </div>`;
 
