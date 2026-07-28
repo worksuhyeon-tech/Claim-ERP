@@ -416,7 +416,8 @@ function confirmOcrResolution(d) {
 }
 
 // 지급결의 저장소 생성 헬퍼 (정비/부품 공용) — resolutionSeq는 push 시점 기준으로 순차 부여
-function ocrMakeResolution(d, staff, type, sourceType, fileName, rows, editHistory, faultPct) {
+//  assessedOverride: AOS 손해사정 재원 합계(있으면 손해사정 금액에 반영). null이면 기존 로직(견적 합산).
+function ocrMakeResolution(d, staff, type, sourceType, fileName, rows, editHistory, faultPct, assessedOverride) {
   const res = {
     id: nextResolutionId(),
     claimNo: d.id,
@@ -438,6 +439,15 @@ function ocrMakeResolution(d, staff, type, sourceType, fileName, rows, editHisto
     updatedAt: apprNow(),
   };
   recalcResolutionAmounts(res, faultPct);
+  // AOS 재원 반영: 손해사정 총액을 재원 합계로 오버라이드하고 과실offset/최종 재계산
+  if (assessedOverride != null) {
+    const assessed = Number(assessedOverride) || 0;
+    const offset = Math.round(assessed * (Number(faultPct || 0) / 100));
+    res.assessedAmountBeforeFault = assessed;
+    res.faultOffsetAmount = offset;
+    res.finalAssessedAmount = assessed - offset;
+    res.assessedSource = "AOS";
+  }
   PAYMENT_RESOLUTIONS.push(res);
   return res;
 }
@@ -466,14 +476,16 @@ function saveClaimResolutions(d) {
       assessedAmount: r.adjust.denied ? 0 : (Number(r.adjust.amount) || 0),
       ocrOriginal: null,
     }));
-    saved.push(ocrMakeResolution(d, staff, "정비", "견적", "정비청구서_" + d.id, rows, [], fault.pct));
+    const aosMech = (typeof aosAssessedTotal === "function") ? aosAssessedTotal(d.id, "정비") : null;
+    saved.push(ocrMakeResolution(d, staff, "정비", aosMech != null ? "AOS" : "견적", "정비청구서_" + d.id, rows, [], fault.pct, aosMech));
   }
 
   // 2) 부품 지급결의 (OCR 반영분)
   if (staged) {
     const dup = resolutionsFor(d.id).some(r => r.sourceFileName === staged.fileName);
     if (dup && !window.confirm("동일한 파일명으로 저장된 지급결의가 있습니다.\n계속 등록하시겠습니까?")) return;
-    saved.push(ocrMakeResolution(d, staff, "부품", staged.sourceType || "AI-OCR", staged.fileName, staged.rows, staged.editHistory || [], fault.pct));
+    const aosParts = (typeof aosAssessedTotal === "function") ? aosAssessedTotal(d.id, "부품") : null;
+    saved.push(ocrMakeResolution(d, staff, "부품", staged.sourceType || "AI-OCR", staged.fileName, staged.rows, staged.editHistory || [], fault.pct, aosParts));
     ocrClearStaged(d.id);
   }
 
