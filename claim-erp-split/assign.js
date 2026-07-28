@@ -1,5 +1,8 @@
 "use strict";
 const activeView = "assign";
+// 화면 모드: 전결관리(delegation) / 순환배당관리(rotation) — 각 HTML이 로드 전 window.ASSIGN_SCREEN 지정
+const ASSIGN_SCREEN = (typeof window !== "undefined" && window.ASSIGN_SCREEN) || "delegation";
+let assignShowInactive = false;   // 전배(비활성) 직원 포함 표시 여부 (전결관리)
 
 const ASSIGN_MODES         = ["배당제외", "지역순환", "업체순환", "지역+업체순환"];
 const ASSIGN_SPECIAL_GROUPS = ["전체", "제외"]; // 전체=모든 그룹 매칭(와일드카드), 제외=해당 그룹 기준 미적용
@@ -129,6 +132,7 @@ function assignNowStamp() {
 function assignFilteredStaff() {
   const q = assignFilters.name.trim().toLowerCase();
   return staffAssignmentSettings.filter(s => {
+    if (!s.isActive && !assignShowInactive) return false;   // 전배(비활성) 직원은 '전배 직원 포함' 시에만 표시
     if (assignFilters.orgRegion && s.orgRegion !== assignFilters.orgRegion) return false;
     if (assignFilters.dept && s.dept !== assignFilters.dept) return false;
     if (assignFilters.center && s.center !== assignFilters.center) return false;
@@ -179,26 +183,32 @@ function renderAssignSummary() {
 
 // 그리드 컬럼 정의 (sort: 정렬키, get: 정렬값 추출, str: 문자열 정렬 여부)
 let assignGridWhen = null; // 그리드 렌더 시 기준 시점 (배당상태 정렬/표시용)
-const ASSIGN_COLS = [
-  { label:"선택", sort:null },
-  { label:"담당자", sort:"name", get:s => s.name, str:true },
-  { label:"사번", sort:"employeeNo", get:s => s.employeeNo, str:true },
-  { label:"결재레벨", sort:"approvalLevel", get:s => s.approvalLevel },
-  { label:"추산한도", sort:"estimateLimit", get:s => s.estimateLimit },
-  { label:"지급한도", sort:"paymentLimit", get:s => s.paymentLimit },
-  { label:"종결권한", sort:"closeAuth", get:s => (s.canCloseWaiver ? 2 : 0) + (s.canClosePayment ? 1 : 0) },
-  { label:"일배당한도", sort:"dailyAssignmentLimit", get:s => s.dailyAssignmentLimit },
-  { label:"현재배당", sort:"todayAssignedCount", get:s => s.todayAssignedCount },
-  { label:"잔여배당", sort:"remaining", get:s => assignIsUnlimited(s) ? Infinity : assignRemaining(s) },
-  { label:"배당방식", sort:"assignmentMode", get:s => ASSIGN_MODES.indexOf(s.assignmentMode) },
-  { label:"지역그룹", sort:"regionGroup", get:s => s.regionGroup, str:true },
-  { label:"업체그룹", sort:"vendorGroup", get:s => s.vendorGroup, str:true },
-  { label:"배당상태", sort:"status", get:s => s.assignmentStatus === "배당중지" ? 2 : (assignAbsentAt(s, assignGridWhen) ? 1 : 0) },
-  { label:"부재기간", sort:"absence", get:s => s.absenceStart || "", str:true },
-  { label:"직무대행자", sort:"deputy", get:s => s.deputyEmployeeId ? assignDeputyName(s.deputyEmployeeId) : "", str:true },
-  { label:"적용여부", sort:"isActive", get:s => s.isActive ? 1 : 0 },
-];
-let assignSort = { key:"approvalLevel", dir:-1 }; // 기본: 결재레벨 내림차순(3레벨 센터장·부장 최상단)
+const AC = {
+  select: { label:"선택", sort:null, cell:s => `<td class="ta-c"><input type="checkbox" ${s.id === assignSelectedId ? "checked" : ""} tabindex="-1" aria-label="선택" style="pointer-events:none"></td>` },
+  name:   { label:"담당자", sort:"name", get:s => s.name, str:true, cell:s => `<td class="sa-name">${s.name}</td>` },
+  empNo:  { label:"사번", sort:"employeeNo", get:s => s.employeeNo, str:true, cell:s => `<td>${s.employeeNo}</td>` },
+  level:  { label:"결재레벨", sort:"approvalLevel", get:s => s.approvalLevel, cell:s => `<td class="ta-c">${assignLvlLabel(s.approvalLevel)}</td>` },
+  est:    { label:"추산한도", sort:"estimateLimit", get:s => s.estimateLimit, cell:s => `<td class="num">${assignWon(s.estimateLimit)}</td>` },
+  pay:    { label:"지급한도", sort:"paymentLimit", get:s => s.paymentLimit, cell:s => `<td class="num">${assignWon(s.paymentLimit)}</td>` },
+  close:  { label:"종결권한", sort:"closeAuth", get:s => (s.canCloseWaiver ? 2 : 0) + (s.canClosePayment ? 1 : 0), cell:s => `<td class="ta-c">${assignCloseAuthLabel(s)}</td>` },
+  daily:  { label:"일배당한도", sort:"dailyAssignmentLimit", get:s => s.dailyAssignmentLimit, cell:s => `<td class="num">${assignDailyLabel(s)}</td>` },
+  today:  { label:"현재배당", sort:"todayAssignedCount", get:s => s.todayAssignedCount, cell:s => `<td class="num">${s.todayAssignedCount}</td>` },
+  remain: { label:"잔여배당", sort:"remaining", get:s => assignIsUnlimited(s) ? Infinity : assignRemaining(s), cell:s => `<td class="num">${assignRemainingLabel(s)}${assignIsLimitOver(s) ? ` <span class="badge limit-over">초과</span>` : ""}</td>` },
+  mode:   { label:"배당방식", sort:"assignmentMode", get:s => ASSIGN_MODES.indexOf(s.assignmentMode), cell:s => `<td>${assignModeCell(s)}</td>` },
+  region: { label:"지역그룹", sort:"regionGroup", get:s => s.regionGroup, str:true, cell:s => `<td>${s.regionGroup}</td>` },
+  vendor: { label:"업체그룹", sort:"vendorGroup", get:s => s.vendorGroup, str:true, cell:s => `<td>${s.vendorGroup}</td>` },
+  status: { label:"배당상태", sort:"status", get:s => s.assignmentStatus === "배당중지" ? 2 : (assignAbsentAt(s, assignGridWhen) ? 1 : 0), cell:s => `<td>${assignStatusBadge(s)}</td>` },
+  absence:{ label:"부재기간", sort:"absence", get:s => s.absenceStart || "", str:true, cell:s => `<td>${assignAbsenceLabel(s)}</td>` },
+  deputy: { label:"직무대행자", sort:"deputy", get:s => s.deputyEmployeeId ? assignDeputyName(s.deputyEmployeeId) : "", str:true, cell:s => `<td>${s.deputyEmployeeId ? assignDeputyName(s.deputyEmployeeId) : "-"}</td>` },
+  active: { label:"적용여부", sort:"isActive", get:s => s.isActive ? 1 : 0, cell:s => `<td class="ta-c">${s.isActive ? "적용" : `<span class="badge mode-off">전배</span>`}</td>` },
+};
+// 화면 모드별 그리드 컬럼
+const ASSIGN_COLS = ASSIGN_SCREEN === "rotation"
+  ? [AC.select, AC.name, AC.empNo, AC.daily, AC.today, AC.remain, AC.mode, AC.region, AC.vendor, AC.status, AC.active]
+  : [AC.select, AC.name, AC.empNo, AC.level, AC.est, AC.pay, AC.close, AC.absence, AC.deputy, AC.active];
+let assignSort = ASSIGN_SCREEN === "rotation"
+  ? { key:"name", dir:1 }
+  : { key:"approvalLevel", dir:-1 }; // 전결관리 기본: 결재레벨 내림차순(부장 최상단)
 function assignSortStaff(list) {
   const col = ASSIGN_COLS.find(c => c.sort === assignSort.key);
   if (!col) return list;
@@ -247,26 +257,7 @@ function renderAssignGrid() {
   }
   const rows = list.map(s => {
     const sel = s.id === assignSelectedId ? " selected" : "";
-    const over = assignIsLimitOver(s) ? ` <span class="badge limit-over">초과</span>` : "";
-    return `<tr class="${sel ? "selected" : ""}" data-sid="${s.id}">
-      <td class="ta-c"><input type="checkbox" ${sel ? "checked" : ""} tabindex="-1" aria-label="선택" style="pointer-events:none"></td>
-      <td class="sa-name">${s.name}</td>
-      <td>${s.employeeNo}</td>
-      <td class="ta-c">${assignLvlLabel(s.approvalLevel)}</td>
-      <td class="num">${assignWon(s.estimateLimit)}</td>
-      <td class="num">${assignWon(s.paymentLimit)}</td>
-      <td class="ta-c">${assignCloseAuthLabel(s)}</td>
-      <td class="num">${assignDailyLabel(s)}</td>
-      <td class="num">${s.todayAssignedCount}</td>
-      <td class="num">${assignRemainingLabel(s)}${over}</td>
-      <td>${assignModeCell(s)}</td>
-      <td>${s.regionGroup}</td>
-      <td>${s.vendorGroup}</td>
-      <td>${assignStatusBadge(s)}</td>
-      <td>${assignAbsenceLabel(s)}</td>
-      <td>${s.deputyEmployeeId ? assignDeputyName(s.deputyEmployeeId) : "-"}</td>
-      <td class="ta-c">${s.isActive ? "적용" : "미적용"}</td>
-    </tr>`;
+    return `<tr class="${sel ? "selected" : ""}${s.isActive ? "" : " sa-inactive"}" data-sid="${s.id}">${ASSIGN_COLS.map(c => c.cell(s)).join("")}</tr>`;
   }).join("");
   $("#assignGrid").innerHTML = `<table class="sa-table">${head}<tbody>${rows}</tbody></table>`;
   $("#assignGrid").querySelectorAll("[data-sid]").forEach(tr => {
@@ -358,61 +349,59 @@ function renderAssignPanel() {
     ? hist.map(h => `<tr><td>${h.at}</td><td>${h.by}</td><td>${h.field}</td><td>${h.before}</td><td>${h.after}</td><td>${h.reason}</td></tr>`).join("")
     : `<tr><td class="empty" colspan="6">변경 이력이 없습니다.</td></tr>`;
 
+  // ── 상세 섹션 (모드별) ──
+  const secAuth = `
+      <div class="sec"><div class="sec-title">1. 권한 / 한도</div><div class="sa-form">
+        <div class="sa-radio">
+          <label><input type="radio" name="saLevel" value="1" ${d.approvalLevel <= 1 ? "checked" : ""}> 1레벨 일반직원</label>
+          <label><input type="radio" name="saLevel" value="2" ${d.approvalLevel === 2 ? "checked" : ""}> 2레벨 센터장</label>
+          <label><input type="radio" name="saLevel" value="3" ${d.approvalLevel >= 3 ? "checked" : ""}> 3레벨 부장</label>
+        </div>
+        <div class="sa-row"><label class="k">추산한도</label><input class="sa-input" id="saEstimate" inputmode="numeric" value="${assignWon(d.estimateLimit)}"></div>
+        <div class="sa-row"><label class="k">지급한도</label><input class="sa-input" id="saPayment" inputmode="numeric" value="${assignWon(d.paymentLimit)}"></div>
+        <div class="sa-checks">
+          <label class="sa-check"><input type="checkbox" id="saWaiver" ${d.canCloseWaiver ? "checked" : ""}> 면책종결 권한</label>
+          <label class="sa-check"><input type="checkbox" id="saPay" ${d.canClosePayment ? "checked" : ""}> 지급종결 권한</label>
+        </div>
+      </div></div>`;
+  const secAbsence = `
+      <div class="sec"><div class="sec-title">2. 부재 / 직무대행</div><div class="sa-form">
+        <div class="sa-row"><label class="k">부재 시작</label>${absenceGroupHtml("saAbsStart", d.absenceStart)}</div>
+        <div class="sa-row"><label class="k">부재 종료</label>${absenceGroupHtml("saAbsEnd", d.absenceEnd)}</div>
+        <div class="sa-row"><label class="k">직무대행자</label><select class="sa-select" id="saDeputy">${deputyOpts}</select></div>
+        <button type="button" class="btn" id="saAbsClear" style="align-self:flex-start;padding:6px 12px">부재 기간 해제</button>
+        <div class="sa-note">부재 기간에는 신규 배당이 자동 중지됩니다. 기존 배당건은 유지됩니다.</div>
+      </div></div>`;
+  const secRotation = `
+      <div class="sec"><div class="sec-title">1. 순환배당</div><div class="sa-form">
+        <div class="sa-row"><label class="k">일 배당한도</label><input class="sa-input" id="saDaily" inputmode="numeric" value="${d.dailyAssignmentLimit}" title="999 입력 시 무제한(되는대로 배당)"></div>
+        <div class="sa-row"><label class="k">배당방식</label><select class="sa-select" id="saMode">${optTags(ASSIGN_MODES, d.assignmentMode)}</select></div>
+        <div class="sa-row"><label class="k">지역그룹</label><select class="sa-select" id="saRegion" title="지역그룹은 애니카네트워크시스템 '공통코드목록'의 코드항목을 활용합니다. (대분류 시스템 > 중분류 예: 보상_사고지역 > 소분류 지역) — 그룹 묶음 방식은 추후 확정">${optTags(ASSIGN_REGION_GROUPS, d.regionGroup)}</select></div>
+        <div class="sa-row"><label class="k">업체그룹</label><select class="sa-select" id="saVendor" title="업체그룹은 애니카네트워크시스템 '공통코드목록'의 코드항목을 활용합니다. (대분류 시스템 > 중분류 예: 보상_업체그룹 > 소분류 업체그룹) — 그룹 묶음 방식은 추후 확정">${optTags(ASSIGN_VENDOR_GROUPS, d.vendorGroup)}</select></div>
+        <div class="sa-row"><label class="k">현재배당</label><input class="sa-input ro" value="${d.todayAssignedCount} 건" readonly></div>
+        <div class="sa-row"><label class="k">잔여배당</label><input class="sa-input ro" id="saRemain" value="${assignIsUnlimited(d) ? "무제한" : assignRemaining(d) + " 건"}" readonly></div>
+      </div></div>`;
+  const secStatus = `
+      <div class="sec"><div class="sec-title">2. 배당상태</div><div class="sa-form">
+        <div class="sa-row"><label class="k">현재상태</label><span>${assignStatusBadge(d)}</span></div>
+        <label class="sa-check"><input type="checkbox" id="saStop" ${d.assignmentStatus === "배당중지" ? "checked" : ""}> 배당중지 (기간과 무관하게 즉시 중지)</label>
+        <div class="sa-note">부재 기간(전결관리에서 설정)에도 신규 배당이 자동 중지됩니다.</div>
+      </div></div>`;
+  const secHistory = `
+      <div class="sec"><div class="sec-title">변경이력</div>
+        <table class="sa-history">
+          <thead><tr><th>변경일시</th><th>변경자</th><th>항목</th><th>변경 전</th><th>변경 후</th><th>사유</th></tr></thead>
+          <tbody>${histRows}</tbody>
+        </table>
+      </div>`;
+  const body = ASSIGN_SCREEN === "rotation" ? (secRotation + secStatus + secHistory) : (secAuth + secAbsence + secHistory);
+
   panel.innerHTML = `
     <div class="panel-head">
       <div class="ph-top"><span class="pid">${d.name}</span><span class="badge ${assignLvlBadge(d.approvalLevel)}">${assignLvlLabel(d.approvalLevel)}</span></div>
       <div class="ph-sub">${d.position} · ${d.employeeNo} · ${d.center}</div>
     </div>
-    <div class="panel-body">
-      <div class="sec">
-        <div class="sec-title">1. 권한 / 한도</div>
-        <div class="sa-form">
-          <div class="sa-radio">
-            <label><input type="radio" name="saLevel" value="1" ${d.approvalLevel <= 1 ? "checked" : ""}> 1레벨 일반직원</label>
-            <label title="2레벨(센터선임)은 협력업체조회 화면에서 업체등급·실적관리를 수행할 수 있는 권한입니다."><input type="radio" name="saLevel" value="2" ${d.approvalLevel === 2 ? "checked" : ""}> 2레벨 센터선임</label>
-            <label><input type="radio" name="saLevel" value="3" ${d.approvalLevel >= 3 ? "checked" : ""}> 3레벨 센터장/부장</label>
-          </div>
-          <div class="sa-row"><label class="k">추산한도</label><input class="sa-input" id="saEstimate" inputmode="numeric" value="${assignWon(d.estimateLimit)}"></div>
-          <div class="sa-row"><label class="k">지급한도</label><input class="sa-input" id="saPayment" inputmode="numeric" value="${assignWon(d.paymentLimit)}"></div>
-          <div class="sa-checks">
-            <label class="sa-check"><input type="checkbox" id="saWaiver" ${d.canCloseWaiver ? "checked" : ""}> 면책종결 권한</label>
-            <label class="sa-check"><input type="checkbox" id="saPay" ${d.canClosePayment ? "checked" : ""}> 지급종결 권한</label>
-          </div>
-        </div>
-      </div>
-
-      <div class="sec">
-        <div class="sec-title">2. 순환배당</div>
-        <div class="sa-form">
-          <div class="sa-row"><label class="k">일 배당한도</label><input class="sa-input" id="saDaily" inputmode="numeric" value="${d.dailyAssignmentLimit}" title="999 입력 시 무제한(되는대로 배당)"></div>
-          <div class="sa-row"><label class="k">배당방식</label><select class="sa-select" id="saMode">${optTags(ASSIGN_MODES, d.assignmentMode)}</select></div>
-          <div class="sa-row"><label class="k">지역그룹</label><select class="sa-select" id="saRegion" title="지역그룹은 애니카네트워크시스템 '공통코드목록'의 코드항목을 활용합니다. (대분류 시스템 > 중분류 예: 보상_사고지역 > 소분류 지역) — 그룹 묶음 방식은 추후 확정">${optTags(ASSIGN_REGION_GROUPS, d.regionGroup)}</select></div>
-          <div class="sa-row"><label class="k">업체그룹</label><select class="sa-select" id="saVendor" title="업체그룹은 애니카네트워크시스템 '공통코드목록'의 코드항목을 활용합니다. (대분류 시스템 > 중분류 예: 보상_업체그룹 > 소분류 업체그룹) — 그룹 묶음 방식은 추후 확정">${optTags(ASSIGN_VENDOR_GROUPS, d.vendorGroup)}</select></div>
-          <div class="sa-row"><label class="k">현재배당</label><input class="sa-input ro" value="${d.todayAssignedCount} 건" readonly></div>
-          <div class="sa-row"><label class="k">잔여배당</label><input class="sa-input ro" id="saRemain" value="${assignIsUnlimited(d) ? "무제한" : assignRemaining(d) + " 건"}" readonly></div>
-        </div>
-      </div>
-
-      <div class="sec">
-        <div class="sec-title">3. 부재 / 직무대행</div>
-        <div class="sa-form">
-          <label class="sa-check"><input type="checkbox" id="saStop" ${d.assignmentStatus === "배당중지" ? "checked" : ""}> 배당중지 (기간과 무관하게 즉시 중지)</label>
-          <div class="sa-row"><label class="k">부재 시작</label>${absenceGroupHtml("saAbsStart", d.absenceStart)}</div>
-          <div class="sa-row"><label class="k">부재 종료</label>${absenceGroupHtml("saAbsEnd", d.absenceEnd)}</div>
-          <div class="sa-row"><label class="k">직무대행자</label><select class="sa-select" id="saDeputy">${deputyOpts}</select></div>
-          <button type="button" class="btn" id="saAbsClear" style="align-self:flex-start;padding:6px 12px">부재 기간 해제</button>
-          <div class="sa-note">부재 기간에는 신규 배당이 자동 중지됩니다. 기존 배당건은 유지됩니다.</div>
-        </div>
-      </div>
-
-      <div class="sec">
-        <div class="sec-title">4. 변경이력</div>
-        <table class="sa-history">
-          <thead><tr><th>변경일시</th><th>변경자</th><th>항목</th><th>변경 전</th><th>변경 후</th><th>사유</th></tr></thead>
-          <tbody>${histRows}</tbody>
-        </table>
-      </div>
-    </div>
+    <div class="panel-body">${body}</div>
     <div class="panel-foot">
       <button class="btn-complete" type="button" id="saSave">이 직원 저장</button>
       <button class="btn-hold" type="button" id="saRevert">되돌리기</button>
@@ -424,26 +413,27 @@ function renderAssignPanel() {
 function bindAssignPanelEvents() {
   const d = assignDraft;
   const panel = $("#assignPanel");
+  const on = (id, ev, fn) => { const el = $(id); if (el) el.addEventListener(ev, fn); };
   panel.querySelectorAll('input[name="saLevel"]').forEach(r =>
     r.addEventListener("change", e => { d.approvalLevel = Number(e.target.value); }));
-  $("#saEstimate").addEventListener("input", e => { d.estimateLimit = assignParseNum(e.target.value); });
-  $("#saPayment").addEventListener("input", e => { d.paymentLimit = assignParseNum(e.target.value); });
-  $("#saWaiver").addEventListener("change", e => { d.canCloseWaiver = e.target.checked; });
-  $("#saPay").addEventListener("change", e => { d.canClosePayment = e.target.checked; });
-  $("#saDaily").addEventListener("input", e => {
+  on("#saEstimate", "input", e => { d.estimateLimit = assignParseNum(e.target.value); });
+  on("#saPayment", "input", e => { d.paymentLimit = assignParseNum(e.target.value); });
+  on("#saWaiver", "change", e => { d.canCloseWaiver = e.target.checked; });
+  on("#saPay", "change", e => { d.canClosePayment = e.target.checked; });
+  on("#saDaily", "input", e => {
     d.dailyAssignmentLimit = assignParseNum(e.target.value);
-    $("#saRemain").value = assignIsUnlimited(d) ? "무제한" : `${assignRemaining(d)} 건`;
+    const r = $("#saRemain"); if (r) r.value = assignIsUnlimited(d) ? "무제한" : `${assignRemaining(d)} 건`;
   });
-  $("#saMode").addEventListener("change", e => { d.assignmentMode = e.target.value; });
-  $("#saRegion").addEventListener("change", e => { d.regionGroup = e.target.value; });
-  $("#saVendor").addEventListener("change", e => { d.vendorGroup = e.target.value; });
-  $("#saStop").addEventListener("change", e => { d.assignmentStatus = e.target.checked ? "배당중지" : "정상"; });
-  wireAbsenceGroup($("#saAbsStart"), iso => { d.absenceStart = iso; });
-  wireAbsenceGroup($("#saAbsEnd"), iso => { d.absenceEnd = iso; });
-  $("#saAbsClear").addEventListener("click", () => { d.absenceStart = null; d.absenceEnd = null; renderAssignPanel(); });
-  $("#saDeputy").addEventListener("change", e => { d.deputyEmployeeId = e.target.value || null; });
-  $("#saSave").addEventListener("click", saveAssignStaff);
-  $("#saRevert").addEventListener("click", () => selectAssignStaff(assignSelectedId));
+  on("#saMode", "change", e => { d.assignmentMode = e.target.value; });
+  on("#saRegion", "change", e => { d.regionGroup = e.target.value; });
+  on("#saVendor", "change", e => { d.vendorGroup = e.target.value; });
+  on("#saStop", "change", e => { d.assignmentStatus = e.target.checked ? "배당중지" : "정상"; });
+  const as = $("#saAbsStart"); if (as) wireAbsenceGroup(as, iso => { d.absenceStart = iso; });
+  const ae = $("#saAbsEnd"); if (ae) wireAbsenceGroup(ae, iso => { d.absenceEnd = iso; });
+  on("#saAbsClear", "click", () => { d.absenceStart = null; d.absenceEnd = null; renderAssignPanel(); });
+  on("#saDeputy", "change", e => { d.deputyEmployeeId = e.target.value || null; });
+  on("#saSave", "click", saveAssignStaff);
+  on("#saRevert", "click", () => selectAssignStaff(assignSelectedId));
 }
 
 // ---- 저장 / 변경이력 ----
@@ -528,18 +518,93 @@ function bindAssignToolbar() {
     assignFilters.name = $("#assignName").value;
     renderAssignGrid();
   };
-  $("#assignName").addEventListener("input", apply);
-  $("#assignRegion").addEventListener("change", apply);
-  $("#assignDept").addEventListener("change", apply);
-  $("#assignCenter").addEventListener("change", apply);
-  $("#assignSearchBtn").addEventListener("click", apply);
-  $("#assignSimBtn").addEventListener("click", openAssignSim);
-  $("#assignSaveBtn").addEventListener("click", () => {
+  const on = (id, ev, fn) => { const el = $(id); if (el) el.addEventListener(ev, fn); };
+  on("#assignName", "input", apply);
+  on("#assignRegion", "change", apply);
+  on("#assignDept", "change", apply);
+  on("#assignCenter", "change", apply);
+  on("#assignSearchBtn", "click", apply);
+  on("#assignSimBtn", "click", openAssignSim);
+  on("#assignSaveBtn", "click", () => {
     if (!assignDraft) { showToast("먼저 직원을 선택하세요."); return; }
     saveAssignStaff();
   });
-  $("#assignBulkBtn").addEventListener("click", applyBulkDailyLimit);
-  $("#assignBulkDaily").addEventListener("keydown", e => { if (e.key === "Enter") applyBulkDailyLimit(); });
+  on("#assignBulkBtn", "click", applyBulkDailyLimit);
+  on("#assignBulkDaily", "keydown", e => { if (e.key === "Enter") applyBulkDailyLimit(); });
+  // 전결관리 전용 — 직원 추가(+) / 전배(-) / 전배 직원 포함
+  on("#assignAddBtn", "click", openAddStaffModal);
+  on("#assignTransferBtn", "click", transferSelectedStaff);
+  on("#assignShowInactive", "change", e => { assignShowInactive = e.target.checked; renderAssignGrid(); renderAssignSummary(); });
+}
+
+// ---- 직원 추가(+) / 전배(-) — 전결관리 ----
+function assignNextEmpId() {
+  let max = 0;
+  staffAssignmentSettings.forEach(s => { const m = /^EMP(\d+)$/.exec(s.id || ""); if (m) max = Math.max(max, parseInt(m[1], 10)); });
+  return "EMP" + String(max + 1).padStart(3, "0");
+}
+function openAddStaffModal() {
+  const root = $("#actionModalRoot");
+  if (!root) return;
+  const close = () => { root.classList.remove("open"); root.setAttribute("aria-hidden", "true"); root.innerHTML = ""; };
+  const opt = (arr) => arr.map(o => `<option>${o}</option>`).join("");
+  root.innerHTML = `
+    <div class="modal-backdrop" data-modal-close></div>
+    <section class="action-modal" role="dialog" aria-modal="true" aria-label="직원 추가">
+      <div class="modal-head">
+        <div class="modal-title-wrap">
+          <div class="modal-eyebrow">전결관리 · 인사이동</div>
+          <h2 class="modal-title">직원 추가 (신규 입사·전입)</h2>
+        </div>
+        <button class="modal-close" type="button" aria-label="닫기" data-modal-close>×</button>
+      </div>
+      <div class="modal-body">
+        <div class="sa-form">
+          <div class="sa-row"><label class="k">성명</label><input class="sa-input" id="addName" placeholder="성명"></div>
+          <div class="sa-row"><label class="k">사번</label><input class="sa-input" id="addNo" placeholder="예: 12340099"></div>
+          <div class="sa-row"><label class="k">직급</label><input class="sa-input" id="addPos" placeholder="예: 직원 / 대리"></div>
+          <div class="sa-row"><label class="k">조직</label><select class="sa-select" id="addRegion">${opt(ORG_REGIONS)}</select></div>
+          <div class="sa-row"><label class="k">팀</label><select class="sa-select" id="addDept">${opt(ORG_DEPTS)}</select></div>
+          <div class="sa-row"><label class="k">센터</label><select class="sa-select" id="addCenter">${opt(ORG_CENTERS)}</select></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn-modal" type="button" data-modal-close>취소</button>
+        <button class="btn-modal primary" type="button" id="addSave">추가</button>
+      </div>
+    </section>`;
+  root.classList.add("open");
+  root.setAttribute("aria-hidden", "false");
+  root.querySelectorAll("[data-modal-close]").forEach(el => el.addEventListener("click", close));
+  root.querySelector("#addSave").addEventListener("click", () => {
+    const name = root.querySelector("#addName").value.trim();
+    const no = root.querySelector("#addNo").value.trim();
+    if (!name || !no) { showToast("성명과 사번을 입력하세요."); return; }
+    const id = assignNextEmpId();
+    staffAssignmentSettings.push({
+      id, name, employeeNo: no, position: root.querySelector("#addPos").value.trim() || "직원",
+      orgRegion: root.querySelector("#addRegion").value, dept: root.querySelector("#addDept").value, center: root.querySelector("#addCenter").value,
+      approvalLevel: 1, estimateLimit: 2999000, paymentLimit: 1999000, canCloseWaiver: false, canClosePayment: false,
+      dailyAssignmentLimit: 15, todayAssignedCount: 0, assignmentMode: "지역+업체순환", regionGroup: "전체", vendorGroup: "전체",
+      assignmentStatus: "정상", absenceStart: null, absenceEnd: null, deputyEmployeeId: null, isActive: true,
+    });
+    assignChangeHistory[id] = [{ at: assignNowStamp(), by: "관리자", field: "직원 추가", before: "-", after: `${name} (${no})`, reason: "신규 입사·전입" }, ...(assignChangeHistory[id] || [])];
+    close();
+    assignSelectedId = id; selectAssignStaff(id);
+    renderAssignSummary(); renderAssignGrid();
+    showToast(`${name} 직원을 추가했습니다. (사번 ${no})`);
+  });
+}
+function transferSelectedStaff() {
+  if (!assignSelectedId) { showToast("전배할 직원을 선택하세요."); return; }
+  const s = assignStaffById(assignSelectedId);
+  if (!s) return;
+  if (!s.isActive) { showToast("이미 전배(비활성) 처리된 직원입니다."); return; }
+  s.isActive = false;
+  assignChangeHistory[s.id] = [{ at: assignNowStamp(), by: "관리자", field: "전배(비활성)", before: "적용", after: "전배", reason: "발령·전배" }, ...(assignChangeHistory[s.id] || [])];
+  if (!assignShowInactive) { assignSelectedId = null; assignDraft = null; }
+  renderAssignSummary(); renderAssignGrid(); renderAssignPanel();
+  showToast(`${s.name} 직원을 전배(비활성) 처리했습니다.${assignShowInactive ? "" : " '전배 직원 포함'을 체크하면 복귀할 수 있습니다."}`);
 }
 
 // ---- 시뮬레이션 (저장 전 미리보기) ----

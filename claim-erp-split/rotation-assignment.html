@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>전결관리 | CLAIM ERP</title>
+<title>순환배당관리 | CLAIM ERP</title>
 <link rel="stylesheet" href="common.css" />
 </head>
 <body>
@@ -63,7 +63,7 @@
       </button>
     </div>
     <div class="nav-row">
-      <button class="nav-item active" data-view="assign" type="button">
+      <button class="nav-item" data-view="assign" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="1.9" fill="currentColor" stroke="none"/><circle cx="15" cy="12" r="1.9" fill="currentColor" stroke="none"/><circle cx="7" cy="18" r="1.9" fill="currentColor" stroke="none"/></svg>
         <span class="ni-label">전결관리</span>
       </button>
@@ -72,7 +72,7 @@
       </button>
     </div>
     <div class="nav-row">
-      <button class="nav-item" data-view="rotation" type="button">
+      <button class="nav-item active" data-view="rotation" type="button">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg>
         <span class="ni-label">순환배당관리</span>
       </button>
@@ -109,7 +109,7 @@
 
 <header class="topbar">
   <div class="tb-left">
-    <div class="brand-tag" id="viewName">전결관리</div>
+    <div class="brand-tag" id="viewName">순환배당관리</div>
   </div>
   <div class="topbar-right">
     <button type="button" class="btn-req" id="btnRequest">
@@ -128,8 +128,8 @@
 
   <section id="viewAssign" class="view">
     <section class="page-head">
-      <h1>전결관리</h1>
-      <p>직원별 결재레벨·추산/지급 한도·종결권한·직무대행을 관리합니다. 신규 입사·전배 시 직원을 추가(+)/전배(−)할 수 있습니다. (센터장·부장 관리자 전용)</p>
+      <h1>순환배당관리</h1>
+      <p>직원별 일 배당한도·현재/잔여 배당건수·배당방식·지역/업체그룹·배당상태를 관리합니다. (센터장·부장 관리자 전용)</p>
     </section>
 
     <section class="card appr-toolbar" id="assignToolbar">
@@ -158,8 +158,7 @@
       </div>
       <div class="appr-actions sa-actions">
         <button type="button" class="btn" id="assignSearchBtn">검색</button>
-        <button type="button" class="btn" id="assignAddBtn" title="신규 입사·전입 직원 추가">＋ 직원추가</button>
-        <button type="button" class="btn" id="assignTransferBtn" title="선택 직원 전배(비활성) 처리">－ 전배</button>
+        <button type="button" class="btn" id="assignSimBtn">시뮬레이션</button>
         <button type="button" class="btn primary" id="assignSaveBtn">저장</button>
       </div>
     </section>
@@ -169,10 +168,12 @@
     <div class="sa-workspace">
       <section class="list-card card sa-grid-card">
         <div class="list-head">
-          <h2 id="assignListTitle">직원 전결권한 설정</h2>
+          <h2 id="assignListTitle">직원 순환배당 설정</h2>
           <span class="count" id="assignCount"></span>
           <div class="sa-bulk">
-            <label class="sa-check"><input type="checkbox" id="assignShowInactive"> 전배 직원 포함</label>
+            <label for="assignBulkDaily">일 배당한도 일괄</label>
+            <input type="number" id="assignBulkDaily" min="0" max="999" inputmode="numeric" placeholder="예: 15" title="999 입력 시 무제한" />
+            <button type="button" class="btn" id="assignBulkBtn">조회목록 적용</button>
           </div>
         </div>
         <div class="sa-grid-wrap"><div id="assignGrid"></div></div>
@@ -194,7 +195,7 @@
 <div class="modal-root" id="apprDocRoot" aria-hidden="true"></div>
 
 
-<script>window.ASSIGN_SCREEN = "delegation";</script>
+<script>window.ASSIGN_SCREEN = "rotation";</script>
 <script src="common.js"></script>
 <script src="assign.js"></script>
 </body>
