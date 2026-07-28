@@ -274,7 +274,27 @@
   .aos-hint { font-size: 11.5px; color: #8A90A0; margin-left: auto; }
   .aos-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 10px; margin-top: 10px; }
   .aos-card { border: 1px solid #DCE4F2; border-radius: 8px; background: #fff; padding: 10px 12px; }
-  .aos-card-mech { border-color: #BFD0EC; background: #FBFCFE; }
+  .aos-card-mech { border-color: #BFD0EC; background: #FBFCFE; grid-column: 1 / -1; }
+  /* 재원 정산 상세 — 공임/부품 2열 + 요약 스트립 */
+  .aos-settle { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .aos-settle-col { border: 1px solid #E7ECF5; border-radius: 8px; background: #fff; padding: 8px 10px; }
+  .aos-settle-h { font-size: 11.5px; font-weight: 800; color: #24499A; margin-bottom: 5px; padding-bottom: 4px; border-bottom: 1px solid #EEF1F7; }
+  .aos-settle-col .aos-fig .k em { font-style: normal; color: #9AA0B0; font-size: 10.5px; margin-left: 3px; }
+  .aos-subnote { font-size: 10px; color: #A6ACBB; margin: -1px 0 3px; }
+  .aos-fig.sub { border-top: 1px dashed #DDE3EE; margin-top: 4px; padding-top: 5px; }
+  .aos-fig.sub .k { font-weight: 800; color: #242832; }
+  .aos-fig.sub .v { font-weight: 800; color: #24499A; }
+  .aos-settle-sum { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 9px; padding: 8px 10px; background: #F1F5FC; border-radius: 8px; }
+  .aos-sum-item { display: flex; align-items: baseline; gap: 6px; font-size: 12px; }
+  .aos-sum-item .k { color: #5B6273; }
+  .aos-sum-item .k em { font-style: normal; color: #8A90A0; }
+  .aos-sum-item .v { font-variant-numeric: tabular-nums; font-weight: 700; color: #333A47; }
+  .aos-sum-item .v.neg { color: #C0392B; }
+  .aos-sum-item + .aos-sum-item::before { content: "·"; color: #C3CAD8; margin-right: 8px; }
+  .aos-sum-item.pay { margin-left: auto; padding: 3px 12px; background: #1F7A44; border-radius: 999px; }
+  .aos-sum-item.pay::before { content: none; }
+  .aos-sum-item.pay .k { color: #DDF3E5; font-weight: 700; }
+  .aos-sum-item.pay .v { color: #fff; font-size: 14px; font-weight: 800; }
   .aos-card-hd { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; border-bottom: 1px solid #EEF1F7; padding-bottom: 6px; }
   .aos-kind { font-size: 12.5px; font-weight: 800; color: #242832; }
   .aos-payto { font-size: 11.5px; color: #5B6273; }

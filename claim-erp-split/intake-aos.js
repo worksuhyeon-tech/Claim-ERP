@@ -28,6 +28,34 @@ const AOS_EST_ROWS = [
 function aosClaimRows() { return AOS_EST_ROWS.map(([g, n, it, u, a, denied]) => estRow(g, n, it, u, a, denied ? { denied: true } : null)); }
 function aosPreRows() { return AOS_EST_ROWS.filter(r => !r[5]).map(([g, n, it, u, a]) => estRow(g, n, it, u, Math.round(a * 1.05 / 10) * 10)); }
 
+// 정비 재원 정산 상세 (손해사정 재원) — 공임 소계 / 부품 소계 / 부가세 / 자기부담금액
+const AOS_MECH_FUND = {
+  공임: { 탈착교환: 191400, 판금교정: 315000, 견인구난비: 0, 도장정산: 415069,
+    // 도장정산 = 도장재료대 + 도장공임 + 할증공임 + 가열건조비
+    도장재료대: 165500, 도장공임: 233700, 할증공임: 0, 가열건조비: 15869, 공임소계: 921469 },
+  부품: { 순정부품: 0, 순정부품할인율: 0, 방청부품: 0, 방청부품할인율: 0, 유리부품: 0, 부품소계: 0 },
+  부가세율: 10, 자기부담금액: 0,
+};
+// 값 스케일 복제 (선견적 = 청구 대비 소폭 상향, 율 필드는 유지)
+function aosDeriveFund(base, f) {
+  const walk = o => {
+    const r = {};
+    for (const k in o) {
+      const v = o[k];
+      r[k] = (v && typeof v === "object") ? walk(v) : (/율$/.test(k) ? v : (typeof v === "number" ? Math.round(v * f / 10) * 10 : v));
+    }
+    return r;
+  };
+  return walk(base);
+}
+// 정비 재원 → 지급액(손해사정 반영액) = 공임소계+부품소계 + 부가세 − 자기부담금액
+function aosMechDerive(f) {
+  const 소계 = Number((f.공임 || {}).공임소계 || 0) + Number((f.부품 || {}).부품소계 || 0);
+  const 부가세 = Math.floor(소계 * (Number(f.부가세율) || 0) / 100);
+  const 자부담 = Number(f.자기부담금액) || 0;
+  return { 소계, 부가세, 합계: 소계 + 부가세, 자부담, 지급액: 소계 + 부가세 - 자부담 };
+}
+
 function aosMockSnapshot(claimId) {
   return {
     snapshotId: "SNAP-" + Date.now().toString(36),
@@ -41,11 +69,8 @@ function aosMockSnapshot(claimId) {
       { folder: "수리완료사진", id: "aos-a1", name: "AOS_도장완료_전면.jpg", date: "AOS", url: "assets/accident_car/repair_07.jpg" },
       { folder: "수리완료사진", id: "aos-a2", name: "AOS_완료_범퍼.jpg", date: "AOS", url: "assets/accident_car/repair_08.jpg" },
     ],
-    // 정비 재원 정산 (모드별) — 첨부 이미지 하단 합계 기준
-    funds: {
-      claim: { 공임합계: 921469, 부품합계: 1028760, 총계: 1950229, 공임수: 17, 부품수: 25, 부가세율: 10, 부가세: 195023, 과실상계율: 0, 과실상계액: 0, 합계: 2145252 },
-      pre: { 공임합계: 875000, 부품합계: 980000, 총계: 1855000, 공임수: 15, 부품수: 23, 부가세율: 10, 부가세: 185500, 과실상계율: 0, 과실상계액: 0, 합계: 2040500 },
-    },
+    // 정비 재원 정산 (모드별) — AOS 손해사정 재원 상세 (첨부 IMG_4741 기준)
+    funds: { claim: AOS_MECH_FUND, pre: aosDeriveFund(AOS_MECH_FUND, 1.02) },
     // '＋추가' 별도 지급처 재원 (부품/유리)
     extra: {
       "부품": { 지급처: "대한상사(주)", 재원: { 부품소계: 1028760, 감가상각: 0, 잔존물: 0, 부가세율: 10, 부가세: 102876, 과실상계율: 0, 과실상계액: 0, 합계: 1131636 } },
@@ -69,10 +94,12 @@ function aosPersist(claimId) {
   try { localStorage.setItem(AOS_CACHE_PREFIX + claimId, JSON.stringify(aosImported[claimId] || {})); } catch (e) {}
 }
 
-/* 손해사정 반영용: 가져온 종류의 합계 (없으면 null) — saveClaimResolutions에서 참조 */
+/* 손해사정 반영용: 가져온 종류의 반영액 (없으면 null) — saveClaimResolutions에서 참조
+   정비=지급액(공임+부품 소계+부가세−자기부담), 부품/유리=재원 합계 */
 function aosAssessedTotal(claimId, type) {
   const e = aosLoad(claimId)[type];
-  return e ? Number(e.합계 || 0) : null;
+  if (!e) return null;
+  return Number(e.지급액 != null ? e.지급액 : (e.합계 || 0));
 }
 
 /* 스냅샷 이미지 주입 (차량 사진 스트립에 표시) */
@@ -96,25 +123,45 @@ const AOS_ADD_FIELD_ROWS = {
   "유리": [["유리대", "유리대"], ["부품소계", "부품소계"], ["감가상각", "감가상각"], ["부가세", "부가세"], ["과실상계", "과실상계액"]],
 };
 
-// 정비 재원 정산 합계 카드 (첨부 이미지 하단 합계 형태)
+// 정비 재원 정산 카드 — 공임 소계 / 부품 소계 / 소계 합 / 부가세 / 자기부담금액 → 지급액
 function aosMechCardHtml(entry) {
   const modeLabel = entry.mode === "pre" ? "선견적 정산" : "청구서 정산";
   const cap = (entry.capturedAt || "").replace("T", " ").slice(0, 16);
+  const gj = entry.공임 || {}, bp = entry.부품 || {};
+  const der = aosMechDerive(entry);
+  const fig = (k, v) => `<div class="aos-fig"><span class="k">${k}</span><span class="v">${won(Number(v || 0))}</span></div>`;
+  const figRate = (label, rate, v) => `<div class="aos-fig"><span class="k">${label}${rate ? ` <em>${rate}%</em>` : ""}</span><span class="v">${won(Number(v || 0))}</span></div>`;
   return `<div class="aos-card aos-card-mech" data-aos-card="정비">
     <div class="aos-card-hd">
-      <span class="aos-kind">재원 정산 합계 · ${iEsc(modeLabel)}</span>
+      <span class="aos-kind">재원 정산 · ${iEsc(modeLabel)}</span>
       <span class="aos-payto">지급처 · ${iEsc(entry.지급처)}</span>
       <button type="button" class="aos-card-x" data-aos-remove="정비" title="가져온 재원 제거" data-desc="가져온 정비 재원 정산을 제거합니다.">✕</button>
     </div>
-    <div class="aos-figs">
-      <div class="aos-fig"><span class="k">공임합계</span><span class="v">${won(Number(entry.공임합계 || 0))}</span></div>
-      <div class="aos-fig"><span class="k">부품합계</span><span class="v">${won(Number(entry.부품합계 || 0))}</span></div>
-      <div class="aos-fig"><span class="k">부가세(${entry.부가세율 || 0}%)</span><span class="v">${won(Number(entry.부가세 || 0))}</span></div>
-      <div class="aos-fig"><span class="k">과실상계(${entry.과실상계율 || 0}%)</span><span class="v">${won(Number(entry.과실상계액 || 0))}</span></div>
+    <div class="aos-settle">
+      <div class="aos-settle-col">
+        <div class="aos-settle-h">공임 소계</div>
+        ${fig("탈착교환", gj.탈착교환)}
+        ${fig("판금교정", gj.판금교정)}
+        ${fig("견인/구난비", gj.견인구난비)}
+        ${fig("도장정산", gj.도장정산)}
+        <div class="aos-subnote">도장재료대 + 도장공임 + 할증공임 + 가열건조비</div>
+        <div class="aos-fig sub"><span class="k">공임 소계</span><span class="v">${won(Number(gj.공임소계 || 0))}</span></div>
+      </div>
+      <div class="aos-settle-col">
+        <div class="aos-settle-h">부품 소계</div>
+        ${figRate("순정부품", bp.순정부품할인율, bp.순정부품)}
+        ${figRate("방청부품", bp.방청부품할인율, bp.방청부품)}
+        ${fig("유리부품", bp.유리부품)}
+        <div class="aos-fig sub"><span class="k">부품 소계</span><span class="v">${won(Number(bp.부품소계 || 0))}</span></div>
+      </div>
     </div>
-    <div class="aos-fig strong"><span class="k">총 계 (공임 ${entry.공임수 || 0} · 부품 ${entry.부품수 || 0})</span><span class="v">${won(Number(entry.총계 || 0))}</span></div>
-    <div class="aos-fig strong"><span class="k">합계 (VAT포함)</span><span class="v">${won(Number(entry.합계 || 0))}</span></div>
-    <div class="aos-reflect">🚗 AOS · ${iEsc(cap)} → <b>정비 지급결의</b> 손해사정에 반영 <b>${won(Number(entry.합계 || 0))}</b>원</div>
+    <div class="aos-settle-sum">
+      <div class="aos-sum-item"><span class="k">공임 + 부품 소계</span><span class="v">${won(der.소계)}</span></div>
+      <div class="aos-sum-item"><span class="k">부가세 <em>${entry.부가세율 || 0}%</em></span><span class="v">${won(der.부가세)}</span></div>
+      <div class="aos-sum-item"><span class="k">자기부담금액</span><span class="v neg">${der.자부담 ? "-" : ""}${won(der.자부담)}</span></div>
+      <div class="aos-sum-item pay"><span class="k">지급액</span><span class="v">${won(der.지급액)}</span></div>
+    </div>
+    <div class="aos-reflect">🚗 AOS · ${iEsc(cap)} → <b>정비 지급결의</b> 손해사정에 반영 <b>${won(der.지급액)}</b>원</div>
   </div>`;
 }
 
@@ -173,12 +220,19 @@ function aosImportMain(d) {
   doc[mode] = snap.estimate[mode];
   det.estimateDoc = doc;
   aosInjectImages(d.id, snap.images);
-  const imp = aosLoad(d.id);
-  imp["정비"] = Object.assign({ 지급처: snap.payTo, mode: mode, capturedAt: snap.capturedAt }, snap.funds[mode]);
-  aosPersist(d.id);
-  aosRerender(d);
-  const label = mode === "pre" ? "선견적" : "청구서";
-  showToast(`AOS ${label} 스냅샷을 가져왔습니다. 견적내역·차량사진 반영 · 손해사정 ${won(Number(snap.funds[mode].합계 || 0))}원. 오른쪽 아래 '정비 지급결의 저장'으로 확정하세요. (데모)`);
+  // 청구서 가져오기에만 재원 정산 카드 + 손해사정 반영(지급결의는 청구서 단계에서 생성).
+  // 선견적은 견적내역·차량사진만 넘겨옴(수리 전 개략).
+  if (mode === "claim") {
+    const imp = aosLoad(d.id);
+    const der = aosMechDerive(snap.funds.claim);
+    imp["정비"] = Object.assign({ 지급처: snap.payTo, mode: mode, capturedAt: snap.capturedAt, 지급액: der.지급액 }, snap.funds.claim);
+    aosPersist(d.id);
+    aosRerender(d);
+    showToast(`AOS 청구서 스냅샷을 가져왔습니다. 견적내역·차량사진 반영 · 손해사정 ${won(der.지급액)}원. 오른쪽 아래 '정비 지급결의 저장'으로 확정하세요. (데모)`);
+  } else {
+    aosRerender(d);
+    showToast("AOS 선견적 스냅샷을 가져왔습니다. 견적내역·차량사진을 반영했습니다. (데모)");
+  }
 }
 
 // '＋추가': 부품/유리 별도 지급처 재원 카드
