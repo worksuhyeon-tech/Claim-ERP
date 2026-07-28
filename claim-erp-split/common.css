@@ -1765,6 +1765,8 @@
   .sa-table tbody tr { cursor: pointer; }
   .sa-table tbody tr:hover td { background: #F8FAFD; }
   .sa-table tbody tr.selected td { background: var(--blue-soft); }
+  .sa-table tbody tr.sa-inactive td { color: #9AA0B0; background: #FAFAFB; }
+  .sa-table tbody tr.sa-inactive .sa-name { color: #9AA0B0; }
   .sa-table .num { text-align: right; font-variant-numeric: tabular-nums; }
   .sa-table .ta-c { text-align: center; }
   .sa-table .sa-name { font-weight: 700; }
