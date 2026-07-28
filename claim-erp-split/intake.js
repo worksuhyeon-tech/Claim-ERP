@@ -1415,8 +1415,7 @@ function intakeDamageTab(d) {
       { k: "차량구입액", raw: dmSkVal(s.buyPrice) },
       { k: "사고시가액", raw: dmSkVal(s.accidentValue) },
       { k: "예상잔존가", raw: `${dmSkVal(s.bookValue)} <span class="lg-cinhint">장부가액</span>`, full: true },
-    ])
-    + dmDeductDepositHtml(d);        // 면책금 입금내역 — '피해 진행' 아래(좌측 컬럼)에 배치
+    ]);        // 면책금 입금내역은 '청구 견적 정보' 탭 상단으로 이동
   const right = lgSect("공업사 · 수리", "※ AOS 연동 우선 · 미연동 시 SK 수신")
     + lgTable([
       { k: "공업사", raw: dmShopFieldHtml(s), full: true },
@@ -1957,7 +1956,7 @@ function intakeEstimateTab(d) {
     const extra = ocrClaimExtraRows(d);
     const partsTable = extra.length ? lgEstTableHtml(extra, "청구 내역", "부품 청구 합계") : "";
     const note = extra.length ? "정비 견적(청구서)은 아직 없습니다. 아래는 AI-OCR로 등록한 부품 내역입니다." : "등록된 청구 견적 정보가 없습니다.";
-    return `<div class="lg-est-emptybar">
+    return `${dmDeductDepositHtml(d)}${intakeEstimatePhotoStrip(d)}<div class="lg-est-emptybar">
       <div class="lg-est-empty">${note}</div>
       <button type="button" class="ocr-pro-btn" id="ocrProBtn" data-desc="부품청구서를 업로드해 AI-OCR로 전산화하고 부품 지급결의를 생성합니다. (Pro 기능)"><span class="ai">🤖</span> AI-OCR <span class="tag">Pro</span></button>
     </div>${partsTable}${ocrStageBarHtml(d)}${srApprComponentHtml(d)}`;
@@ -1997,11 +1996,10 @@ function intakeEstimateTab(d) {
   const sumLabel = extra.length ? `${docLabel} 합계 (정비+부품)` : `${docLabel} 합계`;
   const table = lgEstTableHtml(allRows, baseLabel, sumLabel);
 
-  return `<div class="lg-est">
+  return `${dmDeductDepositHtml(d)}${intakeEstimatePhotoStrip(d)}<div class="lg-est">
     <div class="lg-est-head">
       <div class="be-title"><span class="dot"></span>견적 정보 <span class="be-cur">현재 보기: ${docLabel}</span></div>
     </div>
-    ${intakeEstimatePhotoStrip(d)}
     ${flow}
     ${toggle}
     ${band}
@@ -2077,6 +2075,7 @@ function bindIntakeEstimate(d) {
   if (stageSave && typeof saveClaimResolutions === "function") stageSave.addEventListener("click", () => saveClaimResolutions(d));
   const stageCancel = $("#ocrStageCancel");
   if (stageCancel && typeof cancelStagedOcr === "function") stageCancel.addEventListener("click", () => cancelStagedOcr(d));
+  bindDeductDeposit(d);    // 면책금 입금내역 바인딩 (견적 탭 상단)
   bindIntakeApprForm(d);   // 결재 폼 최초 바인딩
 }
 
@@ -2530,8 +2529,11 @@ function bindIntakeDamage(d) {
   }));
   const sb = body.querySelector("#dmShopSearch");
   if (sb) sb.addEventListener("click", () => openShopSearchModal(d, s));
-
-  // 면책금 입금내역 — 입력 draft 동기화 / 저장(입력자·승인번호 자동) / 발생내역 토글·검색
+}
+// 면책금 입금내역 — 입력 draft 동기화 / 저장(입력자·승인번호 자동) / 발생내역 토글·검색
+// ('청구 견적 정보' 탭 상단에 위치 → bindIntakeEstimate에서 호출)
+function bindDeductDeposit(d) {
+  const body = $("#intakeBody"); if (!body) return;
   const dd = getDeductDeposit(d.id);
   body.querySelectorAll("[data-dd]").forEach(el => {
     const ev = el.tagName === "SELECT" ? "change" : "input";
@@ -2564,8 +2566,8 @@ function saveDeductDeposit(d) {
   const approvalNo = ddApprovalNo();
   dd.rows.push({ gubun: dr.gubun, date: dr.date, amount: dr.amount, payer: dr.payer, memo: dr.memo, inputter, approvalNo });
   dd.draft = { gubun: "", date: "", amount: "", payer: "", memo: "" };
-  $("#intakeBody").innerHTML = renderIntakeTab("damage", d);
-  bindIntakeDamage(d);
+  $("#intakeBody").innerHTML = renderIntakeTab("estimate", d);
+  bindIntakeEstimate(d);
   showToast(`면책금 입금내역을 저장했습니다. 입력자 ${inputter} · 승인번호 ${approvalNo} 채번 (데모)`);
 }
 // 공업사 검색·지정 팝업
