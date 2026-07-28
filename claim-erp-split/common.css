@@ -1634,7 +1634,11 @@
   .lg-est-toggle .tl { font-weight: 700; color: #3C4050; font-size: 12px; margin-right: 2px; }
   .lg-est-toggle .be-tgl { border: 1px solid var(--lg-line); background: linear-gradient(#fff, #EEF0F4);
     color: #41465A; font-weight: 800; font-size: 12.5px; padding: 5px 18px; border-radius: 4px; cursor: pointer; }
-  .lg-est-toggle .be-tgl.on { border-color: #2F5BB7; background: #2F5BB7; color: #fff; }
+  .lg-est-toggle .be-tgl.on:not(.has-data) { border-color: #2F5BB7; background: #2F5BB7; color: #fff; }
+  /* 가져온(데이터 있는) 모드 = 색반전(초록 채움) + ✓ / 현재 보기 = 링 */
+  .lg-est-toggle .be-tgl.has-data { border-color: #17643A; background: #1F9D57; color: #fff; }
+  .lg-est-toggle .be-tgl.on { box-shadow: 0 0 0 2px rgba(47, 91, 183, .5); }
+  .lg-est-toggle .be-tgl .tgl-chk { font-size: 10px; margin-left: 3px; opacity: .95; }
 
   /* 요약 밴드 */
   .lg-est-band { display: flex; align-items: stretch; flex-wrap: wrap; border: 1px solid #90B1DE;

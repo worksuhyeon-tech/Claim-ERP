@@ -3,7 +3,7 @@ const activeView = "intake";
 
 let intakeClaimId = null;   // Smart업무처리에 바인딩된 사고건
 let intakeTab = "contract"; // "contract"(계약·사고정보) | "damage"(피해 진행정보) | "estimate"(청구 견적 정보)
-let estimateDocType = "claim"; // 청구 견적 문서 전환: "pre"(선견적) | "claim"(청구서)
+let estimateDocType = "pre"; // 청구 견적 문서 전환: "pre"(선견적, 기본) | "claim"(청구서)
 const intakeCloseType = {};    // 사고번호별 종결 구분: "면책" | "지급" (기본 지급)
 
 // 진행 메모 '구분' = 진행 이력 채널 분류 (라디오 필터와 동일 값)
@@ -1951,63 +1951,49 @@ function lgEstTableHtml(allRows, baseLabel, sumLabel) {
 }
 function intakeEstimateTab(d) {
   const doc = d.estimateDoc;
-  if (!doc) {
-    // 견적 문서가 없어도 AI-OCR 부품청구서 등록·부품 지급결의는 가능(설계문서 §5.1)
-    const extra = ocrClaimExtraRows(d);
-    const partsTable = extra.length ? lgEstTableHtml(extra, "청구 내역", "부품 청구 합계") : "";
-    const note = extra.length ? "정비 견적(청구서)은 아직 없습니다. 아래는 AI-OCR로 등록한 부품 내역입니다." : "등록된 청구 견적 정보가 없습니다.";
-    return `${dmDeductDepositHtml(d)}${intakeEstimatePhotoStrip(d)}<div class="lg-est-emptybar">
-      <div class="lg-est-empty">${note}</div>
-      <span class="lg-est-empty-btns">
-        ${typeof aosImportBtnHtml === "function" ? aosImportBtnHtml() : ""}
-        <button type="button" class="ocr-pro-btn" id="ocrProBtn" data-desc="부품청구서를 업로드해 AI-OCR로 전산화하고 부품 지급결의를 생성합니다. (Pro 기능)"><span class="ai">🤖</span> AI-OCR <span class="tag">Pro</span></button>
-      </span>
-    </div>${partsTable}${aosBarMaybe(d)}${ocrStageBarHtml(d)}${srApprComponentHtml(d)}`;
-  }
-  const rows = estimateDocType === "pre" ? doc.pre : doc.claim;
   const isPre = estimateDocType === "pre";
   const baseLabel = isPre ? "선견 내역" : "청구 내역";
   const docLabel = isPre ? "선견적" : "청구서";
+  const rows = doc ? (isPre ? doc.pre : doc.claim) : [];
+  // 가져온(데이터 있는) 모드 표시용 — 색반전(✓)
+  const hasPre = !!(doc && doc.pre && doc.pre.length);
+  const hasClaim = !!(doc && doc.claim && doc.claim.length);
 
-  // 요약 밴드 (문서 무관 고정 지표): 선견 / 청구 / 지급
-  const preTotal = estSum(doc.pre, "base");
-  const claimTotal = estSum(doc.claim, "base");
-  const band = `<div class="lg-est-band">
-    <div class="be-item"><span class="k">선견</span><span class="v">${won(preTotal)}</span></div>
-    <div class="be-item"><span class="k">청구</span><span class="v strong">${won(claimTotal)}</span></div>
+  // 요약 밴드 (견적 있을 때만)
+  const band = doc ? `<div class="lg-est-band">
+    <div class="be-item"><span class="k">선견</span><span class="v">${won(estSum(doc.pre, "base"))}</span></div>
+    <div class="be-item"><span class="k">청구</span><span class="v strong">${won(estSum(doc.claim, "base"))}</span></div>
     <div class="be-item"><span class="k">지급</span><span class="v paid">${won(doc.paidAmount)}</span><span class="tag">${doc.finalPaid ? "최종지급" : ""}</span></div>
     <div class="be-item wide"><span class="k">지급처</span><span class="v">${iEsc(doc.payTo)}</span></div>
-  </div>`;
+  </div>` : "";
 
-  // 진행 4단계 스텝퍼 (현재 보고 있는 문서의 두 단계를 강조)
-  const flow = `<div class="lg-est-flow">
-    ${ESTIMATE_STAGES.map((s, i) => `${i ? '<span class="arw">›</span>' : ""}<span class="be-step ${s.doc === estimateDocType ? "on" : ""}">${s.label}</span>`).join("")}
-  </div>`;
-
-  // 견적서 전환 토글 + AI-OCR Pro 버튼 (우측)
+  // 견적서 전환 토글 (견적 유무와 무관하게 항상 표시). 가져온 모드는 색반전(has-data) + ✓
+  const tglBtn = (m, label, on, has) =>
+    `<button type="button" class="be-tgl${on ? " on" : ""}${has ? " has-data" : ""}" data-estdoc="${m}" data-desc="'${label}' 내역으로 표를 전환합니다.${has ? " (가져온 견적 있음)" : ""}">${label}${has ? ' <span class="tgl-chk">✓</span>' : ""}</button>`;
   const toggle = `<div class="lg-est-toggle" role="tablist">
-    <span class="tl">견적서 전환</span>
-    <button type="button" class="be-tgl ${isPre ? "on" : ""}" data-estdoc="pre" data-desc="입고 전 개략 견적인 '선견적' 내역으로 표를 전환합니다.">선견적</button>
-    <button type="button" class="be-tgl ${!isPre ? "on" : ""}" data-estdoc="claim" data-desc="공업사가 정식 청구한 '청구서' 내역으로 표를 전환합니다.">청구서</button>
+    <span class="tl">견적서</span>
+    ${tglBtn("pre", "선견적", isPre, hasPre)}
+    ${tglBtn("claim", "청구서", !isPre, hasClaim)}
     <span class="grow"></span>
     ${typeof aosImportBtnHtml === "function" ? aosImportBtnHtml() : ""}
     <button type="button" class="ocr-pro-btn" id="ocrProBtn" data-desc="부품청구서를 업로드해 AI-OCR로 전산화하고 부품 지급결의를 생성합니다. (Pro 기능)"><span class="ai">🤖</span> AI-OCR <span class="tag">Pro</span></button>
   </div>`;
 
-  // AI-OCR 부품 행: 청구서 보기에서만 정비 견적과 함께 표시(추가부품). 저장된 부품결의 + 미저장 스테이징.
+  // AI-OCR 부품 행: 청구서 보기에서만 정비 견적과 함께 표시(추가부품)
   const extra = !isPre ? ocrClaimExtraRows(d) : [];
   const allRows = rows.concat(extra);
   const sumLabel = extra.length ? `${docLabel} 합계 (정비+부품)` : `${docLabel} 합계`;
-  const table = lgEstTableHtml(allRows, baseLabel, sumLabel);
+  const body = allRows.length
+    ? lgEstTableHtml(allRows, baseLabel, sumLabel)
+    : `<div class="lg-est-empty">${docLabel} 견적이 아직 없습니다. 우측 <b>‘AOS 가져오기’</b>로 ${docLabel} 스냅샷을 가져오세요.</div>`;
 
   return `${dmDeductDepositHtml(d)}${intakeEstimatePhotoStrip(d)}<div class="lg-est">
     <div class="lg-est-head">
       <div class="be-title"><span class="dot"></span>견적 정보 <span class="be-cur">현재 보기: ${docLabel}</span></div>
     </div>
-    ${flow}
     ${toggle}
     ${band}
-    ${table}
+    ${body}
     ${!isPre ? aosBarMaybe(d) : ""}
     ${!isPre ? ocrStageBarHtml(d) : ""}
   </div>${srApprComponentHtml(d)}`;
@@ -2061,9 +2047,10 @@ function bindIntakeEstimate(d) {
     estimateDocType = b.dataset.estdoc;
     const bodyEl = $("#intakeBody");
     if (bodyEl) {
-      bodyEl.innerHTML = renderIntakeTab(intakeTab, d);
-      bindIntakeEstimate(d); // 토글 재바인딩
-      bindIntakeApprForm(d); // 결재 폼 재바인딩
+      const fd = (typeof getIntakeData === "function" && getIntakeData(d.id)) || d; // AOS 반영 최신 데이터
+      bodyEl.innerHTML = renderIntakeTab(intakeTab, fd);
+      bindIntakeEstimate(fd); // 토글 재바인딩
+      bindIntakeApprForm(fd); // 결재 폼 재바인딩
     }
   }));
   // 가로 사진 뷰어 — 썸네일 클릭 시 확대 뷰어 오픈
