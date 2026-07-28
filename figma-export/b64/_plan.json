@@ -1,0 +1,90 @@
+[
+  {
+    "name": "index",
+    "w": 560,
+    "h": 350,
+    "q": 50,
+    "b64len": 9660,
+    "chunks": 1
+  },
+  {
+    "name": "smart-claims",
+    "w": 400,
+    "h": 331,
+    "q": 22,
+    "b64len": 11344,
+    "chunks": 1
+  },
+  {
+    "name": "smart-intake",
+    "w": 320,
+    "h": 433,
+    "q": 26,
+    "b64len": 10984,
+    "chunks": 1
+  },
+  {
+    "name": "image-system",
+    "w": 560,
+    "h": 350,
+    "q": 42,
+    "b64len": 11768,
+    "chunks": 1
+  },
+  {
+    "name": "approval-list",
+    "w": 480,
+    "h": 368,
+    "q": 22,
+    "b64len": 11308,
+    "chunks": 1
+  },
+  {
+    "name": "assignment-management",
+    "w": 440,
+    "h": 329,
+    "q": 22,
+    "b64len": 11692,
+    "chunks": 1
+  },
+  {
+    "name": "vendor-inquiry",
+    "w": 320,
+    "h": 504,
+    "q": 26,
+    "b64len": 11072,
+    "chunks": 1
+  },
+  {
+    "name": "vendor-eval",
+    "w": 560,
+    "h": 350,
+    "q": 22,
+    "b64len": 10968,
+    "chunks": 1
+  },
+  {
+    "name": "message-send",
+    "w": 560,
+    "h": 350,
+    "q": 22,
+    "b64len": 11392,
+    "chunks": 1
+  },
+  {
+    "name": "ai-dashboard",
+    "w": 440,
+    "h": 333,
+    "q": 22,
+    "b64len": 11212,
+    "chunks": 1
+  },
+  {
+    "name": "smart-claims-demo",
+    "w": 320,
+    "h": 327,
+    "q": 26,
+    "b64len": 11200,
+    "chunks": 1
+  }
+]
