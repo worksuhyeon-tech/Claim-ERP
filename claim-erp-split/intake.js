@@ -1959,7 +1959,7 @@ function intakeEstimateTab(d) {
     return `${dmDeductDepositHtml(d)}${intakeEstimatePhotoStrip(d)}<div class="lg-est-emptybar">
       <div class="lg-est-empty">${note}</div>
       <button type="button" class="ocr-pro-btn" id="ocrProBtn" data-desc="부품청구서를 업로드해 AI-OCR로 전산화하고 부품 지급결의를 생성합니다. (Pro 기능)"><span class="ai">🤖</span> AI-OCR <span class="tag">Pro</span></button>
-    </div>${partsTable}${ocrStageBarHtml(d)}${srApprComponentHtml(d)}`;
+    </div>${partsTable}${ocrStageBarHtml(d)}${aosSectionMaybe(d)}${srApprComponentHtml(d)}`;
   }
   const rows = estimateDocType === "pre" ? doc.pre : doc.claim;
   const isPre = estimateDocType === "pre";
@@ -2005,8 +2005,10 @@ function intakeEstimateTab(d) {
     ${band}
     ${table}
     ${!isPre ? ocrStageBarHtml(d) : ""}
-  </div>${srApprComponentHtml(d)}`;
+  </div>${aosSectionMaybe(d)}${srApprComponentHtml(d)}`;
 }
+// AOS 지급결의 섹션 (intake-aos.js 로드 시에만 렌더 · §7 기존 로직 무변경)
+function aosSectionMaybe(d) { return (typeof aosSectionHtml === "function") ? aosSectionHtml(d) : ""; }
 
 // 청구서 테이블에 함께 표시할 AI-OCR 부품 행(추가부품) — 저장된 부품결의 + 미저장 스테이징
 function ocrRowToEst(row, badge, unsaved) {
@@ -2076,6 +2078,7 @@ function bindIntakeEstimate(d) {
   const stageCancel = $("#ocrStageCancel");
   if (stageCancel && typeof cancelStagedOcr === "function") stageCancel.addEventListener("click", () => cancelStagedOcr(d));
   bindDeductDeposit(d);    // 면책금 입금내역 바인딩 (견적 탭 상단)
+  if (typeof bindIntakeAos === "function") bindIntakeAos(d);   // AOS 지급결의 바인딩
   bindIntakeApprForm(d);   // 결재 폼 최초 바인딩
 }
 

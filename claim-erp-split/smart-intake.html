@@ -262,6 +262,40 @@
   .lg-shopitem .nm { font-size: 13px; font-weight: 700; color: #242832; }
   .lg-shopitem .ph { font-size: 12px; color: #2F5BB7; font-weight: 700; }
   .lg-shopempty { text-align: center; color: #9AA0B0; font-size: 13px; padding: 24px 0; }
+  /* ===== AOS 손해사정 지급결의 섹션 ===== */
+  .aos-sect { margin-top: 14px; border: 1px solid #E6EAF2; border-radius: 10px; background: #fff; padding: 12px 14px 14px; }
+  .aos-toolbar { display: flex; align-items: center; gap: 12px; margin: 8px 0 4px; flex-wrap: wrap; }
+  .aos-import-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: 1px solid #2F5BB7; border-radius: 8px; background: #2F5BB7; color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; }
+  .aos-import-btn:hover { background: #24499A; }
+  .aos-hint { font-size: 11.5px; color: #8A90A0; }
+  .aos-view { margin: 10px 0; border: 1px solid #D7E0F0; border-radius: 10px; background: #F7FAFF; padding: 12px; }
+  .aos-view-hd { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+  .aos-badge { font-size: 11px; font-weight: 800; color: #fff; background: #2F5BB7; border-radius: 5px; padding: 2px 8px; }
+  .aos-cap { font-size: 11.5px; color: #5B6273; }
+  .aos-viewtag { font-size: 11.5px; font-weight: 700; color: #24499A; background: #E7EFFC; border-radius: 5px; padding: 2px 8px; margin-left: auto; }
+  .aos-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 10px; }
+  .aos-card { border: 1px solid #E1E7F2; border-radius: 8px; background: #fff; padding: 10px 12px; }
+  .aos-card-hd { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; border-bottom: 1px solid #EEF1F7; padding-bottom: 6px; }
+  .aos-kind { font-size: 12.5px; font-weight: 800; color: #242832; }
+  .aos-payto { font-size: 11.5px; color: #5B6273; }
+  .aos-figs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; }
+  .aos-fig { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 12px; padding: 2px 0; }
+  .aos-fig .k { color: #6B7180; }
+  .aos-fig .v { font-variant-numeric: tabular-nums; color: #333A47; font-weight: 600; }
+  .aos-fig.strong { grid-column: 1 / -1; border-top: 1px dashed #DDE3EE; margin-top: 3px; padding-top: 5px; }
+  .aos-fig.strong .k { color: #242832; font-weight: 700; }
+  .aos-fig.strong .v { color: #24499A; font-weight: 800; font-size: 13px; }
+  .aos-total { text-align: right; margin-top: 10px; font-size: 13px; color: #242832; font-weight: 700; }
+  .aos-total b { color: #1F7A44; font-size: 15px; font-variant-numeric: tabular-nums; }
+  .aos-li { margin-top: 10px; }
+  .aos-li-cap { font-size: 12px; font-weight: 700; color: #333A47; margin-bottom: 5px; }
+  .aos-li-cap span { font-weight: 400; color: #9AA0B0; margin-left: 6px; }
+  .aos-li-tbl tr.aos-denied td { color: #C0392B; text-decoration: line-through; }
+  .aos-view-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+  .aos-authbox { margin-top: 12px; }
+  .aos-lock { font-size: 11.5px; color: #8A90A0; }
+  .aos-acts { white-space: nowrap; }
+  .aos-acts .payres-mini { margin: 1px 2px; }
 </style>
 </head>
 <body>
@@ -406,5 +440,6 @@
 <script src="common.js"></script>
 <script src="intake.js"></script>
 <script src="intake-ocr.js"></script>
+<script src="intake-aos.js"></script>
 </body>
 </html>
