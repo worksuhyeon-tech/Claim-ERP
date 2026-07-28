@@ -1994,7 +1994,7 @@ function intakeEstimateTab(d) {
     ${toggle}
     ${band}
     ${body}
-    ${!isPre ? aosBarMaybe(d) : ""}
+    ${aosBarMaybe(d)}
     ${!isPre ? ocrStageBarHtml(d) : ""}
   </div>${srApprComponentHtml(d)}`;
 }
