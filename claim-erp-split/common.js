@@ -1,8 +1,8 @@
 "use strict";
 
-const STAGES = ["접수·선견적", "수리 승인", "손해사정", "지급 / 정산"];
+const STAGES = ["접수·선견적", "수리 승인", "손해사정", "관리 / 정산"];
 const STAGE_ALL = "전체";   // 단계 필터: 모든 단계 통합 조회
-const STAGE_SHORT = { "접수·선견적":"접수", "수리 승인":"승인", "손해사정":"사정", "지급 / 정산":"정산" };
+const STAGE_SHORT = { "접수·선견적":"접수", "수리 승인":"승인", "손해사정":"사정", "관리 / 정산":"정산" };
 
 const URGENCY_CLASS = { "긴급":"u-urgent", "주의":"u-warn", "정상":"u-normal" };
 const PROC_CLASS    = { "미처리":"s-todo", "처리중":"s-doing", "완료":"s-done", "보류":"s-hold" };
@@ -157,44 +157,70 @@ const CLAIMS = [
     actionDesc:"공업사 청구 등록 안내 후 회신 대기 중",
     nextAction:"미회신 시 공업사에 전화로 확인하세요." },
 
-  /* ---- 5. 지급 / 정산 ---- */
+  /* ---- 5. 관리 / 정산 ---- */
   { id:"CLM-2026-0009", name:"송예린", car:"89바3344", custType:"렌터카",
-    flowStage:"지급 / 정산", actionType:"상신중", status:"손해액 확정 대기", urgency:"주의", elapsed:"2일 6시간", manager:"김하늘", procStatus:"미처리",
+    flowStage:"관리 / 정산", actionType:"상신중", status:"손해액 확정 대기", urgency:"주의", elapsed:"2일 6시간", manager:"김하늘", procStatus:"미처리",
     actionDesc:"손해액 확정 후 공업사 안내가 필요함",
     nextAction:"손해액 확정 후 공업사에 정산 안내를 발송하세요." },
   { id:"CLM-2026-0010", name:"임재민", car:"11허5566", custType:"렌터카",
-    flowStage:"지급 / 정산", actionType:"상신중", status:"SK렌터카 전산 입력 대기", urgency:"정상", elapsed:"1일 4시간", manager:"오세린", procStatus:"처리중",
+    flowStage:"관리 / 정산", actionType:"상신중", status:"SK렌터카 전산 입력 대기", urgency:"정상", elapsed:"1일 4시간", manager:"오세린", procStatus:"처리중",
     actionDesc:"SK렌터카 전산 수리내역 입력이 필요함",
     nextAction:"확정된 수리내역과 손해액을 SK렌터카 전산에 입력하세요." },
   { id:"CLM-2026-0011", name:"차은별", car:"22하9900", custType:"리스",
-    flowStage:"지급 / 정산", actionType:"상신중", status:"월 정산 데이터 정리", urgency:"주의", elapsed:"3일 2시간", manager:"유나래", procStatus:"미처리",
+    flowStage:"관리 / 정산", actionType:"상신중", status:"월 정산 데이터 정리", urgency:"주의", elapsed:"3일 2시간", manager:"유나래", procStatus:"미처리",
     actionDesc:"월 정산 대상 건으로 데이터 정리가 필요함",
     nextAction:"월 정산 데이터에 사고번호, 수리비, 청구처를 반영하세요." },
   { id:"CLM-2026-0037", name:"고은채", car:"82머1473", custType:"리스",
-    flowStage:"지급 / 정산", actionType:"상신중", status:"손해액 확정 대기", urgency:"주의", elapsed:"2일 1시간", manager:"유나래", procStatus:"미처리",
+    flowStage:"관리 / 정산", actionType:"상신중", status:"손해액 확정 대기", urgency:"주의", elapsed:"2일 1시간", manager:"유나래", procStatus:"미처리",
     actionDesc:"손해액 확정 지연으로 공업사 안내가 대기 중임",
     nextAction:"손해액 확정 후 공업사에 안내하세요." },
   { id:"CLM-2026-0038", name:"배진우", car:"17서6092", custType:"렌터카",
-    flowStage:"지급 / 정산", actionType:"상신중", status:"SK렌터카 전산 입력 대기", urgency:"정상", elapsed:"6시간 15분", manager:"오세린", procStatus:"미처리",
+    flowStage:"관리 / 정산", actionType:"상신중", status:"SK렌터카 전산 입력 대기", urgency:"정상", elapsed:"6시간 15분", manager:"오세린", procStatus:"미처리",
     actionDesc:"확정 수리내역의 전산 입력이 필요함",
     nextAction:"수리내역과 손해액을 SK렌터카 전산에 입력하세요." },
   { id:"CLM-2026-0039", name:"유시현", car:"49어8265", custType:"렌터카",
-    flowStage:"지급 / 정산", actionType:"종결취소건", status:"월 정산 데이터 정리", urgency:"정상", elapsed:"1일 2시간", manager:"유나래", procStatus:"처리중",
+    flowStage:"관리 / 정산", actionType:"종결취소건", status:"월 정산 데이터 정리", urgency:"정상", elapsed:"1일 2시간", manager:"유나래", procStatus:"처리중",
     actionDesc:"월 정산 대상 데이터 정리가 진행 중임",
     nextAction:"사고번호·수리비·청구처를 월 정산 데이터에 반영하세요." },
   { id:"CLM-2026-0040", name:"전하율", car:"91카3548", custType:"렌터카",
-    flowStage:"지급 / 정산", actionType:"종결취소건", status:"공업사 정산 안내", urgency:"정상", elapsed:"4시간 50분", manager:"유나래", procStatus:"미처리",
+    flowStage:"관리 / 정산", actionType:"종결취소건", status:"공업사 정산 안내", urgency:"정상", elapsed:"4시간 50분", manager:"유나래", procStatus:"미처리",
     actionDesc:"손해액 확정 완료 — 공업사 안내가 필요함",
     nextAction:"공업사에 확정 손해액과 지급 일정을 안내하세요." },
   { id:"CLM-2026-0041", name:"진서호", car:"25하9136", custType:"리스",
-    flowStage:"지급 / 정산", actionType:"VOC", status:"손해액 확정 대기", urgency:"정상", elapsed:"1시간", manager:"문태호", procStatus:"미처리",
+    flowStage:"관리 / 정산", actionType:"VOC", status:"손해액 확정 대기", urgency:"정상", elapsed:"1시간", manager:"문태호", procStatus:"미처리",
     actionDesc:"고객이 청구 금액 문의로 연락을 요청함",
     nextAction:"고객에게 청구 내역을 안내하세요." },
   { id:"CLM-2026-0042", name:"마지원", car:"60호2751", custType:"렌터카",
-    flowStage:"지급 / 정산", actionType:"종결", status:"정산 완료", urgency:"정상", elapsed:"30분", manager:"유나래", procStatus:"완료",
+    flowStage:"관리 / 정산", actionType:"종결", status:"정산 완료", urgency:"정상", elapsed:"30분", manager:"유나래", procStatus:"완료",
     actionDesc:"월 정산 반영 완료 — 종결 처리됨",
     nextAction:"추가 조치가 필요하지 않습니다." }
 ];
+
+/* 관리대상(분심위/소송/구상) — 피해 진행 정보 탭에서 저장한 값을 미결일괄조회 '관리건' 분류에 사용.
+   저장은 localStorage(sk_claim_manage_*)에 하고, 데모 시드는 아래 loop로 일부 사고건에 부여. */
+const MANAGE_PREFIX = "sk_claim_manage_";
+function claimManageTarget(claimId) {
+  try { const v = localStorage.getItem(MANAGE_PREFIX + claimId); if (v != null) return v; } catch (e) {}
+  const c = CLAIMS.find(x => x.id === claimId);
+  return (c && c.manageTarget) || "";
+}
+function setClaimManageTarget(claimId, val) {
+  try { localStorage.setItem(MANAGE_PREFIX + claimId, val || ""); } catch (e) {}
+  const c = CLAIMS.find(x => x.id === claimId);
+  if (c) c.manageTarget = val || "";
+}
+// 데모 시드: 일부 사고건을 관리대상으로 (미결일괄조회 '관리건' 필터 표시용)
+[["CLM-2026-0009", "분심위"], ["CLM-2026-0011", "소송"], ["CLM-2026-0033", "구상"], ["CLM-2026-0034", "소송"]]
+  .forEach(([id, v]) => { const c = CLAIMS.find(x => x.id === id); if (c && c.manageTarget == null) c.manageTarget = v; });
+
+// 수리 승인 여부 (미결일괄조회 필터용) — 수리 승인 단계 이후면 승인, 단계 내 검토/대기면 미승인
+function claimRepairApproved(c) {
+  const idx = STAGES.indexOf(c.flowStage), appIdx = STAGES.indexOf("수리 승인");
+  if (idx < 0 || appIdx < 0) return false;
+  if (idx > appIdx) return true;
+  if (idx === appIdx) return !/수리 승인 대기|관리자|검토/.test(c.status || "");
+  return false;
+}
 
 const SHOPS = ["강남협력공업사", "블루핸즈 분당점", "오토큐 강서점", "민자동차공업사", "KCC오토 수원", "스피드메이트 송파", "현대모터스 일산"];
 const MODELS = ["쏘나타", "아반떼", "그랜저", "K5", "스포티지", "싼타페", "쏘렌토", "셀토스", "G80", "레이", "캐스퍼", "투싼", "카니발", "모닝"];
@@ -267,7 +293,7 @@ CLAIMS.forEach(c => {
   if (c.flowStage === "수리 승인" && c.reviewState == null)
     c.reviewState = /수리 승인 대기|관리자|검토/.test(c.status) ? "검토요청" : "수리승인";
   // 지급/정산: 상신 상태 (종결 요청 리스트용)
-  if (c.flowStage === "지급 / 정산" && c.submitState == null)
+  if (c.flowStage === "관리 / 정산" && c.submitState == null)
     c.submitState = c.procStatus === "완료" ? "완료" : (c.procStatus === "처리중" ? "상신" : "대기");
   // 업무 항목별 상태값 — 리스트 상태열 렌더링 기준
   if (c.work == null) c.work = deriveWork(c);

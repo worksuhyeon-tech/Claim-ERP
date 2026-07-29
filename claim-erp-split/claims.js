@@ -29,7 +29,7 @@ const STAGE_CONFIG = {
       { label:"면부책 조회",     kind:"normal",  toast:"면부책·과실 내역을 조회했습니다." },
       { label:"관리자 검토요청", kind:"alert",   toast:"관리자에게 검토요청을 전송했습니다." }
     ] },
-  "지급 / 정산": {
+  "관리 / 정산": {
     tasks: ["손해액 확정 및 공업사 안내", "SK렌터카 전산 수리내역 입력", "월 정산 데이터 정리"],
     buttons: [
       { label:"손해액 확정",     kind:"primary", toast:"손해액이 확정되었습니다." },
@@ -408,7 +408,7 @@ const ACTION_WORKFLOWS = {
     }
   ],
 
-  "지급 / 정산": [
+  "관리 / 정산": [
     {
       label: "손해액 확정",
       title: "손해액 확정",
@@ -495,8 +495,8 @@ const ACTION_WORKFLOWS = {
         ["종결처리 여부", "종결처리 가능"]
       ],
       checks: ["월 정산 데이터에 사고번호·수리비·청구처가 반영되었는지 확인", "통합정액 후청구 대상인지 확인", "종결보고서 최종처리 가능 여부 확인"],
-      completeLabel: "지급/정산 단계 완료",
-      completeToast: "지급/정산 단계가 완료되었습니다.",
+      completeLabel: "관리/정산 단계 완료",
+      completeToast: "관리/정산 단계가 완료되었습니다.",
       completesClaim: true,
       nextIndex: null
     }
@@ -528,6 +528,7 @@ let activeStage = STAGES[0];    // 선택된 단계 (단일 선택)
 let allTypes = true;            // 조치유형 전체 선택 여부
 let checkedTypes = new Set();   // 체크된 조치유형 (allTypes=false일 때 적용)
 let planFilter = "전체";        // 계획 필터: 전체 / 긴급 / 관심
+let flagFilter = "전체";        // 구분 필터: 전체 / 수리승인 / 수리미승인 / 관리건
 let shopQuery = "";             // 정비공장명 검색
 let searchQuery = "";           // 통합 검색어 (접수번호/차량명/차량번호/담당자/고객명)
 let estMin = null;              // 추산금액 구간 하한(이상). null = 제한없음
@@ -576,6 +577,11 @@ function reviewBadge(c) {
   const cls = c.reviewState === "수리승인" ? "rev-appr" : "rev-req";
   return `<span class="badge ${cls}">${c.reviewState}</span>`;
 }
+/* 관리대상(분심위/소송/구상) 뱃지 — 미결일괄조회 '관리건' 식별용 */
+function manageBadge(c) {
+  const m = (typeof claimManageTarget === "function") ? claimManageTarget(c.id) : "";
+  return m ? ` <span class="badge mgt" title="관리대상">${escapeHtml(m)}</span>` : "";
+}
 /* 면책금 개별/통합 구분 요약 행 */
 function deductibleRow(c) {
   if (!c.deductible) return "";
@@ -609,6 +615,9 @@ function scopeClaims() {
   let list = stageClaims(activeStage);                       // 단계 (단일 선택)
   if (!allTypes) list = list.filter(c => checkedTypes.has(c.actionType)); // 조치유형 체크박스
   if (planFilter !== "전체") list = list.filter(c => planOf(c.id) === planFilter); // 계획(별점)
+  if (flagFilter === "수리승인") list = list.filter(c => claimRepairApproved(c));   // 수리 승인
+  else if (flagFilter === "수리미승인") list = list.filter(c => !claimRepairApproved(c)); // 수리 미승인
+  else if (flagFilter === "관리건") list = list.filter(c => !!claimManageTarget(c.id)); // 관리대상(분심위/소송/구상)
   const sq = shopQuery.trim().toLowerCase();                 // 정비공장명
   if (sq) list = list.filter(c => String(c.repairShop || "").toLowerCase().includes(sq));
   if (estMin != null || estMax != null) {                    // 추산금액 구간 (이상 ~ 이하)
@@ -690,6 +699,9 @@ function renderFilters() {
   if (sel && sel.value !== activeStage) sel.value = activeStage;
   $("#planFilter").querySelectorAll("button").forEach(b =>
     b.classList.toggle("active", b.dataset.plan === planFilter));
+  const ff = $("#flagFilter");
+  if (ff) ff.querySelectorAll("button").forEach(b =>
+    b.classList.toggle("active", b.dataset.flag === flagFilter));
   renderFilterChecks();
 }
 
@@ -797,7 +809,7 @@ function claimRowHtml(c, seq) {
         <td class="cattr">${attrCell(c, 1)}</td>
         <td class="cattr">${attrCell(c, 2)}</td>
         <td>${elapsedDaysCell(c)}</td>
-        <td class="cmgr">${escapeHtml(c.manager || "-")}</td>
+        <td class="cmgr">${manageBadge(c)}${escapeHtml(c.manager || "-")}</td>
       </tr>
     </tbody>`;
 }
@@ -1382,6 +1394,17 @@ $("#planFilter").addEventListener("click", e => {
   renderList();
 });
 
+/* 구분 필터 (수리 승인 / 수리 미승인 / 관리건) */
+$("#flagFilter").addEventListener("click", e => {
+  const btn = e.target.closest("button");
+  if (!btn) return;
+  flagFilter = btn.dataset.flag;
+  currentPage = 1;
+  selectFirst();
+  renderFilters();
+  renderList();
+});
+
 /* 추산 금액대 구간 (실시간) — 입력값에 천단위 콤마를 붙이고 숫자 상태를 갱신 */
 function onEstInput(el, setValue) {
   const digits = el.value.replace(/[^0-9]/g, "");
@@ -1404,6 +1427,7 @@ $("#btnReset").addEventListener("click", () => {
   allTypes = true;
   checkedTypes = new Set(typesForStage(activeStage));
   planFilter = "전체";
+  flagFilter = "전체";
   shopQuery = "";
   searchQuery = "";
   estMin = null;

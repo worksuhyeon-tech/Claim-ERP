@@ -49,7 +49,7 @@ const INTAKE_LIST_SIZE = 3;
       nextAction:"공업사에 청구 등록을 요청하세요." },
   ]);
   addSiblings("CLM-2026-0011", [
-    { id:"CLM-2026-0044", flowStage:"지급 / 정산", procStatus:"완료", urgency:"정상",
+    { id:"CLM-2026-0044", flowStage:"관리 / 정산", procStatus:"완료", urgency:"정상",
       actionType:"정산 완료", status:"정산 종결", elapsed:"종결", manager:"유나래",
       actionDesc:"과거 사고건 — 정산 종결 완료", nextAction:"-" },
     { id:"CLM-2026-0045", flowStage:"손해사정", procStatus:"완료", urgency:"정상",
@@ -1296,7 +1296,8 @@ function getDamageState(id, d) {
       estimate: "1,300,000",
       deductible: "300,000",
       laborSub: "", partsSub: "",   // AOS 선견적 재원(공임소계·부품소계) — 담당자 수정 가능
-      manageTarget: "",             // 관리대상 (분심위/소송/구상) — 미결일괄조회 '관리' 분류용
+      manageTarget: (typeof claimManageTarget === "function") ? claimManageTarget(id) : "",  // 관리대상(분심위/소송/구상) — 미결일괄조회 '관리건' 분류
+
       repairApproved: false, repairApprovedSent: false,   // 수리 승인 체크 / 송신 여부
     };
   }
@@ -2546,8 +2547,11 @@ function bindIntakeDamage(d) {
   });
   const aosPreBtn = body.querySelector("#dmAosPre");
   if (aosPreBtn) aosPreBtn.addEventListener("click", () => dmAosImportPre(d));
-  body.querySelectorAll("[data-dmradio]").forEach(r => r.addEventListener("change", () => {  // 수리여부·정비대차 라디오
-    if (r.checked) dmSetField(s, r.dataset.dmradio, r.value);
+  body.querySelectorAll("[data-dmradio]").forEach(r => r.addEventListener("change", () => {  // 수리여부·정비대차·관리대상 라디오
+    if (!r.checked) return;
+    dmSetField(s, r.dataset.dmradio, r.value);
+    // 관리대상은 미결일괄조회 '관리건' 분류에 쓰이므로 공용 저장소에 반영
+    if (r.dataset.dmradio === "manageTarget" && typeof setClaimManageTarget === "function") setClaimManageTarget(d.id, r.value);
   }));
   body.querySelectorAll("[data-dmlost]").forEach(cb => cb.addEventListener("change", () => {
     const v = cb.dataset.dmlost;
