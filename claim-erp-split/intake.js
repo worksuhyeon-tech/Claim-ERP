@@ -1296,6 +1296,7 @@ function getDamageState(id, d) {
       estimate: "1,300,000",
       deductible: "300,000",
       laborSub: "", partsSub: "",   // AOS 선견적 재원(공임소계·부품소계) — 담당자 수정 가능
+      manageTarget: "",             // 관리대상 (분심위/소송/구상) — 미결일괄조회 '관리' 분류용
       repairApproved: false, repairApprovedSent: false,   // 수리 승인 체크 / 송신 여부
     };
   }
@@ -1432,6 +1433,7 @@ function intakeDamageTab(d) {
       { k: "자차상태", raw: dmSel("ownState", s.ownState, DM_OWN_STATES) },
       { k: "처리상태", raw: `<select class="lg-csel" id="dmProcState" data-dm="procState">${procOpts.map(o => `<option ${o === s.procState ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>` },
       { k: "수리여부", raw: dmRadio("repaired", s.repaired, ["예", "아니요"], s.ownState !== "분손") },
+      { k: "관리대상", raw: dmRadio("manageTarget", s.manageTarget, ["분심위", "소송", "구상"]) },
       { k: "정비대차", raw: dmRadio("maintSub", s.maintSub, ["미이용", "이용"]) },
       { k: "분실대상", raw: dmLostHtml(s), full: true },
       { k: "차량구입액", raw: dmSkVal(s.buyPrice) },
