@@ -1295,6 +1295,7 @@ function getDamageState(id, d) {
       repairStartDate: "", repairEndDate: "", outDoneDate: "",
       estimate: "1,300,000",
       deductible: "300,000",
+      laborSub: "", partsSub: "",   // AOS 선견적 재원(공임소계·부품소계) — 담당자 수정 가능
       repairApproved: false, repairApprovedSent: false,   // 수리 승인 체크 / 송신 여부
     };
   }
@@ -1399,6 +1400,27 @@ function dmEstimateHtml(s) {
   const vat = Math.round(base * 1.1);
   return `<span class="lg-estwrap">${dmNum("estimate", s.estimate)}<span class="lg-estunit">원</span><span class="lg-estvat">(VAT 포함 <b id="dmEstVat">${won(vat)}</b>원)</span></span>`;
 }
+// 재원 합계 = 공임소계 + 부품소계 (담당자가 공임/부품 수정 시 실시간 갱신)
+function dmJaewonHtml(s) {
+  const total = dmNumOf(s.laborSub) + dmNumOf(s.partsSub);
+  return `<span class="lg-estwrap"><b class="lg-jaewon-total" id="dmJaewonTotal">${won(total)}</b><span class="lg-estunit">원</span><span class="lg-estvat">공임소계 + 부품소계</span></span>`;
+}
+function dmRecalcJaewon(body, s) {
+  const el = body.querySelector("#dmJaewonTotal");
+  if (el) el.textContent = won(dmNumOf(s.laborSub) + dmNumOf(s.partsSub));
+}
+// AOS 선견적 가져오기 — 공임소계·부품소계 재원 세팅 + 손상 사진 반영 (담당자 수정 가능)
+function dmAosImportPre(d) {
+  const s = getDamageState(d.id, d);
+  s.laborSub = "921,469";
+  s.partsSub = "1,028,760";
+  if (typeof aosMockSnapshot === "function" && typeof aosInjectImages === "function") {
+    aosInjectImages(d.id, aosMockSnapshot(d.id).images);   // 스냅샷 사진 반영
+  }
+  const body = $("#intakeBody");
+  if (body) { body.innerHTML = renderIntakeTab("damage", d); bindIntakeDamage(d); }
+  showToast("AOS 선견적을 가져왔습니다. 공임소계·부품소계·합계 재원과 손상 사진을 반영했습니다. 필요 시 금액을 수정하세요. (데모)");
+}
 function intakeDamageTab(d) {
   const s = getDamageState(d.id, d);
   const procOpts = DM_PROC_OPTS[s.ownState] || [];
@@ -1426,10 +1448,15 @@ function intakeDamageTab(d) {
       { k: "수리개시일", raw: dmDate("repairStartDate", s.repairStartDate) }, { k: "수리완료일", raw: dmDate("repairEndDate", s.repairEndDate) },
       { k: "출고완료일", raw: dmDate("outDoneDate", s.outDoneDate), full: true },
     ])
-    + lgSect("수리비 · 면책금", "※ VAT 별도 입력 · 선견적/AOS 연동")
+    + `<div class="lg-sect">수리비 · 면책금<span class="note">※ VAT 별도 입력 · 선견적/AOS 연동</span>
+        <button type="button" class="dm-aos-btn" id="dmAosPre" data-desc="AOS 선견적을 가져와 공임소계·부품소계·합계 재원과 손상 사진을 자동 반영합니다. 반영된 금액은 담당자가 직접 수정할 수 있습니다. (데모)">🚗 AOS 선견적 가져오기</button>
+      </div>`
     + lgTable([
       { k: "예상수리비", raw: dmEstimateHtml(s), full: true },
       { k: "면책금", raw: dmNum("deductible", s.deductible), full: true },
+      { k: "공임소계", raw: dmNum("laborSub", s.laborSub), full: true },
+      { k: "부품소계", raw: dmNum("partsSub", s.partsSub), full: true },
+      { k: "재원 합계", raw: dmJaewonHtml(s), full: true },
     ]);
 
   // 차량 손상 부위 — 사진 확대보기 + 정비공장 입력(좌, 읽기전용) ↔ 담당자 입력(우, 클릭 선택) 대조
@@ -1440,10 +1467,10 @@ function intakeDamageTab(d) {
        <div class="lg-dmg-photos-cap">손상 사진<span>썸네일을 클릭하면 확대보기 새 창이 열립니다 · 사진을 보며 파손부위를 선택하세요</span></div>
        <div class="lg-dmg-thumbs">${photos.map((im, i) => `<button type="button" class="lg-dmg-thumb" data-dmg-photo="${i}" data-desc="${iEsc(im.name)} — 클릭하면 확대보기 새 창이 열립니다."><img src="${iEsc(im.url)}" alt="${iEsc(im.name)}" loading="lazy"><span>${iEsc(im.name)}</span></button>`).join("")}</div>
      </div>`;
-  const approve = `<div class="lg-dmg-approve">
-       <label class="lg-approve-chk" data-desc="담당자가 확인한 파손부위 선택을 마친 뒤 '수리 승인'에 체크하고 하단 '저장'을 누르면, SK렌터카와 정비공장에 수리 승인 지시가 송신됩니다."><input type="checkbox" id="dmRepairApprove" ${s.repairApproved ? "checked" : ""}><span>수리 승인</span></label>
+  const approve = `<div class="lg-dmg-approve dm-approve-right">
        <span class="lg-approve-hint">파손부위 선택 완료 후 체크 → 하단 <b>'저장'</b> 시 SK렌터카·정비공장에 수리 승인 지시 송신</span>
        ${s.repairApprovedSent ? `<span class="lg-approve-sent">송신됨 ✓</span>` : ""}
+       <label class="lg-approve-chk" data-desc="담당자가 확인한 파손부위 선택을 마친 뒤 '수리 승인'에 체크하고 하단 '저장'을 누르면, SK렌터카와 정비공장에 수리 승인 지시가 송신됩니다."><input type="checkbox" id="dmRepairApprove" ${s.repairApproved ? "checked" : ""}><span>수리 승인</span></label>
      </div>`;
   const carDamage = lgSect("차량 손상 부위", "사진 확대보기 · 좌: 정비공장 입력 · 우: 담당자 입력 (실제 파손부위 대조용)")
     + photoStrip
@@ -2512,8 +2539,11 @@ function bindIntakeDamage(d) {
         });
       }
       if (el.dataset.dm === "estimate") dmRecalcEstimate(body, s);
+      if (el.dataset.dm === "laborSub" || el.dataset.dm === "partsSub") dmRecalcJaewon(body, s);
     });
   });
+  const aosPreBtn = body.querySelector("#dmAosPre");
+  if (aosPreBtn) aosPreBtn.addEventListener("click", () => dmAosImportPre(d));
   body.querySelectorAll("[data-dmradio]").forEach(r => r.addEventListener("change", () => {  // 수리여부·정비대차 라디오
     if (r.checked) dmSetField(s, r.dataset.dmradio, r.value);
   }));
