@@ -3,7 +3,7 @@ const activeView = "intake";
 
 let intakeClaimId = null;   // Smart업무처리에 바인딩된 사고건
 let intakeTab = "contract"; // "contract"(계약·사고정보) | "damage"(피해 진행정보) | "estimate"(청구 견적 정보)
-let estimateDocType = "claim"; // 청구 견적 문서 전환: "pre"(선견적) | "claim"(청구서)
+let estimateDocType = "pre"; // 청구 견적 문서 전환: "pre"(선견적, 기본) | "claim"(청구서)
 const intakeCloseType = {};    // 사고번호별 종결 구분: "면책" | "지급" (기본 지급)
 
 // 진행 메모 '구분' = 진행 이력 채널 분류 (라디오 필터와 동일 값)
@@ -1295,6 +1295,8 @@ function getDamageState(id, d) {
       repairStartDate: "", repairEndDate: "", outDoneDate: "",
       estimate: "1,300,000",
       deductible: "300,000",
+      laborSub: "", partsSub: "",   // AOS 선견적 재원(공임소계·부품소계) — 담당자 수정 가능
+      manageTarget: "",             // 관리대상 (분심위/소송/구상) — 미결일괄조회 '관리' 분류용
       repairApproved: false, repairApprovedSent: false,   // 수리 승인 체크 / 송신 여부
     };
   }
@@ -1399,6 +1401,27 @@ function dmEstimateHtml(s) {
   const vat = Math.round(base * 1.1);
   return `<span class="lg-estwrap">${dmNum("estimate", s.estimate)}<span class="lg-estunit">원</span><span class="lg-estvat">(VAT 포함 <b id="dmEstVat">${won(vat)}</b>원)</span></span>`;
 }
+// 재원 합계 = 공임소계 + 부품소계 (담당자가 공임/부품 수정 시 실시간 갱신)
+function dmJaewonHtml(s) {
+  const total = dmNumOf(s.laborSub) + dmNumOf(s.partsSub);
+  return `<span class="lg-estwrap"><b class="lg-jaewon-total" id="dmJaewonTotal">${won(total)}</b><span class="lg-estunit">원</span><span class="lg-estvat">공임소계 + 부품소계</span></span>`;
+}
+function dmRecalcJaewon(body, s) {
+  const el = body.querySelector("#dmJaewonTotal");
+  if (el) el.textContent = won(dmNumOf(s.laborSub) + dmNumOf(s.partsSub));
+}
+// AOS 선견적 가져오기 — 공임소계·부품소계 재원 세팅 + 손상 사진 반영 (담당자 수정 가능)
+function dmAosImportPre(d) {
+  const s = getDamageState(d.id, d);
+  s.laborSub = "921,469";
+  s.partsSub = "1,028,760";
+  if (typeof aosMockSnapshot === "function" && typeof aosInjectImages === "function") {
+    aosInjectImages(d.id, aosMockSnapshot(d.id).images);   // 스냅샷 사진 반영
+  }
+  const body = $("#intakeBody");
+  if (body) { body.innerHTML = renderIntakeTab("damage", d); bindIntakeDamage(d); }
+  showToast("AOS 선견적을 가져왔습니다. 공임소계·부품소계·합계 재원과 손상 사진을 반영했습니다. 필요 시 금액을 수정하세요. (데모)");
+}
 function intakeDamageTab(d) {
   const s = getDamageState(d.id, d);
   const procOpts = DM_PROC_OPTS[s.ownState] || [];
@@ -1410,13 +1433,13 @@ function intakeDamageTab(d) {
       { k: "자차상태", raw: dmSel("ownState", s.ownState, DM_OWN_STATES) },
       { k: "처리상태", raw: `<select class="lg-csel" id="dmProcState" data-dm="procState">${procOpts.map(o => `<option ${o === s.procState ? "selected" : ""}>${iEsc(o)}</option>`).join("")}</select>` },
       { k: "수리여부", raw: dmRadio("repaired", s.repaired, ["예", "아니요"], s.ownState !== "분손") },
+      { k: "관리대상", raw: dmRadio("manageTarget", s.manageTarget, ["분심위", "소송", "구상"]) },
       { k: "정비대차", raw: dmRadio("maintSub", s.maintSub, ["미이용", "이용"]) },
       { k: "분실대상", raw: dmLostHtml(s), full: true },
       { k: "차량구입액", raw: dmSkVal(s.buyPrice) },
       { k: "사고시가액", raw: dmSkVal(s.accidentValue) },
       { k: "예상잔존가", raw: `${dmSkVal(s.bookValue)} <span class="lg-cinhint">장부가액</span>`, full: true },
-    ])
-    + dmDeductDepositHtml(d);        // 면책금 입금내역 — '피해 진행' 아래(좌측 컬럼)에 배치
+    ]);        // 면책금 입금내역은 '청구 견적 정보' 탭 상단으로 이동
   const right = lgSect("공업사 · 수리", "※ AOS 연동 우선 · 미연동 시 SK 수신")
     + lgTable([
       { k: "공업사", raw: dmShopFieldHtml(s), full: true },
@@ -1427,10 +1450,15 @@ function intakeDamageTab(d) {
       { k: "수리개시일", raw: dmDate("repairStartDate", s.repairStartDate) }, { k: "수리완료일", raw: dmDate("repairEndDate", s.repairEndDate) },
       { k: "출고완료일", raw: dmDate("outDoneDate", s.outDoneDate), full: true },
     ])
-    + lgSect("수리비 · 면책금", "※ VAT 별도 입력 · 선견적/AOS 연동")
+    + `<div class="lg-sect">수리비 · 면책금<span class="note">※ VAT 별도 입력 · 선견적/AOS 연동</span>
+        <button type="button" class="dm-aos-btn" id="dmAosPre" data-desc="AOS 선견적을 가져와 공임소계·부품소계·합계 재원과 손상 사진을 자동 반영합니다. 반영된 금액은 담당자가 직접 수정할 수 있습니다. (데모)">🚗 AOS 선견적 가져오기</button>
+      </div>`
     + lgTable([
       { k: "예상수리비", raw: dmEstimateHtml(s), full: true },
       { k: "면책금", raw: dmNum("deductible", s.deductible), full: true },
+      { k: "공임소계", raw: dmNum("laborSub", s.laborSub), full: true },
+      { k: "부품소계", raw: dmNum("partsSub", s.partsSub), full: true },
+      { k: "재원 합계", raw: dmJaewonHtml(s), full: true },
     ]);
 
   // 차량 손상 부위 — 사진 확대보기 + 정비공장 입력(좌, 읽기전용) ↔ 담당자 입력(우, 클릭 선택) 대조
@@ -1441,10 +1469,10 @@ function intakeDamageTab(d) {
        <div class="lg-dmg-photos-cap">손상 사진<span>썸네일을 클릭하면 확대보기 새 창이 열립니다 · 사진을 보며 파손부위를 선택하세요</span></div>
        <div class="lg-dmg-thumbs">${photos.map((im, i) => `<button type="button" class="lg-dmg-thumb" data-dmg-photo="${i}" data-desc="${iEsc(im.name)} — 클릭하면 확대보기 새 창이 열립니다."><img src="${iEsc(im.url)}" alt="${iEsc(im.name)}" loading="lazy"><span>${iEsc(im.name)}</span></button>`).join("")}</div>
      </div>`;
-  const approve = `<div class="lg-dmg-approve">
-       <label class="lg-approve-chk" data-desc="담당자가 확인한 파손부위 선택을 마친 뒤 '수리 승인'에 체크하고 하단 '저장'을 누르면, SK렌터카와 정비공장에 수리 승인 지시가 송신됩니다."><input type="checkbox" id="dmRepairApprove" ${s.repairApproved ? "checked" : ""}><span>수리 승인</span></label>
+  const approve = `<div class="lg-dmg-approve dm-approve-right">
        <span class="lg-approve-hint">파손부위 선택 완료 후 체크 → 하단 <b>'저장'</b> 시 SK렌터카·정비공장에 수리 승인 지시 송신</span>
        ${s.repairApprovedSent ? `<span class="lg-approve-sent">송신됨 ✓</span>` : ""}
+       <label class="lg-approve-chk" data-desc="담당자가 확인한 파손부위 선택을 마친 뒤 '수리 승인'에 체크하고 하단 '저장'을 누르면, SK렌터카와 정비공장에 수리 승인 지시가 송신됩니다."><input type="checkbox" id="dmRepairApprove" ${s.repairApproved ? "checked" : ""}><span>수리 승인</span></label>
      </div>`;
   const carDamage = lgSect("차량 손상 부위", "사진 확대보기 · 좌: 정비공장 입력 · 우: 담당자 입력 (실제 파손부위 대조용)")
     + photoStrip
@@ -1952,63 +1980,55 @@ function lgEstTableHtml(allRows, baseLabel, sumLabel) {
 }
 function intakeEstimateTab(d) {
   const doc = d.estimateDoc;
-  if (!doc) {
-    // 견적 문서가 없어도 AI-OCR 부품청구서 등록·부품 지급결의는 가능(설계문서 §5.1)
-    const extra = ocrClaimExtraRows(d);
-    const partsTable = extra.length ? lgEstTableHtml(extra, "청구 내역", "부품 청구 합계") : "";
-    const note = extra.length ? "정비 견적(청구서)은 아직 없습니다. 아래는 AI-OCR로 등록한 부품 내역입니다." : "등록된 청구 견적 정보가 없습니다.";
-    return `<div class="lg-est-emptybar">
-      <div class="lg-est-empty">${note}</div>
-      <button type="button" class="ocr-pro-btn" id="ocrProBtn" data-desc="부품청구서를 업로드해 AI-OCR로 전산화하고 부품 지급결의를 생성합니다. (Pro 기능)"><span class="ai">🤖</span> AI-OCR <span class="tag">Pro</span></button>
-    </div>${partsTable}${ocrStageBarHtml(d)}${srApprComponentHtml(d)}`;
-  }
-  const rows = estimateDocType === "pre" ? doc.pre : doc.claim;
   const isPre = estimateDocType === "pre";
   const baseLabel = isPre ? "선견 내역" : "청구 내역";
   const docLabel = isPre ? "선견적" : "청구서";
+  const rows = doc ? (isPre ? doc.pre : doc.claim) : [];
+  // 가져온(데이터 있는) 모드 표시용 — 색반전(✓)
+  const hasPre = !!(doc && doc.pre && doc.pre.length);
+  const hasClaim = !!(doc && doc.claim && doc.claim.length);
 
-  // 요약 밴드 (문서 무관 고정 지표): 선견 / 청구 / 지급
-  const preTotal = estSum(doc.pre, "base");
-  const claimTotal = estSum(doc.claim, "base");
-  const band = `<div class="lg-est-band">
-    <div class="be-item"><span class="k">선견</span><span class="v">${won(preTotal)}</span></div>
-    <div class="be-item"><span class="k">청구</span><span class="v strong">${won(claimTotal)}</span></div>
+  // 요약 밴드 (견적 있을 때만)
+  const band = doc ? `<div class="lg-est-band">
+    <div class="be-item"><span class="k">선견</span><span class="v">${won(estSum(doc.pre, "base"))}</span></div>
+    <div class="be-item"><span class="k">청구</span><span class="v strong">${won(estSum(doc.claim, "base"))}</span></div>
     <div class="be-item"><span class="k">지급</span><span class="v paid">${won(doc.paidAmount)}</span><span class="tag">${doc.finalPaid ? "최종지급" : ""}</span></div>
     <div class="be-item wide"><span class="k">지급처</span><span class="v">${iEsc(doc.payTo)}</span></div>
-  </div>`;
+  </div>` : "";
 
-  // 진행 4단계 스텝퍼 (현재 보고 있는 문서의 두 단계를 강조)
-  const flow = `<div class="lg-est-flow">
-    ${ESTIMATE_STAGES.map((s, i) => `${i ? '<span class="arw">›</span>' : ""}<span class="be-step ${s.doc === estimateDocType ? "on" : ""}">${s.label}</span>`).join("")}
-  </div>`;
-
-  // 견적서 전환 토글 + AI-OCR Pro 버튼 (우측)
+  // 견적서 전환 토글 (견적 유무와 무관하게 항상 표시). 가져온 모드는 색반전(has-data) + ✓
+  const tglBtn = (m, label, on, has) =>
+    `<button type="button" class="be-tgl${on ? " on" : ""}${has ? " has-data" : ""}" data-estdoc="${m}" data-desc="'${label}' 내역으로 표를 전환합니다.${has ? " (가져온 견적 있음)" : ""}">${label}${has ? ' <span class="tgl-chk">✓</span>' : ""}</button>`;
   const toggle = `<div class="lg-est-toggle" role="tablist">
-    <span class="tl">견적서 전환</span>
-    <button type="button" class="be-tgl ${isPre ? "on" : ""}" data-estdoc="pre" data-desc="입고 전 개략 견적인 '선견적' 내역으로 표를 전환합니다.">선견적</button>
-    <button type="button" class="be-tgl ${!isPre ? "on" : ""}" data-estdoc="claim" data-desc="공업사가 정식 청구한 '청구서' 내역으로 표를 전환합니다.">청구서</button>
+    <span class="tl">견적서</span>
+    ${tglBtn("pre", "선견적", isPre, hasPre)}
+    ${tglBtn("claim", "청구서", !isPre, hasClaim)}
     <span class="grow"></span>
+    ${typeof aosImportBtnHtml === "function" ? aosImportBtnHtml() : ""}
     <button type="button" class="ocr-pro-btn" id="ocrProBtn" data-desc="부품청구서를 업로드해 AI-OCR로 전산화하고 부품 지급결의를 생성합니다. (Pro 기능)"><span class="ai">🤖</span> AI-OCR <span class="tag">Pro</span></button>
   </div>`;
 
-  // AI-OCR 부품 행: 청구서 보기에서만 정비 견적과 함께 표시(추가부품). 저장된 부품결의 + 미저장 스테이징.
+  // AI-OCR 부품 행: 청구서 보기에서만 정비 견적과 함께 표시(추가부품)
   const extra = !isPre ? ocrClaimExtraRows(d) : [];
   const allRows = rows.concat(extra);
   const sumLabel = extra.length ? `${docLabel} 합계 (정비+부품)` : `${docLabel} 합계`;
-  const table = lgEstTableHtml(allRows, baseLabel, sumLabel);
+  const body = allRows.length
+    ? lgEstTableHtml(allRows, baseLabel, sumLabel)
+    : `<div class="lg-est-empty">${docLabel} 견적이 아직 없습니다. 우측 <b>‘AOS 가져오기’</b>로 ${docLabel} 스냅샷을 가져오세요.</div>`;
 
-  return `<div class="lg-est">
+  return `${dmDeductDepositHtml(d)}${intakeEstimatePhotoStrip(d)}<div class="lg-est">
     <div class="lg-est-head">
       <div class="be-title"><span class="dot"></span>견적 정보 <span class="be-cur">현재 보기: ${docLabel}</span></div>
     </div>
-    ${intakeEstimatePhotoStrip(d)}
-    ${flow}
     ${toggle}
     ${band}
-    ${table}
+    ${body}
+    ${aosBarMaybe(d)}
     ${!isPre ? ocrStageBarHtml(d) : ""}
   </div>${srApprComponentHtml(d)}`;
 }
+// AOS 재원 가져오기 바 (견적 정보 내부 · intake-aos.js 로드 시에만 렌더)
+function aosBarMaybe(d) { return (typeof aosBarHtml === "function") ? aosBarHtml(d) : ""; }
 
 // 청구서 테이블에 함께 표시할 AI-OCR 부품 행(추가부품) — 저장된 부품결의 + 미저장 스테이징
 function ocrRowToEst(row, badge, unsaved) {
@@ -2056,9 +2076,10 @@ function bindIntakeEstimate(d) {
     estimateDocType = b.dataset.estdoc;
     const bodyEl = $("#intakeBody");
     if (bodyEl) {
-      bodyEl.innerHTML = renderIntakeTab(intakeTab, d);
-      bindIntakeEstimate(d); // 토글 재바인딩
-      bindIntakeApprForm(d); // 결재 폼 재바인딩
+      const fd = (typeof getIntakeData === "function" && getIntakeData(d.id)) || d; // AOS 반영 최신 데이터
+      bodyEl.innerHTML = renderIntakeTab(intakeTab, fd);
+      bindIntakeEstimate(fd); // 토글 재바인딩
+      bindIntakeApprForm(fd); // 결재 폼 재바인딩
     }
   }));
   // 가로 사진 뷰어 — 썸네일 클릭 시 확대 뷰어 오픈
@@ -2077,6 +2098,8 @@ function bindIntakeEstimate(d) {
   if (stageSave && typeof saveClaimResolutions === "function") stageSave.addEventListener("click", () => saveClaimResolutions(d));
   const stageCancel = $("#ocrStageCancel");
   if (stageCancel && typeof cancelStagedOcr === "function") stageCancel.addEventListener("click", () => cancelStagedOcr(d));
+  bindDeductDeposit(d);    // 면책금 입금내역 바인딩 (견적 탭 상단)
+  if (typeof bindIntakeAos === "function") bindIntakeAos(d);   // AOS 지급결의 바인딩
   bindIntakeApprForm(d);   // 결재 폼 최초 바인딩
 }
 
@@ -2518,8 +2541,11 @@ function bindIntakeDamage(d) {
         });
       }
       if (el.dataset.dm === "estimate") dmRecalcEstimate(body, s);
+      if (el.dataset.dm === "laborSub" || el.dataset.dm === "partsSub") dmRecalcJaewon(body, s);
     });
   });
+  const aosPreBtn = body.querySelector("#dmAosPre");
+  if (aosPreBtn) aosPreBtn.addEventListener("click", () => dmAosImportPre(d));
   body.querySelectorAll("[data-dmradio]").forEach(r => r.addEventListener("change", () => {  // 수리여부·정비대차 라디오
     if (r.checked) dmSetField(s, r.dataset.dmradio, r.value);
   }));
@@ -2530,8 +2556,11 @@ function bindIntakeDamage(d) {
   }));
   const sb = body.querySelector("#dmShopSearch");
   if (sb) sb.addEventListener("click", () => openShopSearchModal(d, s));
-
-  // 면책금 입금내역 — 입력 draft 동기화 / 저장(입력자·승인번호 자동) / 발생내역 토글·검색
+}
+// 면책금 입금내역 — 입력 draft 동기화 / 저장(입력자·승인번호 자동) / 발생내역 토글·검색
+// ('청구 견적 정보' 탭 상단에 위치 → bindIntakeEstimate에서 호출)
+function bindDeductDeposit(d) {
+  const body = $("#intakeBody"); if (!body) return;
   const dd = getDeductDeposit(d.id);
   body.querySelectorAll("[data-dd]").forEach(el => {
     const ev = el.tagName === "SELECT" ? "change" : "input";
@@ -2564,8 +2593,8 @@ function saveDeductDeposit(d) {
   const approvalNo = ddApprovalNo();
   dd.rows.push({ gubun: dr.gubun, date: dr.date, amount: dr.amount, payer: dr.payer, memo: dr.memo, inputter, approvalNo });
   dd.draft = { gubun: "", date: "", amount: "", payer: "", memo: "" };
-  $("#intakeBody").innerHTML = renderIntakeTab("damage", d);
-  bindIntakeDamage(d);
+  $("#intakeBody").innerHTML = renderIntakeTab("estimate", d);
+  bindIntakeEstimate(d);
   showToast(`면책금 입금내역을 저장했습니다. 입력자 ${inputter} · 승인번호 ${approvalNo} 채번 (데모)`);
 }
 // 공업사 검색·지정 팝업
