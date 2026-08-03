@@ -1,0 +1,2016 @@
+{
+  "page": {
+    "title": "협력업체 평가 관리 | CLAIM ERP",
+    "scrollWidth": 1440,
+    "scrollHeight": 900
+  },
+  "elements": [
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "닫기",
+      "id": "veClose",
+      "class": "xbtn",
+      "selector": "button#veClose.xbtn",
+      "href": null,
+      "name": null,
+      "dataset": {},
+      "handlers": {},
+      "fn": null,
+      "x": 1366,
+      "y": 11,
+      "w": 56,
+      "h": 34
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "① 평가항목 관리",
+      "id": null,
+      "class": "ve-tab active",
+      "selector": "button.ve-tab.active",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "tab": "item"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 18,
+      "y": 69,
+      "w": 140,
+      "h": 37
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "② 건수 관리",
+      "id": null,
+      "class": "ve-tab",
+      "selector": "button.ve-tab",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "tab": "quota"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 164,
+      "y": 69,
+      "w": 113,
+      "h": 37
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "③ 미리보기",
+      "id": null,
+      "class": "ve-tab",
+      "selector": "button.ve-tab",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "tab": "preview"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 283,
+      "y": 69,
+      "w": 108,
+      "h": 37
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "+ 항목추가",
+      "id": null,
+      "class": "ve-btn",
+      "selector": "button.ve-btn",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "act": "add"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 35,
+      "y": 121,
+      "w": 95,
+      "h": 34
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "- 항목삭제",
+      "id": null,
+      "class": "ve-btn gray",
+      "selector": "button.ve-btn.gray",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "act": "del"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 138,
+      "y": 121,
+      "w": 90,
+      "h": 34
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "▲ 위로",
+      "id": null,
+      "class": "ve-btn gray",
+      "selector": "button.ve-btn.gray",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "act": "up"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 253,
+      "y": 121,
+      "w": 69,
+      "h": 34
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "▼ 아래로",
+      "id": null,
+      "class": "ve-btn gray",
+      "selector": "button.ve-btn.gray",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "act": "down"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 330,
+      "y": 121,
+      "w": 82,
+      "h": 34
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "저장",
+      "id": null,
+      "class": "ve-btn",
+      "selector": "button.ve-btn",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "act": "save"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 1351,
+      "y": 121,
+      "w": 54,
+      "h": 34
+    },
+    {
+      "tag": "input",
+      "type": "radio",
+      "role": null,
+      "text": "on",
+      "id": null,
+      "class": null,
+      "selector": "input",
+      "href": null,
+      "name": "veItemSel",
+      "dataset": {
+        "pick": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 57,
+      "y": 226,
+      "w": 13,
+      "h": 13
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "Y",
+      "id": null,
+      "class": "ve-yn on",
+      "selector": "button.ve-yn.on",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "toggleuse": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 171,
+      "y": 223,
+      "w": 30,
+      "h": 22
+    },
+    {
+      "tag": "input",
+      "type": null,
+      "role": null,
+      "text": "선견적 신속도",
+      "id": null,
+      "class": "ve-in",
+      "selector": "input.ve-in",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "item_name"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 228,
+      "y": 221,
+      "w": 270,
+      "h": 27
+    },
+    {
+      "tag": "select",
+      "type": null,
+      "role": null,
+      "text": "YESNO SCALE CUSTOM",
+      "id": null,
+      "class": "ve-sel",
+      "selector": "select.ve-sel",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "answer_type"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 513,
+      "y": 220,
+      "w": 91,
+      "h": 29
+    },
+    {
+      "tag": "select",
+      "type": null,
+      "role": null,
+      "text": "RADIO SELECT",
+      "id": null,
+      "class": "ve-sel",
+      "selector": "select.ve-sel",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "input_ui"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 675,
+      "y": 220,
+      "w": 84,
+      "h": 29
+    },
+    {
+      "tag": "input",
+      "type": null,
+      "role": null,
+      "text": "(예=10점, 아니오=0점)",
+      "id": null,
+      "class": "ve-in",
+      "selector": "input.ve-in",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "help_text"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 826,
+      "y": 221,
+      "w": 270,
+      "h": 27
+    },
+    {
+      "tag": "input",
+      "type": "number",
+      "role": null,
+      "text": "10",
+      "id": null,
+      "class": "ve-in ve-num",
+      "selector": "input.ve-in.ve-num",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "max_score"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 1134,
+      "y": 221,
+      "w": 72,
+      "h": 27
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "Y",
+      "id": null,
+      "class": "ve-yn on",
+      "selector": "button.ve-yn.on",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "togglereq": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 1256,
+      "y": 223,
+      "w": 30,
+      "h": 22
+    },
+    {
+      "tag": "input",
+      "type": "radio",
+      "role": null,
+      "text": "on",
+      "id": null,
+      "class": null,
+      "selector": "input",
+      "href": null,
+      "name": "veItemSel",
+      "dataset": {
+        "pick": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 57,
+      "y": 266,
+      "w": 13,
+      "h": 13
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "Y",
+      "id": null,
+      "class": "ve-yn on",
+      "selector": "button.ve-yn.on",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "toggleuse": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 171,
+      "y": 263,
+      "w": 30,
+      "h": 22
+    },
+    {
+      "tag": "input",
+      "type": null,
+      "role": null,
+      "text": "정비작업 신속도",
+      "id": null,
+      "class": "ve-in",
+      "selector": "input.ve-in",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "item_name"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 228,
+      "y": 261,
+      "w": 270,
+      "h": 27
+    },
+    {
+      "tag": "select",
+      "type": null,
+      "role": null,
+      "text": "YESNO SCALE CUSTOM",
+      "id": null,
+      "class": "ve-sel",
+      "selector": "select.ve-sel",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "answer_type"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 513,
+      "y": 260,
+      "w": 91,
+      "h": 29
+    },
+    {
+      "tag": "select",
+      "type": null,
+      "role": null,
+      "text": "RADIO SELECT",
+      "id": null,
+      "class": "ve-sel",
+      "selector": "select.ve-sel",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "input_ui"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 675,
+      "y": 260,
+      "w": 84,
+      "h": 29
+    },
+    {
+      "tag": "input",
+      "type": null,
+      "role": null,
+      "text": "(예=10점, 아니오=0점)",
+      "id": null,
+      "class": "ve-in",
+      "selector": "input.ve-in",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "help_text"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 826,
+      "y": 261,
+      "w": 270,
+      "h": 27
+    },
+    {
+      "tag": "input",
+      "type": "number",
+      "role": null,
+      "text": "10",
+      "id": null,
+      "class": "ve-in ve-num",
+      "selector": "input.ve-in.ve-num",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "max_score"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 1134,
+      "y": 261,
+      "w": 72,
+      "h": 27
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "Y",
+      "id": null,
+      "class": "ve-yn on",
+      "selector": "button.ve-yn.on",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "togglereq": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 1256,
+      "y": 263,
+      "w": 30,
+      "h": 22
+    },
+    {
+      "tag": "input",
+      "type": "radio",
+      "role": null,
+      "text": "on",
+      "id": null,
+      "class": null,
+      "selector": "input",
+      "href": null,
+      "name": "veItemSel",
+      "dataset": {
+        "pick": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 57,
+      "y": 306,
+      "w": 13,
+      "h": 13
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "Y",
+      "id": null,
+      "class": "ve-yn on",
+      "selector": "button.ve-yn.on",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "toggleuse": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 171,
+      "y": 303,
+      "w": 30,
+      "h": 22
+    },
+    {
+      "tag": "input",
+      "type": null,
+      "role": null,
+      "text": "수리비청구 신속도",
+      "id": null,
+      "class": "ve-in",
+      "selector": "input.ve-in",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "item_name"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 228,
+      "y": 301,
+      "w": 270,
+      "h": 27
+    },
+    {
+      "tag": "select",
+      "type": null,
+      "role": null,
+      "text": "YESNO SCALE CUSTOM",
+      "id": null,
+      "class": "ve-sel",
+      "selector": "select.ve-sel",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "answer_type"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 513,
+      "y": 300,
+      "w": 91,
+      "h": 29
+    },
+    {
+      "tag": "select",
+      "type": null,
+      "role": null,
+      "text": "RADIO SELECT",
+      "id": null,
+      "class": "ve-sel",
+      "selector": "select.ve-sel",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "input_ui"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 675,
+      "y": 300,
+      "w": 84,
+      "h": 29
+    },
+    {
+      "tag": "input",
+      "type": null,
+      "role": null,
+      "text": "(15일초과=0점, 15일=1점, 10일=3점, 5일=5점, 3일=8점, 당일=10점)",
+      "id": null,
+      "class": "ve-in",
+      "selector": "input.ve-in",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "help_text"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 826,
+      "y": 301,
+      "w": 270,
+      "h": 27
+    },
+    {
+      "tag": "input",
+      "type": "number",
+      "role": null,
+      "text": "10",
+      "id": null,
+      "class": "ve-in ve-num",
+      "selector": "input.ve-in.ve-num",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "max_score"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 1134,
+      "y": 301,
+      "w": 72,
+      "h": 27
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "Y",
+      "id": null,
+      "class": "ve-yn on",
+      "selector": "button.ve-yn.on",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "togglereq": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 1256,
+      "y": 303,
+      "w": 30,
+      "h": 22
+    },
+    {
+      "tag": "input",
+      "type": "radio",
+      "role": null,
+      "text": "on",
+      "id": null,
+      "class": null,
+      "selector": "input",
+      "href": null,
+      "name": "veItemSel",
+      "dataset": {
+        "pick": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 57,
+      "y": 346,
+      "w": 13,
+      "h": 13
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "Y",
+      "id": null,
+      "class": "ve-yn on",
+      "selector": "button.ve-yn.on",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "toggleuse": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 171,
+      "y": 343,
+      "w": 30,
+      "h": 22
+    },
+    {
+      "tag": "input",
+      "type": null,
+      "role": null,
+      "text": "세차 지원",
+      "id": null,
+      "class": "ve-in",
+      "selector": "input.ve-in",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "item_name"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 228,
+      "y": 341,
+      "w": 270,
+      "h": 27
+    },
+    {
+      "tag": "select",
+      "type": null,
+      "role": null,
+      "text": "YESNO SCALE CUSTOM",
+      "id": null,
+      "class": "ve-sel",
+      "selector": "select.ve-sel",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "answer_type"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 513,
+      "y": 340,
+      "w": 91,
+      "h": 29
+    },
+    {
+      "tag": "select",
+      "type": null,
+      "role": null,
+      "text": "RADIO SELECT",
+      "id": null,
+      "class": "ve-sel",
+      "selector": "select.ve-sel",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "input_ui"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 675,
+      "y": 340,
+      "w": 84,
+      "h": 29
+    },
+    {
+      "tag": "input",
+      "type": null,
+      "role": null,
+      "text": "(예=10점, 아니오=0점)",
+      "id": null,
+      "class": "ve-in",
+      "selector": "input.ve-in",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "help_text"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 826,
+      "y": 341,
+      "w": 270,
+      "h": 27
+    },
+    {
+      "tag": "input",
+      "type": "number",
+      "role": null,
+      "text": "10",
+      "id": null,
+      "class": "ve-in ve-num",
+      "selector": "input.ve-in.ve-num",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "max_score"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 1134,
+      "y": 341,
+      "w": 72,
+      "h": 27
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "Y",
+      "id": null,
+      "class": "ve-yn on",
+      "selector": "button.ve-yn.on",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "togglereq": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 1256,
+      "y": 343,
+      "w": 30,
+      "h": 22
+    },
+    {
+      "tag": "input",
+      "type": "radio",
+      "role": null,
+      "text": "on",
+      "id": null,
+      "class": null,
+      "selector": "input",
+      "href": null,
+      "name": "veItemSel",
+      "dataset": {
+        "pick": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 57,
+      "y": 386,
+      "w": 13,
+      "h": 13
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "Y",
+      "id": null,
+      "class": "ve-yn on",
+      "selector": "button.ve-yn.on",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "toggleuse": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 171,
+      "y": 383,
+      "w": 30,
+      "h": 22
+    },
+    {
+      "tag": "input",
+      "type": null,
+      "role": null,
+      "text": "업무 협조",
+      "id": null,
+      "class": "ve-in",
+      "selector": "input.ve-in",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "item_name"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 228,
+      "y": 381,
+      "w": 270,
+      "h": 27
+    },
+    {
+      "tag": "select",
+      "type": null,
+      "role": null,
+      "text": "YESNO SCALE CUSTOM",
+      "id": null,
+      "class": "ve-sel",
+      "selector": "select.ve-sel",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "answer_type"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 513,
+      "y": 380,
+      "w": 91,
+      "h": 29
+    },
+    {
+      "tag": "select",
+      "type": null,
+      "role": null,
+      "text": "RADIO SELECT",
+      "id": null,
+      "class": "ve-sel",
+      "selector": "select.ve-sel",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "input_ui"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 675,
+      "y": 380,
+      "w": 84,
+      "h": 29
+    },
+    {
+      "tag": "input",
+      "type": null,
+      "role": null,
+      "text": "(점수 0~10 선택)",
+      "id": null,
+      "class": "ve-in",
+      "selector": "input.ve-in",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "help_text"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 826,
+      "y": 381,
+      "w": 270,
+      "h": 27
+    },
+    {
+      "tag": "input",
+      "type": "number",
+      "role": null,
+      "text": "10",
+      "id": null,
+      "class": "ve-in ve-num",
+      "selector": "input.ve-in.ve-num",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "max_score"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 1134,
+      "y": 381,
+      "w": 72,
+      "h": 27
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "Y",
+      "id": null,
+      "class": "ve-yn on",
+      "selector": "button.ve-yn.on",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "togglereq": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 1256,
+      "y": 383,
+      "w": 30,
+      "h": 22
+    },
+    {
+      "tag": "input",
+      "type": "radio",
+      "role": null,
+      "text": "on",
+      "id": null,
+      "class": null,
+      "selector": "input",
+      "href": null,
+      "name": "veItemSel",
+      "dataset": {
+        "pick": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 57,
+      "y": 426,
+      "w": 13,
+      "h": 13
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "Y",
+      "id": null,
+      "class": "ve-yn on",
+      "selector": "button.ve-yn.on",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "toggleuse": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 171,
+      "y": 423,
+      "w": 30,
+      "h": 22
+    },
+    {
+      "tag": "input",
+      "type": null,
+      "role": null,
+      "text": "사진규정 준수",
+      "id": null,
+      "class": "ve-in",
+      "selector": "input.ve-in",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "item_name"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 228,
+      "y": 421,
+      "w": 270,
+      "h": 27
+    },
+    {
+      "tag": "select",
+      "type": null,
+      "role": null,
+      "text": "YESNO SCALE CUSTOM",
+      "id": null,
+      "class": "ve-sel",
+      "selector": "select.ve-sel",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "answer_type"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 513,
+      "y": 420,
+      "w": 91,
+      "h": 29
+    },
+    {
+      "tag": "select",
+      "type": null,
+      "role": null,
+      "text": "RADIO SELECT",
+      "id": null,
+      "class": "ve-sel",
+      "selector": "select.ve-sel",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "input_ui"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 675,
+      "y": 420,
+      "w": 84,
+      "h": 29
+    },
+    {
+      "tag": "input",
+      "type": null,
+      "role": null,
+      "text": "(예=10점, 아니오=0점)",
+      "id": null,
+      "class": "ve-in",
+      "selector": "input.ve-in",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "help_text"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 826,
+      "y": 421,
+      "w": 270,
+      "h": 27
+    },
+    {
+      "tag": "input",
+      "type": "number",
+      "role": null,
+      "text": "10",
+      "id": null,
+      "class": "ve-in ve-num",
+      "selector": "input.ve-in.ve-num",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "max_score"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 1134,
+      "y": 421,
+      "w": 72,
+      "h": 27
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "Y",
+      "id": null,
+      "class": "ve-yn on",
+      "selector": "button.ve-yn.on",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "togglereq": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 1256,
+      "y": 423,
+      "w": 30,
+      "h": 22
+    },
+    {
+      "tag": "input",
+      "type": "radio",
+      "role": null,
+      "text": "on",
+      "id": null,
+      "class": null,
+      "selector": "input",
+      "href": null,
+      "name": "veItemSel",
+      "dataset": {
+        "pick": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 57,
+      "y": 466,
+      "w": 13,
+      "h": 13
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "Y",
+      "id": null,
+      "class": "ve-yn on",
+      "selector": "button.ve-yn.on",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "toggleuse": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 171,
+      "y": 463,
+      "w": 30,
+      "h": 22
+    },
+    {
+      "tag": "input",
+      "type": null,
+      "role": null,
+      "text": "선견적 적정성",
+      "id": null,
+      "class": "ve-in",
+      "selector": "input.ve-in",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "item_name"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 228,
+      "y": 461,
+      "w": 270,
+      "h": 27
+    },
+    {
+      "tag": "select",
+      "type": null,
+      "role": null,
+      "text": "YESNO SCALE CUSTOM",
+      "id": null,
+      "class": "ve-sel",
+      "selector": "select.ve-sel",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "answer_type"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 513,
+      "y": 460,
+      "w": 91,
+      "h": 29
+    },
+    {
+      "tag": "select",
+      "type": null,
+      "role": null,
+      "text": "RADIO SELECT",
+      "id": null,
+      "class": "ve-sel",
+      "selector": "select.ve-sel",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "input_ui"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 675,
+      "y": 460,
+      "w": 84,
+      "h": 29
+    },
+    {
+      "tag": "input",
+      "type": null,
+      "role": null,
+      "text": "(예=10점, 아니오=0점)",
+      "id": null,
+      "class": "ve-in",
+      "selector": "input.ve-in",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "help_text"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 826,
+      "y": 461,
+      "w": 270,
+      "h": 27
+    },
+    {
+      "tag": "input",
+      "type": "number",
+      "role": null,
+      "text": "10",
+      "id": null,
+      "class": "ve-in ve-num",
+      "selector": "input.ve-in.ve-num",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "max_score"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 1134,
+      "y": 461,
+      "w": 72,
+      "h": 27
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "Y",
+      "id": null,
+      "class": "ve-yn on",
+      "selector": "button.ve-yn.on",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "togglereq": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 1256,
+      "y": 463,
+      "w": 30,
+      "h": 22
+    },
+    {
+      "tag": "input",
+      "type": "radio",
+      "role": null,
+      "text": "on",
+      "id": null,
+      "class": null,
+      "selector": "input",
+      "href": null,
+      "name": "veItemSel",
+      "dataset": {
+        "pick": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 57,
+      "y": 506,
+      "w": 13,
+      "h": 13
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "Y",
+      "id": null,
+      "class": "ve-yn on",
+      "selector": "button.ve-yn.on",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "toggleuse": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 171,
+      "y": 503,
+      "w": 30,
+      "h": 22
+    },
+    {
+      "tag": "input",
+      "type": null,
+      "role": null,
+      "text": "수리비청구 적정성",
+      "id": null,
+      "class": "ve-in",
+      "selector": "input.ve-in",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "item_name"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 228,
+      "y": 501,
+      "w": 270,
+      "h": 27
+    },
+    {
+      "tag": "select",
+      "type": null,
+      "role": null,
+      "text": "YESNO SCALE CUSTOM",
+      "id": null,
+      "class": "ve-sel",
+      "selector": "select.ve-sel",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "answer_type"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 513,
+      "y": 500,
+      "w": 91,
+      "h": 29
+    },
+    {
+      "tag": "select",
+      "type": null,
+      "role": null,
+      "text": "RADIO SELECT",
+      "id": null,
+      "class": "ve-sel",
+      "selector": "select.ve-sel",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "input_ui"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 675,
+      "y": 500,
+      "w": 84,
+      "h": 29
+    },
+    {
+      "tag": "input",
+      "type": null,
+      "role": null,
+      "text": "(예=10점, 아니오=0점)",
+      "id": null,
+      "class": "ve-in",
+      "selector": "input.ve-in",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "help_text"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 826,
+      "y": 501,
+      "w": 270,
+      "h": 27
+    },
+    {
+      "tag": "input",
+      "type": "number",
+      "role": null,
+      "text": "10",
+      "id": null,
+      "class": "ve-in ve-num",
+      "selector": "input.ve-in.ve-num",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "max_score"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 1134,
+      "y": 501,
+      "w": 72,
+      "h": 27
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "Y",
+      "id": null,
+      "class": "ve-yn on",
+      "selector": "button.ve-yn.on",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "togglereq": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 1256,
+      "y": 503,
+      "w": 30,
+      "h": 22
+    },
+    {
+      "tag": "input",
+      "type": "radio",
+      "role": null,
+      "text": "on",
+      "id": null,
+      "class": null,
+      "selector": "input",
+      "href": null,
+      "name": "veItemSel",
+      "dataset": {
+        "pick": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 57,
+      "y": 546,
+      "w": 13,
+      "h": 13
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "Y",
+      "id": null,
+      "class": "ve-yn on",
+      "selector": "button.ve-yn.on",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "toggleuse": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 171,
+      "y": 543,
+      "w": 30,
+      "h": 22
+    },
+    {
+      "tag": "input",
+      "type": null,
+      "role": null,
+      "text": "청구 입증 충실도",
+      "id": null,
+      "class": "ve-in",
+      "selector": "input.ve-in",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "item_name"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 228,
+      "y": 541,
+      "w": 270,
+      "h": 27
+    },
+    {
+      "tag": "select",
+      "type": null,
+      "role": null,
+      "text": "YESNO SCALE CUSTOM",
+      "id": null,
+      "class": "ve-sel",
+      "selector": "select.ve-sel",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "answer_type"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 513,
+      "y": 540,
+      "w": 91,
+      "h": 29
+    },
+    {
+      "tag": "select",
+      "type": null,
+      "role": null,
+      "text": "RADIO SELECT",
+      "id": null,
+      "class": "ve-sel",
+      "selector": "select.ve-sel",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "input_ui"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 675,
+      "y": 540,
+      "w": 84,
+      "h": 29
+    },
+    {
+      "tag": "input",
+      "type": null,
+      "role": null,
+      "text": "(예=10점, 아니오=0점)",
+      "id": null,
+      "class": "ve-in",
+      "selector": "input.ve-in",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "help_text"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 826,
+      "y": 541,
+      "w": 270,
+      "h": 27
+    },
+    {
+      "tag": "input",
+      "type": "number",
+      "role": null,
+      "text": "10",
+      "id": null,
+      "class": "ve-in ve-num",
+      "selector": "input.ve-in.ve-num",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "max_score"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 1134,
+      "y": 541,
+      "w": 72,
+      "h": 27
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "Y",
+      "id": null,
+      "class": "ve-yn on",
+      "selector": "button.ve-yn.on",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "togglereq": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 1256,
+      "y": 543,
+      "w": 30,
+      "h": 22
+    },
+    {
+      "tag": "input",
+      "type": "radio",
+      "role": null,
+      "text": "on",
+      "id": null,
+      "class": null,
+      "selector": "input",
+      "href": null,
+      "name": "veItemSel",
+      "dataset": {
+        "pick": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 57,
+      "y": 586,
+      "w": 13,
+      "h": 13
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "Y",
+      "id": null,
+      "class": "ve-yn on",
+      "selector": "button.ve-yn.on",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "toggleuse": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 171,
+      "y": 583,
+      "w": 30,
+      "h": 22
+    },
+    {
+      "tag": "input",
+      "type": null,
+      "role": null,
+      "text": "시스템 입력 정확도",
+      "id": null,
+      "class": "ve-in",
+      "selector": "input.ve-in",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "item_name"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 228,
+      "y": 581,
+      "w": 270,
+      "h": 27
+    },
+    {
+      "tag": "select",
+      "type": null,
+      "role": null,
+      "text": "YESNO SCALE CUSTOM",
+      "id": null,
+      "class": "ve-sel",
+      "selector": "select.ve-sel",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "answer_type"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 513,
+      "y": 580,
+      "w": 91,
+      "h": 29
+    },
+    {
+      "tag": "select",
+      "type": null,
+      "role": null,
+      "text": "RADIO SELECT",
+      "id": null,
+      "class": "ve-sel",
+      "selector": "select.ve-sel",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "input_ui"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 675,
+      "y": 580,
+      "w": 84,
+      "h": 29
+    },
+    {
+      "tag": "input",
+      "type": null,
+      "role": null,
+      "text": "(예=10점, 아니오=0점)",
+      "id": null,
+      "class": "ve-in",
+      "selector": "input.ve-in",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "help_text"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 826,
+      "y": 581,
+      "w": 270,
+      "h": 27
+    },
+    {
+      "tag": "input",
+      "type": "number",
+      "role": null,
+      "text": "10",
+      "id": null,
+      "class": "ve-in ve-num",
+      "selector": "input.ve-in.ve-num",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "field": "max_score"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 1134,
+      "y": 581,
+      "w": 72,
+      "h": 27
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "Y",
+      "id": null,
+      "class": "ve-yn on",
+      "selector": "button.ve-yn.on",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "togglereq": ""
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 1256,
+      "y": 583,
+      "w": 30,
+      "h": 22
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "+ 옵션추가",
+      "id": null,
+      "class": "ve-btn small",
+      "selector": "button.ve-btn.small",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "oact": "add"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 305,
+      "y": 694,
+      "w": 84,
+      "h": 29
+    },
+    {
+      "tag": "input",
+      "type": null,
+      "role": null,
+      "text": "예",
+      "id": null,
+      "class": "ve-in",
+      "selector": "input.ve-in",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "ofield": "option_label"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 96,
+      "y": 766,
+      "w": 232,
+      "h": 27
+    },
+    {
+      "tag": "input",
+      "type": "number",
+      "role": null,
+      "text": "10",
+      "id": null,
+      "class": "ve-in ve-num",
+      "selector": "input.ve-in.ve-num",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "ofield": "score"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 356,
+      "y": 766,
+      "w": 72,
+      "h": 27
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "▲",
+      "id": null,
+      "class": "ve-mini",
+      "selector": "button.ve-mini",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "oact": "up"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 475,
+      "y": 769,
+      "w": 24,
+      "h": 21
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "▼",
+      "id": null,
+      "class": "ve-mini",
+      "selector": "button.ve-mini",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "oact": "down"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 503,
+      "y": 769,
+      "w": 24,
+      "h": 21
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "삭제",
+      "id": null,
+      "class": "ve-mini gray",
+      "selector": "button.ve-mini.gray",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "oact": "del"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 531,
+      "y": 768,
+      "w": 38,
+      "h": 23
+    },
+    {
+      "tag": "input",
+      "type": null,
+      "role": null,
+      "text": "아니오",
+      "id": null,
+      "class": "ve-in",
+      "selector": "input.ve-in",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "ofield": "option_label"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 96,
+      "y": 804,
+      "w": 232,
+      "h": 27
+    },
+    {
+      "tag": "input",
+      "type": "number",
+      "role": null,
+      "text": "0",
+      "id": null,
+      "class": "ve-in ve-num",
+      "selector": "input.ve-in.ve-num",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "ofield": "score"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 356,
+      "y": 804,
+      "w": 72,
+      "h": 27
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "▲",
+      "id": null,
+      "class": "ve-mini",
+      "selector": "button.ve-mini",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "oact": "up"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 475,
+      "y": 807,
+      "w": 24,
+      "h": 21
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "▼",
+      "id": null,
+      "class": "ve-mini",
+      "selector": "button.ve-mini",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "oact": "down"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 503,
+      "y": 807,
+      "w": 24,
+      "h": 21
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "삭제",
+      "id": null,
+      "class": "ve-mini gray",
+      "selector": "button.ve-mini.gray",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "oact": "del"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 531,
+      "y": 806,
+      "w": 38,
+      "h": 23
+    }
+  ],
+  "screen": {
+    "name": "vendor-eval",
+    "file": "vendor-eval.html",
+    "label": "협력업체 평가",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    }
+  }
+}

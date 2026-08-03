@@ -1,0 +1,504 @@
+{
+  "page": {
+    "title": "메시지 발송 | CLAIM ERP",
+    "scrollWidth": 1440,
+    "scrollHeight": 900
+  },
+  "elements": [
+    {
+      "tag": "select",
+      "type": null,
+      "role": null,
+      "text": "담당자(직원) 시스템담당자",
+      "id": "roleSel",
+      "class": null,
+      "selector": "select#roleSel",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "desc": "데모용 권한 전환입니다. '시스템담당자'를 선택하면 표준문구설정 버튼이 추가로 표시됩니다."
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 1309,
+      "y": 11,
+      "w": 113,
+      "h": 29
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "운전자확인 운전면허 확인 안내",
+      "id": null,
+      "class": "tpl",
+      "selector": "button.tpl",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "ch": "ALIMTALK",
+        "tpl": "R1",
+        "desc": "알림톡 승인 템플릿입니다. 선택하면 SK 대표번호로 발송되며 내용은 수정할 수 없습니다."
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 31,
+      "y": 219,
+      "w": 669,
+      "h": 35
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "사고처리진행안내 임직원 확인 서류 제출 안내",
+      "id": null,
+      "class": "tpl",
+      "selector": "button.tpl",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "ch": "ALIMTALK",
+        "tpl": "R2",
+        "desc": "알림톡 승인 템플릿입니다. 선택하면 SK 대표번호로 발송되며 내용은 수정할 수 없습니다."
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 31,
+      "y": 259,
+      "w": 669,
+      "h": 35
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "가족관계서류 가족관계확인서류 제출 안내",
+      "id": null,
+      "class": "tpl",
+      "selector": "button.tpl",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "ch": "ALIMTALK",
+        "tpl": "R3",
+        "desc": "알림톡 승인 템플릿입니다. 선택하면 SK 대표번호로 발송되며 내용은 수정할 수 없습니다."
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 31,
+      "y": 299,
+      "w": 669,
+      "h": 35
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "담당자안내 담당자 지정 및 변경 안내",
+      "id": null,
+      "class": "tpl",
+      "selector": "button.tpl",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "ch": "ALIMTALK",
+        "tpl": "R4",
+        "desc": "알림톡 승인 템플릿입니다. 선택하면 SK 대표번호로 발송되며 내용은 수정할 수 없습니다."
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 31,
+      "y": 339,
+      "w": 669,
+      "h": 35
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "개인정보동의 개인정보동의 안내",
+      "id": null,
+      "class": "tpl",
+      "selector": "button.tpl",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "ch": "ALIMTALK",
+        "tpl": "R5",
+        "desc": "알림톡 승인 템플릿입니다. 선택하면 SK 대표번호로 발송되며 내용은 수정할 수 없습니다."
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 31,
+      "y": 379,
+      "w": 669,
+      "h": 35
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "주소록",
+      "id": null,
+      "class": "lbtn",
+      "selector": "button.lbtn",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "open": "addr",
+        "desc": "자주 쓰는 지급처 연락처(정비·부품·렌트 등)를 등록·관리합니다. 저장하면 '받는 사람'에 나타납니다."
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 18,
+      "y": 437,
+      "w": 344,
+      "h": 37
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "템플릿설정",
+      "id": null,
+      "class": "lbtn",
+      "selector": "button.lbtn",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "open": "tpl",
+        "desc": "개인 문구를 등록하고 단축키(Alt+숫자)를 지정합니다. 발송 화면에서 Alt+숫자로 바로 불러옵니다."
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 370,
+      "y": 437,
+      "w": 344,
+      "h": 37
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "자유문구 자유문구 (직접 작성)",
+      "id": null,
+      "class": "tpl",
+      "selector": "button.tpl",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "ch": "LMS",
+        "tpl": "FREE",
+        "desc": "빈 문서로 시작해 직접 작성하는 자유문구입니다. 문자(LMS)로 발송됩니다."
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 31,
+      "y": 603,
+      "w": 669,
+      "h": 35
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "표준문구 대물입고안내(소유)",
+      "id": null,
+      "class": "tpl",
+      "selector": "button.tpl",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "ch": "LMS",
+        "tpl": "S1",
+        "desc": "선택하면 발송내용에 채워지고, 문자(LMS)로 수정·발송할 수 있습니다."
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 31,
+      "y": 643,
+      "w": 669,
+      "h": 35
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "표준문구 대물입고안내(피보)",
+      "id": null,
+      "class": "tpl",
+      "selector": "button.tpl",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "ch": "LMS",
+        "tpl": "S2",
+        "desc": "선택하면 발송내용에 채워지고, 문자(LMS)로 수정·발송할 수 있습니다."
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 31,
+      "y": 683,
+      "w": 669,
+      "h": 35
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "표준문구 사업자등록여부",
+      "id": null,
+      "class": "tpl",
+      "selector": "button.tpl",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "ch": "LMS",
+        "tpl": "S3",
+        "desc": "선택하면 발송내용에 채워지고, 문자(LMS)로 수정·발송할 수 있습니다."
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 31,
+      "y": 723,
+      "w": 669,
+      "h": 35
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "표준문구 렌트모바일시스템 설치안내",
+      "id": null,
+      "class": "tpl",
+      "selector": "button.tpl",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "ch": "LMS",
+        "tpl": "S4",
+        "desc": "선택하면 발송내용에 채워지고, 문자(LMS)로 수정·발송할 수 있습니다."
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 31,
+      "y": 763,
+      "w": 669,
+      "h": 35
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "개인문구 [1] 재통화 요청",
+      "id": null,
+      "class": "tpl",
+      "selector": "button.tpl",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "ch": "LMS",
+        "tpl": "P1",
+        "desc": "선택하면 발송내용에 채워지고, 문자(LMS)로 수정·발송할 수 있습니다."
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 31,
+      "y": 803,
+      "w": 669,
+      "h": 35
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "개인문구 [2] 렌트 안내",
+      "id": null,
+      "class": "tpl",
+      "selector": "button.tpl",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "ch": "LMS",
+        "tpl": "P2",
+        "desc": "선택하면 발송내용에 채워지고, 문자(LMS)로 수정·발송할 수 있습니다."
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 31,
+      "y": 843,
+      "w": 669,
+      "h": 35
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "role": null,
+      "text": "on",
+      "id": null,
+      "class": null,
+      "selector": "input",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "rc": "p0"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 758,
+      "y": 193,
+      "w": 17,
+      "h": 17
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "role": null,
+      "text": "on",
+      "id": null,
+      "class": null,
+      "selector": "input",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "rc": "p1"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 758,
+      "y": 245,
+      "w": 17,
+      "h": 17
+    },
+    {
+      "tag": "input",
+      "type": "checkbox",
+      "role": null,
+      "text": "on",
+      "id": null,
+      "class": null,
+      "selector": "input",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "rc": "p2"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 758,
+      "y": 297,
+      "w": 17,
+      "h": 17
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "role": null,
+      "text": "이름",
+      "id": "mName",
+      "class": "mn",
+      "selector": "input#mName.mn",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "desc": "목록에 없는 사람에게 보낼 때 이름을 입력합니다.(선택)"
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 740,
+      "y": 338,
+      "w": 96,
+      "h": 33
+    },
+    {
+      "tag": "input",
+      "type": "text",
+      "role": null,
+      "text": "휴대폰번호 (예: 010-1234-5678)",
+      "id": "mPhone",
+      "class": "mp",
+      "selector": "input#mPhone.mp",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "desc": "직접 보낼 휴대폰번호를 입력합니다. 형식이 맞으면 '번호 추가'로 수신자에 등록됩니다."
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 842,
+      "y": 338,
+      "w": 477,
+      "h": 33
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "번호 추가",
+      "id": "mAdd",
+      "class": "add",
+      "selector": "button#mAdd.add",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "desc": "입력한 이름·번호를 수신자 목록에 추가합니다."
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 1325,
+      "y": 337,
+      "w": 84,
+      "h": 35
+    },
+    {
+      "tag": "textarea",
+      "type": null,
+      "role": null,
+      "text": "보낼 내용을 입력하세요. 위 템플릿을 선택하면 자동으로 채워집니다.",
+      "id": "contentTa",
+      "class": "content-ta",
+      "selector": "textarea#contentTa.content-ta",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "desc": "실제 발송 내용입니다. 알림톡은 수정 불가, 문자(LMS)는 수정 가능합니다. #{...} 변수가 남아 있으면 발송할 수 없습니다."
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 740,
+      "y": 446,
+      "w": 669,
+      "h": 118
+    },
+    {
+      "tag": "button",
+      "type": "button",
+      "role": null,
+      "text": "문자 발송",
+      "id": "sendBtn",
+      "class": "send-btn",
+      "selector": "button#sendBtn.send-btn",
+      "href": null,
+      "name": null,
+      "dataset": {
+        "desc": "선택한 수신자에게 발송합니다. 발송 전 확인 창에서 수신자 수와 미리보기를 확인합니다."
+      },
+      "handlers": {},
+      "fn": null,
+      "x": 1296,
+      "y": 607,
+      "w": 113,
+      "h": 38
+    }
+  ],
+  "screen": {
+    "name": "message-send",
+    "file": "message-send.html",
+    "label": "메시지 발송",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    }
+  }
+}
