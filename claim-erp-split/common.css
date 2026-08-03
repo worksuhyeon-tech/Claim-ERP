@@ -431,6 +431,8 @@
   .badge.rev-appr { background: var(--blue-soft); color: var(--blue); }
   /* 손해사정 AOS 읽기전용 뱃지 */
   .badge.aos-ro   { background: #EEF2FF; color: #4338CA; }
+  /* 관리대상(분심위/소송/구상) 뱃지 */
+  .badge.mgt      { background: #F3E8FF; color: #7E22CE; font-size: 10.5px; padding: 2px 7px; }
 
   /* 운전자 정보 유무 도형 (원=있음 / 삼각형=없음) */
   .dvi { display: inline-block; vertical-align: middle; margin-left: 6px; }

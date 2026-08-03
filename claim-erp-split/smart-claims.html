@@ -299,7 +299,7 @@
             <option value="접수·선견적">접수·선견적</option>
             <option value="수리 승인">수리 승인</option>
             <option value="손해사정">손해사정</option>
-            <option value="지급 / 정산">지급 / 정산</option>
+            <option value="관리 / 정산">관리 / 정산</option>
           </select>
         </div>
       </div>
@@ -312,6 +312,15 @@
           <button type="button" data-plan="전체" class="active" data-desc="계획 표시(긴급·관심)와 상관없이 모든 건을 표시합니다.">전체</button>
           <button type="button" data-plan="긴급" data-desc="목록에서 ★긴급으로 표시(별점)한 건만 모아 봅니다."><span class="star urgent">★</span>긴급</button>
           <button type="button" data-plan="관심" data-desc="목록에서 ★관심으로 표시(별점)한 건만 모아 봅니다."><span class="star watch">★</span>관심</button>
+        </div>
+      </div>
+      <div class="clf-field">
+        <label>구분</label>
+        <div class="clf-plan" id="flagFilter">
+          <button type="button" data-flag="전체" class="active" data-desc="수리 승인/관리 구분과 상관없이 모든 건을 표시합니다.">전체</button>
+          <button type="button" data-flag="수리승인" data-desc="수리 승인이 완료된 건만 모아 봅니다.">수리 승인</button>
+          <button type="button" data-flag="수리미승인" data-desc="아직 수리 승인 전인 건만 모아 봅니다.">수리 미승인</button>
+          <button type="button" data-flag="관리건" data-desc="관리대상(분심위·소송·구상)으로 지정된 건만 모아 봅니다.">관리건</button>
         </div>
       </div>
       <div class="clf-field">
