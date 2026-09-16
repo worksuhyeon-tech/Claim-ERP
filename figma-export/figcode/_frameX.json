@@ -1,0 +1,46 @@
+[
+  {
+    "name": "index",
+    "frameX": 0
+  },
+  {
+    "name": "smart-claims",
+    "frameX": 2464
+  },
+  {
+    "name": "smart-intake",
+    "frameX": 4928
+  },
+  {
+    "name": "image-system",
+    "frameX": 7392
+  },
+  {
+    "name": "approval-list",
+    "frameX": 9856
+  },
+  {
+    "name": "assignment-management",
+    "frameX": 12320
+  },
+  {
+    "name": "vendor-inquiry",
+    "frameX": 14784
+  },
+  {
+    "name": "vendor-eval",
+    "frameX": 17248
+  },
+  {
+    "name": "message-send",
+    "frameX": 19712
+  },
+  {
+    "name": "ai-dashboard",
+    "frameX": 22176
+  },
+  {
+    "name": "smart-claims-demo",
+    "frameX": 24640
+  }
+]

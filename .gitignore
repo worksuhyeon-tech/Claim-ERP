@@ -6,3 +6,6 @@
 .codex/
 .env
 .env/
+
+# figma-export tooling
+node_modules/
